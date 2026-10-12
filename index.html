@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Ligne – entraînement au cold calling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#3D6BFF; --blue-soft:#E8EEFF; --blue-deep:#16235A; --orange:#FF7A4D; --orange-soft:#FFEDE6;
+  --ink:#232A31; --mute:#66707C; --paper:#F4F6FA; --line:#DCE1EA; --white:#FFFFFF;
+  --ok:#1E9A68; --ok-soft:#DDF3EA; --mid:#B87700; --mid-soft:#FFF2D6; --ko:#D24444; --ko-soft:#FBE3E3; --none:#9AA3AE;
+  --font:"Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+[hidden]{display:none !important}
+h1,h2,h3{letter-spacing:-.01em}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 64px}
+
+/* Barre du haut */
+.topbar{background:var(--white);border-bottom:1.5px solid var(--line);position:sticky;top:0;z-index:20}
+.topbar .in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px}
+.logo{font-weight:700;font-size:1.25rem;background:none;border:0;padding:0;cursor:pointer;display:flex;align-items:center;gap:10px}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--orange);display:inline-block;position:relative}
+.logo i::after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--white)}
+.spacer{flex:1}
+.who-chip{color:var(--mute);font-size:.93rem}
+.who-chip b{color:var(--ink);font-weight:500}
+
+/* Boutons */
+.btn{border:0;border-radius:999px;padding:11px 20px;font-weight:600;cursor:pointer;background:var(--blue);color:var(--white);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.orange{background:var(--orange)}
+.btn.big{padding:16px 30px;font-size:1.08rem}
+.btn.small{padding:7px 14px;font-size:.9rem}
+.link{background:none;border:0;color:var(--blue);cursor:pointer;padding:0;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+
+/* Champs */
+.field{display:flex;flex-direction:column;gap:5px;min-width:180px;flex:1}
+.field label{font-size:.88rem;font-weight:500}
+.field input,.field select,.field textarea{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--white)}
+.field textarea{resize:vertical;min-height:58px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.check{display:flex;gap:8px;align-items:center;font-size:.9rem;color:var(--mute)}
+.status{font-size:.9rem;margin-top:10px}
+.status.ok{color:var(--ok)} .status.err{color:var(--ko)}
+
+/* Fenêtres */
+dialog{border:0;border-radius:18px;padding:0;max-width:640px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(22,35,90,.25)}
+dialog::backdrop{background:rgba(22,35,90,.45)}
+.dlg{padding:26px 26px 22px}
+.dlg h2{margin:0 0 6px;font-size:1.3rem}
+.dlg p.hint{color:var(--mute);margin:0 0 16px;font-size:.93rem}
+.dlg .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.dlg h3{font-size:1rem;margin:22px 0 8px}
+
+/* Accueil */
+.hero{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;margin:28px 0 34px;align-items:stretch}
+@media (max-width:860px){.hero{grid-template-columns:1fr}}
+.focus{background:var(--blue-deep);color:var(--white);border-radius:22px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.focus .hello{opacity:.75;margin:0}
+.focus h1{margin:0;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.2;font-weight:600;max-width:28ch}
+.focus .sub{opacity:.8;margin:0;max-width:52ch}
+.focus .go{margin-top:auto;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px}
+.stat .v{font-size:1.9rem;font-weight:600;line-height:1.1}
+.stat .l{color:var(--mute);font-size:.88rem}
+.stat.wide{grid-column:1/-1}
+.spark{display:block;width:100%;height:46px;margin-top:6px}
+
+.sec-title{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 14px}
+.sec-title h2{margin:0;font-size:1.2rem}
+.sec-title p{margin:0;color:var(--mute);font-size:.92rem}
+
+.path{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:18px;position:relative}
+@media (max-width:760px){.path{grid-template-columns:1fr;gap:12px}}
+.step{background:var(--white);border:1.5px solid var(--line);border-radius:18px;padding:18px;margin-right:18px;position:relative;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px}
+.path .step:last-child{margin-right:0}
+@media (min-width:761px){.path .step:not(:last-child)::after{content:"";position:absolute;right:-19px;top:36px;width:18px;height:2px;background:var(--line)}}
+@media (max-width:760px){.step{margin-right:0}}
+.step:hover{border-color:var(--blue)}
+.step.rec{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
+.step .top{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;background:var(--blue-soft);color:var(--blue);flex:0 0 34px}
+.step.done .badge{background:var(--ok);color:var(--white)}
+.step strong{font-weight:600;font-size:1.02rem}
+.step .meta{color:var(--mute);font-size:.88rem}
+.state{font-size:.82rem;font-weight:600;border-radius:999px;padding:3px 10px;align-self:flex-start}
+.state.todo{background:var(--paper);color:var(--mute)}
+.state.wip{background:var(--mid-soft);color:var(--mid)}
+.state.done{background:var(--ok-soft);color:var(--ok)}
+.state.rec{background:var(--orange);color:var(--white)}
+.minibar{height:6px;border-radius:999px;background:var(--paper);overflow:hidden;margin-top:4px}
+.minibar span{display:block;height:100%;background:var(--blue)}
+.drills{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:36px}
+@media (max-width:760px){.drills{grid-template-columns:1fr}}
+.drills .step{margin-right:0}
+
+.history{background:var(--white);border:1.5px solid var(--line);border-radius:16px;overflow:hidden}
+.hrow{display:grid;grid-template-columns:110px 1fr 90px 120px 1.4fr;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);align-items:center;font-size:.93rem}
+.hrow:last-child{border-bottom:0}
+.hrow.head{color:var(--mute);font-size:.84rem;font-weight:500;background:var(--paper)}
+@media (max-width:760px){.hrow{grid-template-columns:1fr 70px}.hrow .hide-s{display:none}}
+.score-tag{font-weight:600}
+.empty{padding:28px 18px;color:var(--mute);text-align:center}
+
+/* Préparation */
+.back{margin:22px 0 14px;display:inline-block}
+.prep{display:grid;grid-template-columns:360px 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.prep{grid-template-columns:1fr}}
+.card{background:var(--white);border:1.5px solid var(--line);border-radius:18px;padding:22px}
+.card h2{margin:0 0 4px;font-size:1.25rem}
+.card .goal{color:var(--mute);margin:0 0 16px}
+dl.fiche{margin:0;display:grid;gap:12px}
+dl.fiche dt{font-size:.82rem;color:var(--mute)}
+dl.fiche dd{margin:0;font-weight:500}
+dl.fiche dd.actu{background:var(--orange-soft);border-radius:10px;padding:10px 12px;font-weight:500}
+.prepq{display:grid;gap:14px}
+.prepq .count{font-size:.82rem;color:var(--mute);text-align:right}
+.callbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1.5px solid var(--line)}
+.callbar .note{color:var(--mute);font-size:.9rem;max-width:44ch}
+.axe-remind{background:var(--blue-soft);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.95rem}
+.axe-remind b{font-weight:600}
+details.memo{background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:14px 18px;margin-top:18px}
+details.memo summary{cursor:pointer;font-weight:600}
+.memo-body{font-size:.92rem}
+.memo-body ol{padding-left:20px;margin:10px 0}
+.memo-body li{margin-bottom:6px}
+.memo-body .obj{border-top:1px solid var(--line);padding:8px 0}
+.memo-body .obj b{display:block;font-weight:600}
+
+/* Appel */
+.callwrap{display:grid;grid-template-columns:1fr;gap:16px;margin-top:24px}
+.callwrap.memo-open{grid-template-columns:1fr 340px}
+@media (max-width:900px){.callwrap.memo-open{grid-template-columns:1fr}}
+.call{background:var(--blue-deep);color:var(--white);border-radius:24px;padding:36px 24px 30px;min-height:560px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.call .who{font-size:clamp(2rem,5vw,3.2rem);font-weight:700;letter-spacing:-.02em;margin:0}
+.call .org{opacity:.75;margin:4px 0 0}
+.ringzone{position:relative;width:230px;height:230px;margin:30px 0 22px;display:grid;place-items:center}
+.ring{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.18);transition:transform .08s linear,border-color .2s}
+.ring.prospect{border-color:var(--blue)}
+.ring.me{border-color:var(--orange)}
+.core{width:146px;height:146px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:2.4rem;font-weight:600}
+.timer{font-variant-numeric:tabular-nums;font-size:1.4rem;font-weight:500}
+.timer.warn{color:var(--orange)}
+.callstate{opacity:.8;margin:6px 0 22px;min-height:1.5em}
+.call .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.hang{background:var(--ko);color:var(--white)}
+.toggle{background:rgba(255,255,255,.12);color:var(--white)}
+.toggle[aria-pressed="true"]{background:rgba(255,255,255,.26)}
+.live{width:100%;max-width:640px;margin-top:22px;text-align:left;max-height:220px;overflow-y:auto;background:rgba(255,255,255,.06);border-radius:12px;padding:12px 16px;font-size:.93rem}
+.live p{margin:0 0 8px}
+.callerr{background:rgba(210,68,68,.22);border-radius:10px;padding:10px 14px;margin-top:16px;max-width:640px;font-size:.93rem}
+.memo-side{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:18px 20px;max-height:640px;overflow-y:auto}
+.memo-side h3{margin:0 0 8px;font-size:1rem}
+.kbd{font-size:.8rem;color:var(--mute);margin-top:14px}
+
+/* Débrief */
+.debrief{display:grid;gap:20px;margin-top:24px}
+.dtop{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;background:var(--white);border:1.5px solid var(--line);border-radius:22px;padding:24px}
+@media (max-width:700px){.dtop{grid-template-columns:1fr;justify-items:start}}
+.gauge{width:150px;height:150px;position:relative}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge .num{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gauge .num b{font-size:2.6rem;font-weight:700;line-height:1;display:block}
+.gauge .num small{color:var(--mute);font-size:.82rem}
+.dtop h2{margin:0 0 8px;font-size:1.45rem;max-width:34ch}
+.dtags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{display:inline-block;border-radius:999px;padding:4px 12px;font-size:.86rem;font-weight:600}
+.pill.yes{background:var(--ok-soft);color:var(--ok)} .pill.no{background:var(--ko-soft);color:var(--ko)} .pill.neutral{background:var(--paper);color:var(--mute)}
+.pill.up{background:var(--ok-soft);color:var(--ok)} .pill.down{background:var(--ko-soft);color:var(--ko)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.axe{background:var(--orange);color:var(--white);border-radius:20px;padding:22px 24px}
+.axe h3{margin:0 0 6px;font-size:.95rem;font-weight:500;opacity:.92}
+.axe p{margin:0;font-size:1.25rem;font-weight:500;line-height:1.4}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.panel{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:18px 20px}
+.panel h3{margin:0 0 10px;font-size:1rem}
+.bar{height:12px;border-radius:999px;background:var(--orange);overflow:hidden;display:flex}
+.bar span{background:var(--blue);height:100%}
+.legend{display:flex;justify-content:space-between;font-size:.86rem;color:var(--mute);margin-top:6px}
+.crit{display:grid;grid-template-columns:120px 1fr;gap:4px 14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.crit:last-child{border-bottom:0}
+@media (max-width:560px){.crit{grid-template-columns:1fr}}
+.lvl{font-weight:600;font-size:.9rem}
+.lvl.acquis{color:var(--ok)} .lvl.en_cours{color:var(--mid)} .lvl.a_travailler{color:var(--ko)} .lvl.non_observe{color:var(--none)}
+.crit .name{font-weight:500}
+.crit .com{grid-column:2;color:var(--mute);font-size:.93rem}
+@media (max-width:560px){.crit .com{grid-column:1}}
+.quote{border-left:3px solid var(--blue);padding:4px 0 4px 14px;margin:0 0 8px;font-style:italic}
+.ref{padding:10px 0;border-bottom:1px solid var(--line)}
+.ref:last-child{border-bottom:0}
+.ref .said{color:var(--mute);text-decoration:line-through;text-decoration-color:rgba(210,68,68,.6)}
+.ref .better{font-weight:500;margin-top:4px}
+.loading{padding:80px 0;text-align:center;color:var(--mute)}
+.dots{display:inline-block;width:1.2em;text-align:left}
+details.transcript{background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:14px 20px}
+details.transcript summary{cursor:pointer;font-weight:500}
+details.transcript p{margin:8px 0;font-size:.93rem}
+.sync{font-size:.86rem;color:var(--mute)}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--white);padding:12px 18px;border-radius:12px;font-size:.93rem;z-index:50;max-width:90vw}
+.privacy{color:var(--mute);font-size:.84rem;margin-top:40px}
+@media (prefers-reduced-motion:reduce){.ring{transition:none}}
+/* Onglets */
+.tabs{display:flex;gap:4px;margin-left:18px}
+.tabs button{background:none;border:0;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--mute);font-weight:500}
+.tabs button[aria-current="page"]{background:var(--blue-soft);color:var(--blue)}
+@media (max-width:560px){.who-chip{display:none}.tabs{margin-left:6px}}
+
+/* Onglet Manager */
+.mhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:26px 0 4px}
+.mhead h1{margin:0;font-size:1.6rem}
+.mhead p{margin:2px 0 0;color:var(--mute)}
+.mfilters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mfilters select{border:1.5px solid var(--line);border-radius:999px;padding:7px 12px;background:var(--white)}
+.mlogin{max-width:460px;margin:40px auto;background:var(--white);border:1.5px solid var(--line);border-radius:18px;padding:26px}
+.mlogin h2{margin:0 0 6px}
+.mlogin p{color:var(--mute);margin:0 0 14px}
+.merr{color:var(--ko);font-size:.9rem;margin-top:10px}
+#viewManager .demo{background:var(--orange-soft);color:#8A3A1C;border-radius:12px;padding:10px 14px;margin-top:18px;font-size:.92rem}
+#viewManager .sec{margin-top:26px}
+#viewManager .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+#viewManager .sec-head h2{font-size:1.1rem;margin:0}
+#viewManager .sec-head p{margin:0;color:var(--mute);font-size:.88rem}
+#viewManager .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+@media (max-width:900px){#viewManager .kpis{grid-template-columns:1fr 1fr}}
+#viewManager .kpi{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px}
+#viewManager .kpi .v{font-size:2rem;font-weight:600;line-height:1.1}
+#viewManager .kpi .l{color:var(--mute);font-size:.88rem}
+#viewManager .kpi .d{font-size:.84rem;font-weight:600;margin-top:4px}
+#viewManager .up{color:var(--ok)} #viewManager .down{color:var(--ko)} #viewManager .flat{color:var(--mute)}
+#viewManager .grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:18px}
+@media (max-width:1000px){#viewManager .grid2{grid-template-columns:1fr}}
+#viewManager .panel{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:18px 20px}
+#viewManager .alerts{display:grid;gap:10px}
+#viewManager .alert{display:grid;grid-template-columns:8px 1fr auto;gap:14px;align-items:center;background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:12px 16px}
+#viewManager .alert i{width:8px;align-self:stretch;border-radius:4px}
+#viewManager .alert.high i{background:var(--ko)} #viewManager .alert.med i{background:var(--mid)} #viewManager .alert.good i{background:var(--ok)}
+#viewManager .alert b{font-weight:600}
+#viewManager .alert .act{color:var(--mute);font-size:.88rem}
+#viewManager .alert button{background:none;border:0;color:var(--blue);cursor:pointer;font-weight:500;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+#viewManager .chart svg{width:100%;height:auto;display:block}
+#viewManager .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.86rem;margin-top:8px;justify-content:flex-start;color:var(--ink)}
+#viewManager .legend span{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+#viewManager .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+#viewManager .scroll{overflow-x:auto}
+#viewManager table{border-collapse:collapse;width:100%}
+#viewManager th{text-align:left;font-weight:500;color:var(--mute);font-size:.84rem;padding:8px 10px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+#viewManager td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:.93rem}
+#viewManager tr.clickable{cursor:pointer}
+#viewManager tr.clickable:hover td{background:var(--paper)}
+#viewManager .heat td.c{text-align:center;font-weight:600;font-size:.86rem;min-width:84px;border:2px solid var(--white);border-radius:6px}
+#viewManager .heat th.c{text-align:center;white-space:normal;min-width:84px;font-size:.8rem;vertical-align:bottom}
+#viewManager .heat td.name{font-weight:500;white-space:nowrap}
+#viewManager .tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:600;white-space:nowrap}
+#viewManager .tag.l0{background:var(--paper);color:var(--mute)} #viewManager .tag.l1{background:var(--blue-soft);color:var(--blue)} #viewManager .tag.l2{background:var(--mid-soft);color:var(--mid)} #viewManager .tag.l3{background:var(--ok-soft);color:var(--ok)}
+#viewManager .maxe{color:var(--mute);font-size:.88rem;max-width:42ch}
+#viewManager .sess{display:grid;grid-template-columns:90px 160px 60px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+#viewManager .sess:last-child{border-bottom:0}
+@media (max-width:700px){#viewManager .sess{grid-template-columns:1fr 60px}#viewManager .sess .hs{display:none}}
+#viewManager .empty{color:var(--mute);padding:20px 0;text-align:center}
+
+</style>
+</head>
+<body>
+<header class="topbar"><div class="in">
+  <button class="logo" id="homeBtn" type="button"><i aria-hidden="true"></i>La Ligne</button>
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" id="tabHome" aria-current="page">Mon parcours</button>
+    <button type="button" id="tabManager" aria-current="false">Manager</button>
+  </nav>
+  <span class="spacer"></span>
+  <span class="who-chip" id="whoChip"></span>
+  <button class="btn ghost small" id="settingsBtn" type="button">Réglages</button>
+</div></header>
+
+<div class="wrap">
+  <main id="viewHome"></main>
+  <main id="viewPrep" hidden></main>
+  <main id="viewCall" hidden>
+    <div class="callwrap" id="callWrap">
+      <div class="call">
+        <p class="who" id="callWho"></p>
+        <p class="org" id="callOrg"></p>
+        <div class="ringzone">
+          <div class="ring" id="ring"></div>
+          <div class="core" id="initials"></div>
+        </div>
+        <div class="timer" id="timer">0:00</div>
+        <div class="callstate" id="callState" aria-live="polite">Connexion…</div>
+        <div class="controls">
+          <button class="btn hang" id="hangBtn" type="button">Raccrocher</button>
+          <button class="btn toggle" id="memoToggle" type="button" aria-pressed="false">Aide-mémoire</button>
+          <button class="btn toggle" id="liveToggle" type="button" aria-pressed="false">Afficher la transcription</button>
+        </div>
+        <div class="live" id="liveText" hidden></div>
+        <div class="callerr" id="callErr" hidden></div>
+      </div>
+      <aside class="memo-side" id="memoSide" hidden></aside>
+    </div>
+  </main>
+  <main id="viewDebrief" hidden><div id="debriefBody"></div></main>
+  <main id="viewManager" hidden>
+    <div class="mhead">
+      <div><h1>Suivi des juniors</h1><p id="mSub">Progression de l'équipe sur La Ligne</p></div>
+      <div class="mfilters" id="mFilters" hidden>
+        <select id="mPeriod" aria-label="Période">
+          <option value="7">7 derniers jours</option><option value="30" selected>30 derniers jours</option>
+          <option value="90">90 derniers jours</option><option value="3650">Depuis le début</option>
+        </select>
+        <select id="mJunior" aria-label="Junior"></select>
+        <button class="btn ghost small" id="mRefresh" type="button">Actualiser</button>
+        <button class="btn ghost small" id="mLogout" type="button">Se déconnecter</button>
+      </div>
+    </div>
+    <section class="mlogin" id="mLogin" hidden>
+      <h2>Espace manager</h2>
+      <p>Saisis le mot de passe manager pour voir la progression de tous les juniors.</p>
+      <div class="field"><label for="mPw">Mot de passe</label><input id="mPw" type="password" autocomplete="current-password"></div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn" id="mLoginBtn" type="button">Ouvrir le suivi</button>
+        <button class="btn ghost" id="mDemoBtn" type="button">Voir une démonstration</button>
+      </div>
+      <p class="merr" id="mLoginErr"></p>
+    </section>
+    <div id="mApp" hidden></div>
+  </main>
+  <p class="privacy" id="privacyNote"></p>
+</div>
+
+<!-- Identification -->
+<dialog id="dlgWho">
+  <form class="dlg" method="dialog" id="whoForm">
+    <h2>Bienvenue sur La Ligne</h2>
+    <p class="hint">Ici, tu t'entraînes au cold calling face à des prospects simulés, à voix haute, puis tu reçois un débrief basé sur la trame de prospection de l'agence.</p>
+    <div class="row">
+      <div class="field"><label for="whoFirst">Prénom</label><input id="whoFirst" required autocomplete="given-name"></div>
+      <div class="field"><label for="whoLast">Nom</label><input id="whoLast" required autocomplete="family-name"></div>
+    </div>
+    <p class="hint" id="whoShare" style="margin-top:14px"></p>
+    <div class="foot"><button class="btn orange" type="submit">Commencer</button></div>
+  </form>
+</dialog>
+
+<!-- Réglages -->
+<dialog id="dlgSettings">
+  <div class="dlg">
+    <h2>Réglages</h2>
+    <h3>Connexion à Gemini</h3>
+    <div id="keyBlock">
+      <p class="hint">Colle une clé API Google AI Studio. Elle reste dans ce navigateur et n'est envoyée qu'à Google.</p>
+      <div class="row">
+        <div class="field" style="flex:2"><label for="apiKey">Clé API</label><input id="apiKey" type="password" autocomplete="off" placeholder="AIza…"></div>
+        <button class="btn" id="connectBtn" type="button">Connecter</button>
+      </div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="rememberKey"> Mémoriser la clé sur cet ordinateur</label>
+    </div>
+    <div class="status" id="connStatus" role="status"></div>
+    <div class="row" id="modelRow" hidden style="margin-top:12px">
+      <div class="field"><label for="liveModel">Modèle vocal</label><select id="liveModel"></select></div>
+      <div class="field"><label for="textModel">Modèle du débrief</label><select id="textModel"></select></div>
+    </div>
+    <h3>Le prospect</h3>
+    <div class="row">
+      <div class="field"><label for="voiceF">Voix féminine</label>
+        <select id="voiceF"><option value="">Une voix par scénario</option><option>Kore</option><option>Aoede</option><option>Leda</option><option>Zephyr</option><option>Despina</option><option>Sulafat</option><option>Callirrhoe</option><option>Autonoe</option></select></div>
+      <div class="field"><label for="voiceM">Voix masculine</label>
+        <select id="voiceM"><option value="">Une voix par scénario</option><option>Charon</option><option>Orus</option><option>Puck</option><option>Fenrir</option><option>Achird</option><option>Algenib</option><option>Iapetus</option><option>Umbriel</option></select></div>
+      <div class="field"><label for="pace">Réactivité</label>
+        <select id="pace"><option value="natural">Naturelle</option><option value="fast">Rapide</option><option value="patient">Patiente</option></select></div>
+    </div>
+    <label class="check" style="margin-top:10px"><input type="checkbox" id="phoneFx" checked> Son de ligne téléphonique</label>
+    <h3>Mon profil</h3>
+    <p class="hint" style="margin:0" id="profileLine"></p>
+    <div class="foot">
+      <button class="btn ghost" id="changeWho" type="button">Changer de nom</button>
+      <button class="btn" id="closeSettings" type="button">Fermer</button>
+    </div>
+  </div>
+</dialog>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+
+/* Affiche toute erreur à l'écran (diagnostic) */
+window.addEventListener("error", e=>showFatal(e.message+" (ligne "+e.lineno+")"));
+window.addEventListener("unhandledrejection", e=>showFatal(String(e.reason&&e.reason.message||e.reason)));
+function showFatal(msg){
+  const w=document.querySelector(".wrap"); if(!w) return;
+  const d=document.createElement("div");
+  d.style.cssText="background:#FBE3E3;color:#8A1F1F;border-radius:12px;padding:14px 18px;margin-top:24px;font-size:.95rem";
+  d.textContent="Erreur : "+msg;
+  w.prepend(d);
+}
+
+/* =========================================================
+   CONFIGURATION
+   Sur le Space Hugging Face, la clé Gemini est dans les secrets du Space : rien à remplir ici.
+   GEMINI_API_KEY ne sert que si tu ouvres ce fichier hors du Space (test en local).
+   ========================================================= */
+const CONFIG = { GEMINI_API_KEY: "" };
+
+/* =========================================================
+   CONTENU : SCÉNARIOS
+   ========================================================= */
+const COMMON_RULES = `
+TA FAÇON DE PARLER (le plus important) :
+Tu es une vraie personne au téléphone, en France, en pleine journée de travail. Pas un assistant, pas un personnage de formation.
+- Tu parles comme on parle vraiment : phrases courtes, souvent incomplètes, avec des « euh », « hmm », « ouais », « bon », « d'accord », « attendez », « ah bon ? », « c'est-à-dire ? ». Tu dis « j'ai pas », « c'est pas », « y a ». Sans en abuser : juste ce qu'il faut pour sonner vrai.
+- Très souvent, quelques mots suffisent : « Oui ? », « Hmm. », « Et donc ? », « Pas vraiment, non. », « Ah, ça c'est vrai. ».
+- Tu ne fais jamais de résumé de ce que dit le commercial. Tu ne le félicites pas. Tu ne dis jamais « excellente question », « je comprends tout à fait », « n'hésitez pas », « c'est très intéressant ». Pas de politesse en cascade, pas de phrases bien construites façon e-mail.
+- Une seule idée et au plus une question par réplique.
+- Tu ne fais pas le travail du commercial : tu ne relances pas la conversation à sa place et tu ne lui tends pas de perche. S'il hésite, tu attends ou tu dis « Oui ? ».
+- Tu as ta propre journée en tête : tu peux être un peu distrait, demander de répéter (« Pardon, vous êtes qui déjà ? »), soupirer, réfléchir à voix haute (« Hmm… attendez, c'est quoi le rapport avec nous ? »).
+- Ton ton évolue avec l'appel : plus froid s'il récite un pitch, plus chaleureux s'il t'intéresse vraiment. Ne répète jamais deux fois la même tournure.
+
+RÈGLES DU JEU :
+- Ne sors jamais de ton rôle, ne dis jamais que tu es une IA, ne donne aucun conseil sur l'appel.
+- Tu parles uniquement en français.
+- Ne révèle ton contexte que si les questions du commercial y mènent.
+- Si le commercial conclut, dis au revoir simplement et ne relance pas.
+- Le tout premier message que tu reçois signifie que ton téléphone sonne : décroche comme indiqué, sans rien ajouter.`;
+
+const REF_RULES = `
+- Si le commercial cite une référence client proche de ton contexte (même secteur, même problème, ou un changement de prestataire réussi), tu deviens plus réceptif et tu demandes un détail concret : « Et vous avez fait quoi exactement chez eux ? ».
+- Si la référence citée n'a aucun rapport avec ton métier, fais-le remarquer poliment.
+- Si le commercial reste vague (« on fait plein de choses », « on est leader »), demande-lui un exemple concret.`;
+
+const SCENARIOS = [
+  {
+    id:"n1", group:"level", num:"1", kind:"appel", voice:"Aoede", gender:"F",
+    title:"Prospect bienveillant", sub:"Prendre confiance et dérouler la trame",
+    goal:"Décrocher un rendez-vous de 30 minutes avec Claire Martin.",
+    contact:{nom:"Claire Martin", entreprise:"Nordis Maison (ETI, équipement de la maison, 900 salariés, 45 magasins)", role:"Directrice digitale", derniere:"Aucun échange", actu:"Lancement de la livraison en 2 h sur la métropole lilloise (post LinkedIn de l'entreprise)", besoin:"Performance e-commerce, synchronisation des stocks"},
+    prompt:`Tu joues Claire Martin, directrice digitale de Nordis Maison, une ETI de distribution d'équipement de la maison basée à Villeneuve-d'Ascq (900 salariés, 45 magasins dans le nord de la France). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+
+Contexte que tu connais :
+- Nordis Maison vient d'annoncer le lancement de la livraison en 2 heures dans la métropole lilloise.
+- Votre site e-commerce tourne sur une plateforme vieillissante qui supporte mal les pics de trafic ; les stocks des magasins remontent sur le site avec plusieurs heures de retard.
+- Vous travaillez déjà avec une agence web pour la maintenance du site, dont tu es moyennement satisfaite.
+- Le DSI, Thomas Leroy, est associé à toute décision technique.
+
+Ta situation à cet instant : tu sors d'une réunion, tu as un café à la main, plutôt de bonne humeur.
+
+Comportement (prospect bienveillant) :
+- Tu décroches en disant simplement « Allô ? ».
+- Tu as un peu de temps et tu es plutôt aimable, mais tu restes une professionnelle occupée.
+- Si le commercial cite la livraison en 2 heures, tu es agréablement surprise et plus ouverte.
+- Si on te pose une question ouverte sur ton site ou tes stocks, tu évoques les difficultés, sans tout dire d'un coup.
+- Tu fais au maximum une objection légère, par exemple « on a déjà une agence pour le site ».
+- Si le commercial ne fait que parler de Smile sans te poser de questions, tu deviens plus distante et tu cherches à écourter.
+- Tu acceptes un rendez-vous si le commercial t'a posé au moins une question sur ton contexte et te propose un créneau précis. S'il propose deux créneaux, tu en choisis un. Tu peux suggérer d'inviter Thomas Leroy.
+- Si l'appel dépasse environ 6 minutes, tu indiques que tu dois raccrocher.${REF_RULES}
+${COMMON_RULES}`
+  },
+  {
+    id:"n2", group:"level", num:"2", kind:"appel", voice:"Charon", gender:"M",
+    title:"Objections classiques", sub:"Rebondir sans forcer",
+    goal:"Décrocher un rendez-vous malgré les objections de Marc Duvivier.",
+    contact:{nom:"Marc Duvivier", entreprise:"Hexalis Sport (ETI, distribution d'articles de sport, 600 salariés, 30 magasins)", role:"DSI", derniere:"Aucun échange", actu:"Deux offres d'emploi de Product Owner e-commerce publiées le mois dernier", besoin:"Évolutions e-commerce plus rapides, refonte du site"},
+    prompt:`Tu joues Marc Duvivier, DSI d'Hexalis Sport, une ETI de distribution d'articles de sport basée à Roubaix (600 salariés, 30 magasins). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+
+Contexte que tu connais :
+- Tu viens de publier deux offres d'emploi de Product Owner e-commerce : la direction veut accélérer sur le digital.
+- Une refonte du site e-commerce est envisagée pour l'an prochain, mais rien n'est lancé.
+- Une ESN nationale assure aujourd'hui la maintenance du site ; ta frustration principale est la lenteur des évolutions (plusieurs semaines pour la moindre modification).
+- Le budget de l'an prochain n'est pas encore arbitré.
+
+Ta situation à cet instant : tu es à ton bureau, tu lis tes mails en même temps, tu n'écoutes qu'à moitié au début.
+
+Comportement (niveau 2, objections classiques) :
+- Tu décroches en disant « Marc Duvivier, j'écoute. ».
+- Tu es poli mais neutre et un peu méfiant face aux appels commerciaux.
+- Tu as ces objections en tête : « Envoyez-moi plutôt un mail », « On travaille déjà avec un prestataire », « On n'a pas de budget avant l'an prochain ». Tu les sors quand elles viennent naturellement dans la conversation, dans l'ordre qui s'y prête, avec tes propres mots, pas comme une liste.
+- Si le commercial traite bien une objection (il reformule, rassure, pose une question), tu t'ouvres un peu. S'il insiste lourdement ou récite un argumentaire, tu te refermes.
+- Si le commercial pose une question qui touche la lenteur des évolutions ou la refonte, tu en parles franchement.
+- Tu acceptes un rendez-vous seulement si le commercial a bien traité au moins deux objections et t'a posé au moins une question pertinente. Sinon, tu restes sur « envoyez-moi un mail » et tu conclus.${REF_RULES}
+${COMMON_RULES}`
+  },
+  {
+    id:"n3", group:"level", num:"3", kind:"appel", voice:"Kore", gender:"F",
+    title:"Appel réaliste", sub:"DSI pressée, tout se joue en 3 minutes",
+    goal:"Obtenir un rendez-vous avec une DSI qui n'a que deux minutes.",
+    contact:{nom:"Nathalie Vermeersch", entreprise:"Groupe Ferlane (ETI, distribution alimentaire spécialisée, 1 500 salariés)", role:"DSI", derniere:"Aucun échange", actu:"Nommée DSI il y a deux mois, après dix ans dans un grand groupe de distribution (annonce LinkedIn)", besoin:"Rationalisation du SI, migration cloud"},
+    prompt:`Tu joues Nathalie Vermeersch, DSI du Groupe Ferlane, une ETI de distribution alimentaire spécialisée basée à Arras (1 500 salariés). Tu as été nommée il y a deux mois, après dix ans dans un grand groupe de distribution. Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+
+Contexte que tu connais :
+- Tu es en plein « plan des 100 jours » : audit du système d'information en cours.
+- Le datacenter est vieillissant et une migration vers le cloud est envisagée.
+- Il y a trop de prestataires différents ; tu veux en réduire le nombre.
+
+Ta situation à cet instant : tu marches dans un couloir entre deux réunions, tu es pressée et un peu sur la défensive.
+
+Comportement (niveau 3, appel réaliste) :
+- Tu décroches en disant « Oui, Nathalie Vermeersch ? » d'un ton pressé.
+- Tu es entre deux réunions. Très tôt, tu dis « Je n'ai que deux minutes ».
+- Si le commercial parle plus de deux phrases d'affilée sans te poser de question, tu le coupes : « Oui, concrètement, vous voulez quoi ? ».
+- Tu peux tester le commercial : « C'est quoi Smile, en une phrase ? ».
+- Tes objections possibles : « Je ne suis pas intéressée », « Je n'ai pas le temps en ce moment », « J'ai déjà trop de prestataires ».
+- Tu acceptes un rendez-vous seulement si le commercial fait référence à ta prise de poste, pose au moins une question pertinente et propose un créneau précis. Une référence pertinente (migration cloud, ou changement de prestataire réussi) te convainc fortement.
+- Sinon, au bout d'environ 3 minutes, tu mets fin poliment : « Envoyez-moi un mail, je regarderai. Bonne journée. »${REF_RULES}
+${COMMON_RULES}`
+  },
+  {
+    id:"barrage", group:"drill", num:"A", kind:"barrage", voice:"Leda", gender:"F", speaker:"Sophie Leclercq", speakerRole:"Assistante de direction",
+    title:"Passer le barrage", sub:"L'assistante filtre les appels",
+    goal:"Obtenir de l'assistante un moyen de joindre le DSI : un créneau de rappel, son e-mail ou un transfert.",
+    contact:{nom:"Pierre Dewaele (via le standard)", entreprise:"Valmore Textile (ETI, textile, 700 salariés)", role:"DSI", derniere:"Aucun échange", actu:"Ouverture d'un site e-commerce B2B pour les revendeurs (communiqué de presse)", besoin:"Plateforme B2B, intégration avec l'ERP"},
+    prompt:`Tu joues Sophie Leclercq, assistante de direction chez Valmore Textile, une ETI textile basée à Tourcoing (700 salariés). Tu filtres les appels de Pierre Dewaele, le DSI. Un commercial de Smile, une entreprise de services numériques, appelle pour joindre Pierre Dewaele.
+
+Contexte que tu connais :
+- Pierre Dewaele est très sollicité par les commerciaux et t'a demandé de filtrer.
+- Il est disponible en général le jeudi matin avant 9 h.
+- Son e-mail suit le format prénom.nom@valmore-textile.fr.
+- Valmore vient d'ouvrir un site e-commerce B2B pour ses revendeurs, et Pierre Dewaele est débordé par ce projet.
+
+Comportement :
+- Tu décroches en disant « Valmore Textile, bonjour. ».
+- Tu poses les questions classiques d'un barrage : « C'est à quel sujet ? », « Vous êtes de quelle société ? », « C'est commercial ? », « Il est en réunion. ».
+- Si le commercial est vague, insistant ou condescendant, tu proposes seulement d'écrire à l'adresse générale contact@valmore-textile.fr et tu conclus.
+- Si le commercial est courtois, te donne une raison précise et crédible (par exemple le projet B2B) et te demande ton aide, tu deviens coopérative : tu donnes le meilleur moment pour rappeler, ou le format de son e-mail, ou tu proposes de lui transmettre un message.
+- Tu ne transfères jamais directement l'appel.
+${COMMON_RULES}`
+  },
+  {
+    id:"messagerie", group:"drill", num:"B", kind:"messagerie", voice:"Orus", gender:"M", speaker:"Messagerie de Thomas Bertin", speakerRole:"Répondeur",
+    title:"Laisser un message", sub:"30 secondes sur répondeur",
+    goal:"Laisser un message de moins de 30 secondes qui donne envie de rappeler.",
+    contact:{nom:"Thomas Bertin", entreprise:"Maison Lerouge (ETI, ameublement, 400 salariés)", role:"Directeur e-commerce", derniere:"Aucun échange", actu:"Lancement d'une marketplace sur le site de Maison Lerouge", besoin:"Performance de la marketplace, catalogue produit"},
+    prompt:`Tu joues uniquement la messagerie vocale de Thomas Bertin, directeur e-commerce de Maison Lerouge.
+Quand tu reçois le premier message, prononce exactement cette annonce, puis arrête-toi : « Bonjour, vous êtes bien sur la messagerie de Thomas Bertin, Maison Lerouge. Je ne suis pas disponible pour le moment, laissez-moi un message après le bip. Bip. »
+Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. Tu ne réponds à aucune question. Tu n'es pas un humain, tu es un répondeur qui enregistre.`
+  }
+];
+
+/* =========================================================
+   CONTENU : DÉBRIEF
+   ========================================================= */
+const SMILE_FICHE = `CONNAISSANCES SUR SMILE (pour évaluer le pitch du commercial)
+Smile : entreprise européenne de services numériques, leader de l'open source, 32 ans d'expérience, environ 2 000 collaborateurs, 19 agences dans 9 pays, plus de 350 projets par an. Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole.
+Offres : e-commerce B2C et B2B (plateformes, commerce composable, PIM, gestion des commandes, marketplaces), expérience digitale (sites, usines à sites), data et IA (gouvernance, plateformes data, IA générative), cloud (migration, infogérance 24/7, cybersécurité), applications métiers (Odoo, GED), mobile, IoT, embarqué.
+Modes d'intervention : forfait, expertise au temps passé, centre de services, équipe agile.
+Références utilisables (problème → résultat) :
+- Somfy : reprise d'un prestataire en place sans perturber le business ; 14 sites sur un modèle commun ; satisfaction client 8/10.
+- Cultura : stratégie e-commerce et omnicanale depuis plus de 10 ans ; stocks omnicanaux, commande en magasin, marketplace.
+- Accor : marketplace d'achats B2B construite en 6 mois, déploiement visé dans 90 pays.
+- Arkema : portail e-commerce B2B, premier produit livré en 2 mois.
+- Pierre Fabre : 150 sites de marques, 60 % d'économies sur les déploiements.
+- Groupe Atlantic : référentiel produit unique, fiches produits mises en ligne plus vite.
+- Eram : migration du système d'information vers le cloud Google.
+- Decathlon : plateforme d'objets connectés, objectif 1 million d'utilisateurs mensuels.`;
+
+const TRAME = `TRAME DE PROSPECTION SMILE LILLE (référence officielle)
+Objectif : décrocher un rendez-vous qualifié, pas vendre au téléphone. Appel de 3 à 5 minutes maximum. Écouter plus que parler : viser 60 % de temps de parole pour le prospect.
+Avant l'appel, le commercial doit savoir : son accroche (le fait récent cité), le problème que ce fait peut créer ou révéler, son objectif précis pour l'appel.
+Déroulé attendu :
+1. Accroche : « Bonjour [Prénom], [prénom] de Smile. Je vous appelle à un mauvais moment ? »
+2. Raison de l'appel personnalisée : actualité du prospect (« J'ai vu que… Félicitations »), ou dernier contact, ou reprise d'un échange d'un collègue.
+3. Proposition de valeur en trois temps : un problème courant, un résultat chiffré, une preuve (référence client). « Nous accompagnons des [type d'entreprise] qui [problème]. Chez [client], nous avons permis de [résultat]. »
+4. Questions de découverte : « Comment gérez-vous aujourd'hui [sujet] ? », « Qu'est-ce qui fonctionne bien, et qu'aimeriez-vous améliorer ? », « Ce projet change-t-il quelque chose pour vos équipes ? », « Qui d'autre est impliqué dans ce type de décision ? »
+5. Proposition de rendez-vous : « Je vous propose un échange de 30 minutes pour voir si nous pouvons vous aider sur [besoin exprimé]. Plutôt [créneau 1] ou [créneau 2] ? »
+6. Conclusion : « Parfait, je vous envoie l'invitation à [e-mail]. Merci, bonne journée. »
+Speech répondeur : « Bonjour [Prénom], [prénom] de Smile. Je vous appelle au sujet de [actualité]. J'ai une idée qui pourrait vous intéresser sur [sujet]. Je vous envoie un court e-mail et vous rappelle [jour]. Mon numéro : [numéro]. »
+Réponses types aux objections :
+- « Pas de budget » : comprendre le contexte, solutions modulaires adaptées à la réalité du client, le rendez-vous sert à faire connaissance et explorer les priorités, à son rythme, cette année ou la suivante.
+- « Déjà un prestataire » : la plupart des clients Smile travaillent avec d'autres sociétés ; Smile se positionne en partenaire complémentaire avec une expertise pointue (open source, industrialisation), pour optimiser l'existant ou apporter des idées nouvelles.
+- « Pas le temps » : c'est justement quand on est chargé que Smile aide à gagner du temps (automatisation, amélioration des processus) ; 30 minutes pour évaluer.
+- « Pas de projet immédiat » : échanger sur la roadmap et anticiper les besoins futurs.
+- « Pas la bonne personne » : demander à être redirigé vers la bonne personne.
+- « Pas intéressé » : demander ce qui n'intéresse pas exactement (ne travaille pas avec des ESN, ou pas de sujet pour le moment ?).`;
+
+const GRIDS = {
+  appel:[
+    ["accroche","Accroche et permission","Se présente clairement (prénom, Smile) et demande si c'est un bon moment."],
+    ["raison","Raison de l'appel","Cite un fait récent et précis sur le prospect, pas une généralité."],
+    ["valeur","Proposition de valeur","Un problème, un résultat, une preuve (référence Smile exacte et pertinente)."],
+    ["decouverte","Questions de découverte","Pose des questions ouvertes et rebondit sur les réponses."],
+    ["ecoute","Écoute","Laisse parler le prospect (cible : 60 % de temps de parole pour lui), ne coupe pas, reformule."],
+    ["objections","Traitement des objections","Accueille l'objection, rassure, relance par une question, sans forcer."],
+    ["rdv","Proposition de rendez-vous","Propose un échange de 30 minutes lié au besoin exprimé, avec deux créneaux précis."],
+    ["conclusion","Conclusion","Confirme le rendez-vous et l'e-mail, remercie, ou obtient une prochaine étape claire."]
+  ],
+  barrage:[
+    ["accroche","Accroche courtoise","Se présente clairement, ton posé et respectueux."],
+    ["legitimite","Raison crédible","Donne une raison précise liée à l'actualité de l'entreprise, sans réciter un pitch."],
+    ["alliance","Faire de l'assistante une alliée","Demande son aide, l'écoute, ne la contourne pas et ne la prend pas de haut."],
+    ["resultat","Résultat obtenu","Repart avec un créneau de rappel, un e-mail ou un message transmis."]
+  ],
+  messagerie:[
+    ["presentation","Présentation","Prénom, Smile, en une phrase."],
+    ["actualite","Actualité citée","Mentionne un fait précis sur l'entreprise du prospect."],
+    ["idee","Curiosité","Évoque une idée sur un sujet, sans tout dévoiler."],
+    ["suite","Prochaine étape","Annonce un e-mail et un jour de rappel précis."],
+    ["numero","Numéro","Laisse son numéro, lentement."],
+    ["duree","Concision","Message de moins de 30 secondes, débit clair."]
+  ]
+};
+
+const DEBRIEF_SYSTEM = `Tu es coach commercial à l'agence Smile de Lille. Tu débriefes des commerciaux juniors qui viennent d'arriver et s'entraînent au cold calling face à un prospect simulé. Tu es bienveillant mais exigeant et concret. Tu tutoies le commercial.
+
+${TRAME}
+
+${SMILE_FICHE}
+
+Consignes de débrief :
+- Appuie-toi uniquement sur la transcription fournie. Cite les mots réels du commercial. La transcription automatique peut contenir des erreurs de reconnaissance : n'en fais pas reproche au commercial.
+- Pour chaque critère de la grille, donne un niveau parmi : "acquis", "en_cours", "a_travailler", "non_observe" (si la situation ne s'est pas présentée), et un commentaire d'une ou deux phrases.
+- Identifie le moment où l'appel a basculé, en bien ou en mal, avec la citation exacte et une explication.
+- Propose au maximum 3 reformulations : ce que le commercial a dit, et une meilleure version prête à l'emploi, cohérente avec la trame Smile.
+- Signale toute erreur sur Smile : référence, chiffre ou offre inventés ou faux, ou référence sans rapport avec le prospect (dans ce cas, indique la référence qui aurait été la plus pertinente).
+- Termine par UN SEUL axe de travail, concret, à appliquer dès le prochain appel.
+- Si la transcription est trop courte pour juger, dis-le dans le verdict.
+
+Réponds uniquement avec un objet JSON valide, sans texte autour, au format :
+{
+  "verdict": "une phrase de synthèse",
+  "rdv_obtenu": true ou false,
+  "criteres": [{"id": "...", "niveau": "acquis|en_cours|a_travailler|non_observe", "commentaire": "..."}],
+  "moment_cle": {"citation": "...", "explication": "..."},
+  "reformulations": [{"dit": "...", "mieux": "..."}],
+  "erreurs_smile": ["..."],
+  "axe_de_travail": "..."
+}
+Pour le type "barrage", "rdv_obtenu" signifie : le commercial repart avec un créneau de rappel, un e-mail ou un message transmis. Pour le type "messagerie", "rdv_obtenu" vaut false.`;
+
+
+/* =========================================================
+   ÉTAT
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const API = "https://generativelanguage.googleapis.com/v1beta";
+const WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+const S = {
+  key:"", connected:false, scenario:SCENARIOS[0],
+  ws:null, callActive:false, startedAt:0, timerId:null, maxTimer:null,
+  transcript:[], lastPrep:null, lastDuration:0, errorShown:false,
+  prepDrafts:{}, junior:null
+};
+const MAX_CALL_MS = 10 * 60 * 1000;
+// Mode serveur (Space Hugging Face) : clé Gemini côté serveur, résultats partagés avec l'onglet Manager
+S.server = false;
+function sharing(){ return S.server; }
+const PASS_SCORE = 75;      // score à atteindre…
+const PASS_COUNT = 2;       // …sur ce nombre d'appels pour valider un niveau
+
+function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function safeSet(k,v){ try{ v===null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} }
+function esc(t){ return String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function fmt(ms){ const s=Math.floor(ms/1000); return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+function toast(t){ const el=$("#toast"); el.textContent=t; el.hidden=false; clearTimeout(el._t); el._t=setTimeout(()=>el.hidden=true,4500); }
+function speaker(){ const s=S.scenario; return s.speaker || s.contact.nom.split(" (")[0]; }
+function firstName(){ return speaker().split(" ")[0]; }
+function scById(id){ return SCENARIOS.find(s=>s.id===id) || SCENARIOS[0]; }
+
+function showView(v){
+  for(const id of ["Home","Prep","Call","Debrief","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
+  $("#tabHome").setAttribute("aria-current", v==="manager" ? "false" : "page");
+  $("#tabManager").setAttribute("aria-current", v==="manager" ? "page" : "false");
+  $("#privacyNote").hidden = v==="manager";
+  window.scrollTo({top:0});
+}
+
+/* =========================================================
+   HISTORIQUE ET SCORES
+   ========================================================= */
+const LVL = {acquis:"Acquis", en_cours:"En progrès", a_travailler:"À travailler", non_observe:"Non observé"};
+const LVL_PTS = {acquis:100, en_cours:60, a_travailler:20};
+
+function scoreOf(criteria){
+  const pts = Object.values(criteria||{}).filter(n=>n in LVL_PTS).map(n=>LVL_PTS[n]);
+  return pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : null;
+}
+function history(){ try{ return JSON.parse(safeGet("laligne.history")||"[]"); }catch(e){ return []; } }
+function saveHistory(h){ safeSet("laligne.history", JSON.stringify(h.slice(-300))); }
+function attemptsOf(id){ return history().filter(h=>h.scenarioId===id); }
+function statusOf(id){
+  const a = attemptsOf(id);
+  if(!a.length) return {key:"todo", label:"À découvrir", best:null, n:0};
+  const best = Math.max(...a.map(x=>x.score??0));
+  const passed = a.filter(x=>(x.score??0)>=PASS_SCORE).length >= PASS_COUNT;
+  return passed ? {key:"done", label:"Validé", best, n:a.length} : {key:"wip", label:"En cours", best, n:a.length};
+}
+function recommended(){
+  for(const s of SCENARIOS.filter(x=>x.group==="level")) if(statusOf(s.id).key!=="done") return s;
+  const drills = SCENARIOS.filter(x=>x.group==="drill").map(s=>({s,st:statusOf(s.id)}));
+  const open = drills.find(d=>d.st.key!=="done");
+  return open ? open.s : scById("n3");
+}
+function lastAxe(){ const h=history(); return h.length ? h[h.length-1].axe : ""; }
+function scoreColor(v){ return v==null ? "var(--none)" : v>=PASS_SCORE ? "var(--ok)" : v>=50 ? "var(--mid)" : "var(--ko)"; }
+
+/* =========================================================
+   IDENTITÉ
+   ========================================================= */
+function loadJunior(){ try{ return JSON.parse(safeGet("laligne.junior")||"null"); }catch(e){ return null; } }
+function askJunior(){
+  const d=$("#dlgWho");
+  $("#whoShare").textContent = sharing()
+    ? "Ton prénom sert à suivre ta progression. Tes scores, tes niveaux et tes axes de travail sont partagés avec ton manager. Les transcriptions de tes appels restent sur ton ordinateur."
+    : "Ton prénom sert à suivre ta progression sur cet ordinateur. Rien n'est envoyé ailleurs.";
+  if(S.junior){ $("#whoFirst").value=S.junior.first; $("#whoLast").value=S.junior.last; }
+  try{ d.showModal(); }catch(err){ d.setAttribute("open",""); }
+}
+$("#whoForm").addEventListener("submit", e=>{
+  const first=$("#whoFirst").value.trim(), last=$("#whoLast").value.trim();
+  if(!first||!last){ e.preventDefault(); return; }
+  S.junior={first,last}; safeSet("laligne.junior", JSON.stringify(S.junior));
+  renderChrome(); renderHome();
+});
+function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
+function juniorName(){ return S.junior ? `${S.junior.first} ${S.junior.last}` : "Anonyme"; }
+function renderChrome(){
+  $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>` : "";
+  $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}.` : "";
+  $("#privacyNote").textContent = sharing()
+    ? "Les transcriptions restent sur cet ordinateur. Seuls tes scores, niveaux et axes de travail sont partagés avec ton manager. Utilise un casque pour éviter l'écho."
+    : "Rien ne quitte cet ordinateur, à part l'échange avec Gemini pendant l'appel. Utilise un casque pour éviter l'écho.";
+}
+
+/* =========================================================
+   RÉGLAGES ET MODÈLES
+   ========================================================= */
+(function initSettings(){
+  $("#settingsBtn").onclick = ()=>openDlg("#dlgSettings");
+  $("#closeSettings").onclick = ()=>$("#dlgSettings").close();
+  $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); askJunior(); };
+  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
+  $("#tabHome").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
+  $("#tabManager").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("manager"); openManager(); };
+  if(CONFIG.GEMINI_API_KEY){ $("#keyBlock").hidden = true; }
+  const saved = CONFIG.GEMINI_API_KEY || safeGet("laligne.key");
+  if(saved && !CONFIG.GEMINI_API_KEY){ $("#apiKey").value = saved; $("#rememberKey").checked = true; }
+  $("#connectBtn").onclick = ()=>connect($("#apiKey").value.trim());
+  $("#rememberKey").onchange = () => { if(!$("#rememberKey").checked) safeSet("laligne.key", null); };
+  for(const id of ["voiceF","voiceM","pace"]){
+    const v=safeGet("laligne."+id); if(v!==null) $("#"+id).value=v;
+    $("#"+id).onchange=()=>safeSet("laligne."+id,$("#"+id).value);
+  }
+  const fx=safeGet("laligne.phoneFx"); if(fx!==null) $("#phoneFx").checked = fx==="1";
+  $("#phoneFx").onchange=()=>safeSet("laligne.phoneFx",$("#phoneFx").checked?"1":"0");
+  fetch("api/config",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(cfg=>{
+    if(cfg && cfg.serverKey){
+      S.server = true; $("#keyBlock").hidden = true; renderChrome();
+      connect("serveur", true);
+    } else {
+      if(cfg) S.server = true;  // serveur présent mais sans clé : résultats partagés, clé saisie à la main
+      renderChrome();
+      if(saved) connect(saved, true);
+      else if(cfg) { $("#connStatus").className="status err"; $("#connStatus").textContent="La clé Gemini n'est pas configurée dans le Space. Colle une clé ci-dessous ou demande à l'administrateur."; }
+    }
+    if(!$("#viewHome").hidden) renderHome();
+  });
+})();
+
+async function connect(key, silent){
+  const st = $("#connStatus");
+  if(!key){ st.className="status err"; st.textContent="Colle d'abord une clé API."; return; }
+  st.className="status"; st.textContent="Vérification de la clé…";
+  try{
+    const viaServer = S.server && key==="serveur";
+    const r = await fetch(viaServer ? "api/models" : `${API}/models?pageSize=200&key=${encodeURIComponent(key)}`);
+    const data = await r.json();
+    if(!r.ok) throw new Error(data?.error?.message || `Erreur ${r.status}`);
+    const models = data.models || [];
+    const live = models.filter(m => (m.supportedGenerationMethods||[]).includes("bidiGenerateContent"));
+    const text = models.filter(m => (m.supportedGenerationMethods||[]).includes("generateContent")
+      && !/(tts|image|embedding|live|audio|aqa|gemma|learnlm|robotics|computer)/i.test(m.name));
+    if(!live.length) throw new Error("aucun modèle vocal temps réel n'est disponible pour cette clé.");
+    if(!text.length) throw new Error("aucun modèle texte n'est disponible pour cette clé.");
+    fillSelect("#liveModel", live, m => /native-audio/i.test(m.name), "laligne.liveModel");
+    fillSelect("#textModel", text, m => /flash/i.test(m.name) && !/lite/i.test(m.name), "laligne.textModel");
+    S.key = key; S.connected = true;
+    S.viaServer = viaServer;
+    if(!viaServer && !CONFIG.GEMINI_API_KEY && $("#rememberKey").checked) safeSet("laligne.key", key);
+    $("#modelRow").hidden = false;
+    st.className="status ok"; st.textContent="Connecté à Gemini.";
+  }catch(e){
+    S.connected=false;
+    st.className="status err"; st.textContent=`Clé refusée par Google : ${e.message}`;
+    if(!silent) toast("La connexion à Gemini a échoué. Ouvre les réglages pour vérifier la clé.");
+  }
+  if(!$("#viewHome").hidden) renderHome();
+  if(!$("#viewPrep").hidden) renderPrep();
+}
+function fillSelect(sel, list, prefer, storeKey){
+  const el = $(sel); el.innerHTML="";
+  const sorted = [...list].sort((a,b) => (prefer(b)?1:0)-(prefer(a)?1:0));
+  for(const m of sorted){
+    const o=document.createElement("option");
+    o.value=m.name; o.textContent=`${m.displayName||m.name} (${m.name.replace("models/","")})`;
+    el.appendChild(o);
+  }
+  const savedV = safeGet(storeKey);
+  if(savedV && sorted.some(m=>m.name===savedV)) el.value = savedV;
+  el.onchange = ()=>safeSet(storeKey, el.value);
+}
+
+/* =========================================================
+   ACCUEIL : MON PARCOURS
+   ========================================================= */
+function spark(values){
+  if(values.length<2) return "";
+  const w=300,h=46,p=4, max=100, min=0;
+  const pts=values.map((v,i)=>[p+i*(w-2*p)/(values.length-1), h-p-(v-min)/(max-min)*(h-2*p)]);
+  const d=pts.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+  const last=pts[pts.length-1];
+  const target = h-p-(PASS_SCORE/100)*(h-2*p);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" x2="${w}" y1="${target}" y2="${target}" stroke="var(--line)" stroke-dasharray="4 4"/>
+    <path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="var(--orange)"/></svg>`;
+}
+function stepCard(s, rec){
+  const st=statusOf(s.id);
+  const stateHtml = rec ? `<span class="state rec">Recommandé</span>` : `<span class="state ${st.key}">${st.label}</span>`;
+  const best = st.best==null ? "" : `<div class="meta">Meilleur score ${st.best} sur 100, ${st.n} appel${st.n>1?"s":""}</div><div class="minibar"><span style="width:${st.best}%;background:${scoreColor(st.best)}"></span></div>`;
+  return `<button type="button" class="step ${st.key==="done"?"done":""} ${rec?"rec":""}" data-id="${s.id}">
+    <div class="top"><span class="badge">${st.key==="done"?"✓":s.num}</span><strong>${esc(s.title)}</strong></div>
+    <div class="meta">${esc(s.sub)}</div>${stateHtml}${best}</button>`;
+}
+function renderHome(){
+  const h=history(), rec=recommended();
+  const calls=h.filter(x=>x.kind==="appel");
+  const rdvRate = calls.length ? Math.round(calls.filter(x=>x.rdv).length/calls.length*100) : null;
+  const recent=h.slice(-5).map(x=>x.score).filter(v=>v!=null);
+  const avg = recent.length ? Math.round(recent.reduce((a,b)=>a+b,0)/recent.length) : null;
+  const axe=lastAxe();
+  const recSt=statusOf(rec.id);
+  const title = !h.length ? `Premier appel : ${esc(rec.contact.nom.split(" (")[0])} t'attend.`
+              : axe ? esc(axe) : "Continue sur ta lancée.";
+  const subtitle = !h.length ? "Prépare ton accroche en deux minutes, puis appelle. Le débrief arrive juste après."
+              : axe ? "C'est ton axe de travail, issu de ton dernier débrief. Garde-le en tête pour le prochain appel."
+              : "";
+  $("#viewHome").innerHTML = `
+  <section class="hero">
+    <div class="focus">
+      <p class="hello">Bonjour ${esc(S.junior?.first||"")}</p>
+      <h1>${title}</h1>
+      ${subtitle?`<p class="sub">${subtitle}</p>`:""}
+      <div class="go">
+        <button class="btn orange big" id="goRec" type="button">${recSt.n?"Rejouer":"Préparer"} : ${esc(rec.title.toLowerCase())}</button>
+        ${!S.connected?`<button class="link" style="color:#fff" type="button" id="openSet">Connecter Gemini d'abord</button>`:""}
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">${h.length}</div><div class="l">appel${h.length>1?"s":""} d'entraînement</div></div>
+      <div class="stat"><div class="v">${rdvRate==null?"–":rdvRate+" %"}</div><div class="l">de rendez-vous obtenus</div></div>
+      <div class="stat wide"><div class="v" style="color:${scoreColor(avg)}">${avg==null?"–":avg}<span style="font-size:1rem;color:var(--mute);font-weight:400"> / 100</span></div>
+        <div class="l">score moyen sur tes 5 derniers appels (validation à ${PASS_SCORE})</div>${spark(h.slice(-12).map(x=>x.score).filter(v=>v!=null))}</div>
+    </div>
+  </section>
+
+  <div class="sec-title"><h2>Ton parcours</h2><p>Un niveau est validé avec ${PASS_COUNT} appels à ${PASS_SCORE} ou plus.</p></div>
+  <div class="path">${SCENARIOS.filter(s=>s.group==="level").map(s=>stepCard(s, s.id===rec.id)).join("")}</div>
+  <div class="sec-title"><h2>Exercices ciblés</h2><p>À faire quand tu veux, pour travailler un moment précis.</p></div>
+  <div class="drills">${SCENARIOS.filter(s=>s.group==="drill").map(s=>stepCard(s, s.id===rec.id)).join("")}</div>
+
+  <div class="sec-title"><h2>Tes derniers appels</h2></div>
+  <div class="history">
+    ${h.length ? `<div class="hrow head"><span>Date</span><span>Scénario</span><span>Score</span><span class="hide-s">Résultat</span><span class="hide-s">Axe de travail</span></div>` +
+      h.slice(-8).reverse().map(x=>`<div class="hrow"><span>${new Date(x.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
+        <span>${esc(x.scenarioTitle)}</span><span class="score-tag" style="color:${scoreColor(x.score)}">${x.score??"–"}</span>
+        <span class="hide-s">${x.kind==="messagerie"?"Message laissé":x.rdv?(x.kind==="barrage"?"Contact obtenu":"Rendez-vous"):"Sans suite"}</span>
+        <span class="hide-s" style="color:var(--mute)">${esc(x.axe||"")}</span></div>`).join("")
+      : `<div class="empty">Tes appels apparaîtront ici, avec leur score et ton axe de travail.</div>`}
+  </div>`;
+  $("#goRec").onclick=()=>goPrep(rec.id);
+  const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
+  document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
+}
+function goHome(){ showView("home"); renderHome(); }
+
+/* =========================================================
+   PRÉPARATION
+   ========================================================= */
+const MEMO_STEPS = [
+  ["Accroche","« Bonjour [Prénom], [ton prénom] de Smile. Je vous appelle à un mauvais moment ? »"],
+  ["Raison de l'appel","« J'ai vu que [actualité]. Félicitations. » Un fait précis, pas une généralité."],
+  ["Proposition de valeur","Un problème, un résultat, une preuve : « Nous accompagnons des [type d'entreprise] qui [problème]. Chez [client], nous avons [résultat]. »"],
+  ["Découverte","« Comment gérez-vous aujourd'hui [sujet] ? » « Qu'aimeriez-vous améliorer ? » « Qui d'autre est impliqué ? »"],
+  ["Rendez-vous","« Je vous propose 30 minutes pour voir si on peut vous aider sur [besoin]. Plutôt [créneau 1] ou [créneau 2] ? »"],
+  ["Conclusion","« Parfait, je vous envoie l'invitation à [e-mail]. Merci, bonne journée. »"]
+];
+const MEMO_OBJ = [
+  ["Pas de budget","Solutions modulaires, à son rythme. Le rendez-vous sert à faire connaissance et explorer ses priorités, cette année ou la suivante."],
+  ["Déjà un prestataire","La plupart de nos clients travaillent avec d'autres sociétés. Smile vient en complément, avec une expertise pointue. Preuve : Somfy."],
+  ["Pas le temps","C'est justement quand on est chargé qu'on peut faire gagner du temps. 30 minutes pour évaluer."],
+  ["Pas de projet","Échanger sur sa roadmap pour anticiper les besoins."],
+  ["Pas la bonne personne","« Pourriez-vous me rediriger vers la bonne personne ? »"],
+  ["Pas intéressé","« Qu'est-ce qui ne vous intéresse pas exactement : travailler avec une ESN, ou pas de sujet en ce moment ? »"]
+];
+const MEMO_REFS = "Somfy (reprise d'un prestataire, 14 sites), Cultura (omnicanal depuis 10 ans), Accor (marketplace B2B en 6 mois), Arkema (B2B en 2 mois), Eram (migration cloud), Pierre Fabre (150 sites, 60 % d'économies). À Lille : 96 experts, 15 ans de présence, Kiabi, Auchan, Adeo, Decathlon.";
+function memoHtml(){
+  return `<div class="memo-body">
+    <ol>${MEMO_STEPS.map(m=>`<li><b>${m[0]}</b> : ${esc(m[1])}</li>`).join("")}</ol>
+    <p style="margin:6px 0 4px;font-weight:600">Objections</p>
+    ${MEMO_OBJ.map(o=>`<div class="obj"><b>${o[0]}</b>${esc(o[1])}</div>`).join("")}
+    <p style="margin:10px 0 4px;font-weight:600">Références à citer</p><p style="margin:0">${esc(MEMO_REFS)}</p>
+  </div>`;
+}
+function goPrep(id){ S.scenario=scById(id); showView("prep"); renderPrep(); }
+function readPrep(){
+  const s=S.scenario, el=id=>$(id);
+  if(el("#pA")) S.prepDrafts[s.id]={accroche:el("#pA").value.trim(), probleme:el("#pB").value.trim(), objectif:el("#pC").value.trim()};
+  return {id:s.id, ...(S.prepDrafts[s.id]||{accroche:"",probleme:"",objectif:""})};
+}
+function renderPrep(){
+  const s=S.scenario, c=s.contact, st=statusOf(s.id);
+  const prep=S.prepDrafts[s.id]||{accroche:"",probleme:"",objectif:""};
+  const axe=lastAxe();
+  const isMsg=s.kind==="messagerie", isBar=s.kind==="barrage";
+  $("#viewPrep").innerHTML=`
+  <button class="link back" type="button" id="backHome">Retour au parcours</button>
+  <div class="prep">
+    <aside class="card">
+      <h2>${esc(s.title)}</h2>
+      <p class="goal">${esc(s.goal)}</p>
+      <dl class="fiche">
+        <div><dt>${isBar?"Personne à joindre":"Contact"}</dt><dd>${esc(c.nom.split(" (")[0])}, ${esc(c.role)}</dd></div>
+        <div><dt>Entreprise</dt><dd>${esc(c.entreprise)}</dd></div>
+        <div><dt>Dernière activité</dt><dd>${esc(c.derniere)}</dd></div>
+        <div><dt>Actualité repérée</dt><dd class="actu">${esc(c.actu)}</dd></div>
+        <div><dt>Besoin supposé</dt><dd>${esc(c.besoin)}</dd></div>
+        ${st.n?`<div><dt>Tes tentatives</dt><dd>${st.n} appel${st.n>1?"s":""}, meilleur score ${st.best} sur 100</dd></div>`:""}
+      </dl>
+    </aside>
+    <section class="card">
+      ${axe?`<div class="axe-remind"><b>Ton axe de travail :</b> ${esc(axe)}</div>`:""}
+      <h2 style="margin-bottom:14px">Ta préparation</h2>
+      <div class="prepq">
+        <div class="field"><label for="pA">Quelle est mon accroche ?</label><textarea id="pA" placeholder="${isMsg?"Le fait récent que je cite dans mon message":"Le fait récent que je vais citer"}">${esc(prep.accroche)}</textarea></div>
+        <div class="field"><label for="pB">Quel problème ce fait peut-il créer ou révéler ?</label><textarea id="pB">${esc(prep.probleme)}</textarea></div>
+        <div class="field"><label for="pC">Quel est mon objectif précis pour cet appel ?</label><textarea id="pC">${esc(prep.objectif)}</textarea></div>
+      </div>
+      <details class="memo"><summary>Aide-mémoire : la trame de l'agence</summary>${memoHtml()}</details>
+      <div class="callbar">
+        <button class="btn orange big" id="callBtn" type="button" ${S.connected?"":"disabled"}>Appeler ${esc(isBar?"le standard":c.nom.split(" (")[0])}</button>
+        <span class="note">${S.connected ? "Le prospect décroche après une sonnerie. Tu pourras ouvrir l'aide-mémoire pendant l'appel." : `Gemini n'est pas connecté. <button class="link" type="button" id="openSet2">Ouvrir les réglages</button>`}</span>
+      </div>
+    </section>
+  </div>`;
+  $("#backHome").onclick=()=>{ readPrep(); goHome(); };
+  ["#pA","#pB","#pC"].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
+  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ prepareCallScreen(); startCall(); };
+  const os=$("#openSet2"); if(os) os.onclick=()=>openDlg("#dlgSettings");
+}
+function prepareCallScreen(){
+  $("#memoSide").innerHTML = `<h3>Aide-mémoire</h3>${memoHtml()}`;
+  const open = safeGet("laligne.memoOpen")==="1";
+  $("#memoSide").hidden=!open; $("#callWrap").classList.toggle("memo-open",open);
+  $("#memoToggle").setAttribute("aria-pressed",String(open));
+  $("#timer").classList.remove("warn");
+}
+$("#memoToggle").onclick=()=>{
+  const open=$("#memoSide").hidden;
+  $("#memoSide").hidden=!open; $("#callWrap").classList.toggle("memo-open",open);
+  $("#memoToggle").setAttribute("aria-pressed",String(open));
+  safeSet("laligne.memoOpen", open?"1":"0");
+};
+
+/* =========================================================
+   ENVOI DES RÉSULTATS (Google Sheets)
+   ========================================================= */
+function outbox(){ try{ return JSON.parse(safeGet("laligne.outbox")||"[]"); }catch(e){ return []; } }
+async function flushOutbox(){
+  if(!sharing()) return true;
+  const box=outbox(); if(!box.length) return true;
+  const left=[];
+  for(const rec of box){
+    try{
+      const r=await fetch("api/sessions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(rec)});
+      if(!r.ok && r.status>=500) left.push(rec);
+    }catch(e){ left.push(rec); }
+  }
+  safeSet("laligne.outbox", JSON.stringify(left));
+  return left.length===0;
+}
+async function recordSession(rec){
+  const h=history(); h.push(rec); saveHistory(h);
+  if(!sharing()) return null;
+  const box=outbox(); box.push(rec); safeSet("laligne.outbox", JSON.stringify(box));
+  return flushOutbox();
+}
+/* =========================================================
+   AUDIO
+   ========================================================= */
+const WORKLET_SRC = `class Cap extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true;}}registerProcessor("pcm-capture",Cap);`;
+const A = { micStream:null, micCtx:null, micNode:null, inRate:48000, pending:new Float32Array(0), queue:[], queued:0,
+            playCtx:null, playOut:null, analyser:null, nextTime:0, sources:new Set(), micLevel:0, sending:false, raf:0 };
+
+async function startMic(){
+  A.micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  A.micCtx = new AudioContext();
+  A.inRate = A.micCtx.sampleRate;
+  const url = URL.createObjectURL(new Blob([WORKLET_SRC],{type:"application/javascript"}));
+  await A.micCtx.audioWorklet.addModule(url);
+  const src = A.micCtx.createMediaStreamSource(A.micStream);
+  A.micNode = new AudioWorkletNode(A.micCtx,"pcm-capture");
+  A.micNode.port.onmessage = e => onMicChunk(e.data);
+  const silent = A.micCtx.createGain(); silent.gain.value = 0;
+  src.connect(A.micNode); A.micNode.connect(silent); silent.connect(A.micCtx.destination);
+}
+function onMicChunk(f32){
+  let sum=0; for(let i=0;i<f32.length;i++) sum+=f32[i]*f32[i];
+  A.micLevel = Math.max(Math.sqrt(sum/f32.length), A.micLevel*0.85);
+  if(!A.sending) return;
+  const out = resample(f32);
+  A.queue.push(out); A.queued += out.length;
+  if(A.queued >= 1600){ // 100 ms à 16 kHz
+    const all = new Float32Array(A.queued); let o=0;
+    for(const q of A.queue){ all.set(q,o); o+=q.length; }
+    A.queue=[]; A.queued=0;
+    sendAudio(all);
+  }
+}
+function resample(chunk){
+  const ratio = A.inRate/16000;
+  const m = new Float32Array(A.pending.length+chunk.length);
+  m.set(A.pending); m.set(chunk, A.pending.length);
+  const outLen = Math.max(0, Math.floor((m.length-1)/ratio));
+  const out = new Float32Array(outLen);
+  for(let i=0;i<outLen;i++){
+    const x=i*ratio, k=Math.floor(x), f=x-k;
+    out[i] = m[k]*(1-f) + m[k+1]*f;
+  }
+  A.pending = m.slice(Math.floor(outLen*ratio));
+  return out;
+}
+function sendAudio(f32){
+  if(!S.ws || S.ws.readyState!==1) return;
+  const i16 = new Int16Array(f32.length);
+  for(let i=0;i<f32.length;i++){ const v=Math.max(-1,Math.min(1,f32[i])); i16[i]= v<0 ? v*0x8000 : v*0x7FFF; }
+  S.ws.send(JSON.stringify({realtimeInput:{audio:{data:toB64(new Uint8Array(i16.buffer)), mimeType:"audio/pcm;rate=16000"}}}));
+}
+function toB64(bytes){
+  let s=""; const step=0x8000;
+  for(let i=0;i<bytes.length;i+=step) s+=String.fromCharCode.apply(null, bytes.subarray(i,i+step));
+  return btoa(s);
+}
+function startPlayback(){
+  A.playCtx = new AudioContext({sampleRate:24000});
+  A.playOut = A.playCtx.createGain();
+  A.analyser = A.playCtx.createAnalyser(); A.analyser.fftSize=512;
+  A.playOut.connect(A.analyser);
+  if($("#phoneFx").checked){
+    const ctx=A.playCtx;
+    const hp=ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=300;
+    const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=3400;
+    const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-24; comp.ratio.value=4;
+    A.analyser.connect(hp); hp.connect(lp); lp.connect(comp); comp.connect(ctx.destination);
+    // léger bruit de ligne
+    const n=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d=n.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+    const ns=ctx.createBufferSource(); ns.buffer=n; ns.loop=true;
+    const nf=ctx.createBiquadFilter(); nf.type="bandpass"; nf.frequency.value=1200; nf.Q.value=0.6;
+    const ng=ctx.createGain(); ng.gain.value=0.006;
+    ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination); ns.start();
+    A.noise=ns;
+  } else {
+    A.analyser.connect(A.playCtx.destination);
+  }
+  A.nextTime = 0;
+}
+function playChunk(b64){
+  const bin = atob(b64), n = bin.length>>1;
+  const buf = A.playCtx.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
+  for(let i=0;i<n;i++){
+    let v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8);
+    if(v>=0x8000) v-=0x10000;
+    ch[i] = v/0x8000;
+  }
+  const src = A.playCtx.createBufferSource(); src.buffer=buf; src.connect(A.playOut);
+  const t = Math.max(A.nextTime, A.playCtx.currentTime+0.03);
+  src.start(t); A.nextTime = t + buf.duration;
+  A.sources.add(src); src.onended=()=>A.sources.delete(src);
+}
+function stopPlayback(){
+  for(const s of A.sources){ try{s.stop();}catch(e){} }
+  A.sources.clear(); A.nextTime=0;
+}
+function ringTone(){
+  // Une sonnerie française : 440 Hz pendant 1,5 s
+  return new Promise(res=>{
+    const ctx=A.playCtx, o=ctx.createOscillator(), g=ctx.createGain();
+    o.frequency.value=440; g.gain.value=0.08;
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+1.5);
+    setTimeout(res, 2300);
+  });
+}
+function prospectSpeaking(){ return A.playCtx && A.playCtx.currentTime < A.nextTime - 0.05; }
+function animate(){
+  const ring=$("#ring");
+  let lvl=0, who="";
+  if(prospectSpeaking() && A.analyser){
+    const d=new Uint8Array(A.analyser.fftSize); A.analyser.getByteTimeDomainData(d);
+    let s=0; for(const v of d){ const x=(v-128)/128; s+=x*x; }
+    lvl=Math.sqrt(s/d.length)*3; who="prospect";
+  } else if(A.micLevel>0.02){ lvl=A.micLevel*4; who="me"; }
+  A.micLevel*=0.9;
+  ring.className = "ring" + (who ? " "+who : "");
+  ring.style.transform = `scale(${1+Math.min(lvl,0.6)})`;
+  if(S.callActive && S.startedAt){
+    $("#callState").textContent = who==="prospect" ? `${firstName()} parle…` : "À toi";
+  }
+  A.raf = requestAnimationFrame(animate);
+}
+function teardownAudio(){
+  A.sending=false;
+  cancelAnimationFrame(A.raf);
+  stopPlayback();
+  if(A.micStream) A.micStream.getTracks().forEach(t=>t.stop());
+  try{ A.noise && A.noise.stop(); }catch(e){} A.noise=null;
+  try{ A.micCtx && A.micCtx.close(); }catch(e){}
+  try{ A.playCtx && A.playCtx.close(); }catch(e){}
+  A.micStream=A.micCtx=A.micNode=A.playCtx=A.analyser=null;
+  A.pending=new Float32Array(0); A.queue=[]; A.queued=0;
+}
+
+/* =========================================================
+   APPEL
+   ========================================================= */
+async function startCall(){
+  const s=S.scenario;
+  S.lastPrep = readPrep();
+  S.transcript=[]; S.startedAt=0; S.errorShown=false;
+  $("#callWho").textContent = speaker();
+  $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
+  $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
+  $("#timer").textContent="0:00"; $("#callState").textContent="Connexion…";
+  $("#liveText").innerHTML=""; $("#callErr").hidden=true;
+  showView("call");
+  try{
+    startPlayback();
+    await startMic();
+  }catch(e){
+    callError("Le micro n'est pas accessible. Autorise le micro pour cette page (icône à gauche de l'adresse), puis réessaie.");
+    teardownAudio(); return;
+  }
+  animate();
+  openLine(0);
+}
+
+/* Niveau 0 : options natives (dialogue affectif, audio proactif) + détection de tour réglée
+   Niveau 1 : détection de tour réglée seulement
+   Niveau 2 : configuration minimale
+   Si Google refuse une option, on retente automatiquement au niveau suivant. */
+function buildSetup(level){
+  const s=S.scenario;
+  const chosen = s.gender==="M" ? $("#voiceM").value : $("#voiceF").value;
+  const pace = $("#pace").value;
+  const vad = {
+    natural:{ endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:650, prefixPaddingMs:120 },
+    fast:   { endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:400, prefixPaddingMs:80 },
+    patient:{ endOfSpeechSensitivity:"END_SENSITIVITY_LOW",  silenceDurationMs:1200, prefixPaddingMs:150 }
+  }[pace] || {};
+  const setup = {
+    model: $("#liveModel").value,
+    generationConfig:{ responseModalities:["AUDIO"], temperature:1.0,
+      speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName: chosen || s.voice } } } },
+    systemInstruction:{ parts:[{text:s.prompt}] },
+    inputAudioTranscription:{}, outputAudioTranscription:{}
+  };
+  if(level<=1) setup.realtimeInputConfig = { automaticActivityDetection: vad };
+  if(level===0){ setup.enableAffectiveDialog = true; setup.proactivity = { proactiveAudio: true }; }
+  return setup;
+}
+function openLine(level){
+  S.lineLevel = level; S.setupDone = false;
+  const url = S.viaServer
+    ? `${location.protocol==="https:"?"wss":"ws"}://${location.host}${location.pathname.replace(/[^/]*$/,"")}api/live?v=${level===0?"v1alpha":"v1beta"}`
+    : (level===0 ? WS_URL.replace("v1beta","v1alpha") : WS_URL) + `?key=${encodeURIComponent(S.key)}`;
+  const ws = new WebSocket(url);
+  S.ws = ws;
+  ws.onopen = () => ws.send(JSON.stringify({setup:buildSetup(level)}));
+  ws.onmessage = async ev => {
+    let msg; try{ msg = JSON.parse(typeof ev.data==="string" ? ev.data : await ev.data.text()); }catch(e){ return; }
+    handleServer(msg);
+  };
+  ws.onclose = ev => {
+    if(S.ws!==ws) return;
+    if(!S.setupDone && ev.code!==1000 && level<2){ openLine(level+1); return; }
+    if(S.callActive || !S.startedAt){
+      if(ev.code!==1000 && !S.errorShown){
+        callError(`La ligne a été coupée par Google (code ${ev.code}${ev.reason?` : ${ev.reason}`:""}). Vérifie le modèle vocal choisi dans les réglages.`);
+      }
+      finishCall();
+    }
+  };
+}
+async function handleServer(msg){
+  if(msg.setupComplete){
+    S.setupDone = true;
+    $("#callState").textContent="Ça sonne…";
+    await ringTone();
+    if(!S.ws || S.ws.readyState!==1) return;
+    S.callActive=true; S.startedAt=Date.now();
+    S.timerId=setInterval(()=>{ const e=Date.now()-S.startedAt; $("#timer").textContent=fmt(e); $("#timer").classList.toggle("warn", e>(S.scenario.kind==="messagerie"?30000:300000)); },500);
+    S.maxTimer=setTimeout(()=>hangUp(), MAX_CALL_MS);
+    S.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:"[Ton téléphone sonne. Tu décroches.]"}]}],turnComplete:true}}));
+    A.sending=true;
+    return;
+  }
+  const sc = msg.serverContent;
+  if(sc){
+    if(sc.interrupted) stopPlayback();
+    for(const p of (sc.modelTurn?.parts||[])){ if(p.inlineData?.data) playChunk(p.inlineData.data); }
+    if(sc.inputTranscription?.text) addT("junior", sc.inputTranscription.text);
+    if(sc.outputTranscription?.text) addT("prospect", sc.outputTranscription.text);
+  }
+}
+function addT(who, text){
+  const last=S.transcript[S.transcript.length-1];
+  if(last && last.who===who) last.text+=text; else S.transcript.push({who,text});
+  const box=$("#liveText");
+  box.innerHTML = S.transcript.map(t=>`<p><b>${t.who==="junior"?"Toi":esc(firstName())} :</b> ${esc(t.text.trim())}</p>`).join("");
+  box.scrollTop=box.scrollHeight;
+}
+function callError(t){ S.errorShown=true; const e=$("#callErr"); e.hidden=false; e.innerHTML=`${esc(t)} <button class="link" style="color:#fff" type="button" onclick="backToPrep()">Revenir à la préparation</button>`; }
+
+$("#hangBtn").onclick = hangUp;
+$("#liveToggle").onclick = () => {
+  const box=$("#liveText"); box.hidden=!box.hidden;
+  $("#liveToggle").setAttribute("aria-pressed", String(!box.hidden));
+  $("#liveToggle").textContent = box.hidden ? "Afficher la transcription" : "Masquer la transcription";
+};
+
+function hangUp(){ finishCall(true); }
+function finishCall(manual){
+  const wasActive = S.callActive || manual;
+  S.callActive=false;
+  clearInterval(S.timerId); clearTimeout(S.maxTimer);
+  S.lastDuration = S.startedAt ? Date.now()-S.startedAt : 0;
+  const ws=S.ws; S.ws=null;
+  if(ws && ws.readyState<=1){ ws.onclose=null; try{ ws.close(1000); }catch(e){} }
+  teardownAudio();
+  const said = S.transcript.some(t=>t.who==="junior" && t.text.trim().length>3);
+  if(!said){
+    if(S.errorShown) return;
+    backToPrep();
+    if(wasActive && S.startedAt && S.lastDuration>8000){
+      toast("Aucune parole détectée de ton côté : vérifie ton micro dans les réglages du navigateur.");
+    }
+    return;
+  }
+  runDebrief();
+}
+function backToPrep(){ goPrep(S.scenario.id); }
+
+
+/* =========================================================
+   ONGLET MANAGER (isolé dans sa propre portée)
+   ========================================================= */
+(function(){
+const PASS_SCORE = 75, PASS_COUNT = 2;  // mêmes règles que le parcours des juniors
+const LEVELS = [["n1","Niveau 1"],["n2","Niveau 2"],["n3","Niveau 3"]];
+const CRITERIA = [
+  ["accroche","Accroche"],["raison","Raison de l'appel"],["valeur","Proposition de valeur"],["decouverte","Découverte"],
+  ["ecoute","Écoute"],["objections","Objections"],["rdv","Demande de RDV"],["conclusion","Conclusion"]
+];
+const COLORS = ["#3D6BFF","#FF7A4D","#1E9A68","#8A5CF6","#B87700","#0E9FB8","#D24444","#5B6472"];
+const PTS = {acquis:100, en_cours:60, a_travailler:20};
+
+const $ = s => document.querySelector(s);
+function esc(t){ return String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function safeSet(k,v){ try{ v===null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch(e){} }
+const DAY = 86400000;
+const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const round = v => v==null ? null : Math.round(v);
+const scoreColor = v => v==null ? "var(--none)" : v>=PASS_SCORE ? "var(--ok)" : v>=50 ? "var(--mid)" : "var(--ko)";
+function ago(d){ const n=Math.floor((Date.now()-d)/DAY); return n<=0?"aujourd'hui":n===1?"hier":`il y a ${n} jours`; }
+function weekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x.getTime(); }
+
+let ALL=[], DEMO=false, BACKUP=true;
+function sessionGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
+function sessionSet(k,v){ try{ v===null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v); }catch(e){} }
+
+
+/* =========================================================
+   DONNÉES
+   ========================================================= */
+async function load(){
+  if(DEMO){ ALL=demoData(); return; }
+  const pw=sessionGet("laligne.managerPw");
+  const r=await fetch("api/sessions",{headers:{"x-manager-password":pw||""},cache:"no-store"});
+  let d=null; try{ d=await r.json(); }catch(e){}
+  if(!r.ok || !d || !d.ok) throw new Error(d&&d.error ? d.error : "L'espace manager n'est disponible que sur le Space Hugging Face.");
+  BACKUP = !!d.backup;
+  ALL=d.sessions.map(s=>({...s, t:new Date(s.date).getTime()})).filter(s=>!isNaN(s.t)).sort((a,b)=>a.t-b.t);
+}
+function demoData(){
+  const profiles=[
+    {name:"Léa Martin", start:40, gain:1.4, freq:0.75, weak:"objections"},
+    {name:"Hugo Lefebvre", start:55, gain:0.9, freq:0.55, weak:"ecoute"},
+    {name:"Inès Benali", start:48, gain:1.8, freq:0.85, weak:"valeur"},
+    {name:"Tom Dubois", start:45, gain:0.2, freq:0.3, weak:"decouverte", stopDays:11},
+    {name:"Camille Roussel", start:60, gain:1.1, freq:0.6, weak:"rdv"}
+  ];
+  let seed=7; const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+  const out=[]; const now=Date.now();
+  const axes={objections:"Sur « envoyez-moi un mail », pose une question avant d'accepter.",ecoute:"Laisse un silence de deux secondes après chaque question.",
+    valeur:"Cite une référence du même secteur que le prospect.",decouverte:"Pose au moins deux questions ouvertes avant de pitcher.",rdv:"Propose deux créneaux précis au lieu de « quand vous voulez »."};
+  for(const p of profiles){
+    let done={n1:0,n2:0,n3:0}, k=0;
+    for(let d=42; d>=(p.stopDays||0); d--){
+      if(rnd()>p.freq) continue;
+      const level = done.n1<PASS_COUNT ? "n1" : done.n2<PASS_COUNT ? "n2" : "n3";
+      const drill = rnd()<0.15;
+      const base = p.start + p.gain*k - (level==="n2"?8:level==="n3"?15:0);
+      const score = Math.max(15, Math.min(98, Math.round(base + (rnd()-0.5)*18)));
+      if(!drill && score>=PASS_SCORE) done[level]++;
+      const crit={};
+      for(const [id] of CRITERIA){
+        const v = score + 8 + (rnd()-0.5)*26 - (id===p.weak?32:0);
+        crit[id] = v>=72?"acquis":v>=45?"en_cours":"a_travailler";
+      }
+      const kind = drill ? (rnd()<0.5?"barrage":"messagerie") : "appel";
+      out.push({ id:p.name+d, date:new Date(now-d*DAY-rnd()*DAY/2).toISOString(), t:now-d*DAY, junior:p.name,
+        scenarioId: drill?kind:level, scenarioTitle: drill?(kind==="barrage"?"Passer le barrage":"Laisser un message"):({n1:"Prospect bienveillant",n2:"Objections classiques",n3:"Appel réaliste"}[level]),
+        kind, level: drill?"":level.slice(1), durationSec: 120+Math.round(rnd()*240), talkShare: Math.round(35+rnd()*30 - (p.weak==="ecoute"?12:0)),
+        rdv: kind==="appel" && score>62 && rnd()<0.8, score, criteria: kind==="appel"?crit:{}, axe: axes[p.weak], verdict:"",
+        erreursSmile: rnd()<0.12?1:0, prepFilled: rnd()<(p.name.startsWith("Tom")?0.4:0.9)?3:0 });
+      k++;
+    }
+  }
+  return out.sort((a,b)=>a.t-b.t);
+}
+
+/* =========================================================
+   CALCULS PAR JUNIOR
+   ========================================================= */
+function juniors(list){ return [...new Set(list.map(s=>s.junior))].sort((a,b)=>a.localeCompare(b,"fr")); }
+function levelReached(sessions){
+  let lvl=0;
+  for(const [id] of LEVELS){
+    const ok=sessions.filter(s=>s.scenarioId===id && (s.score??0)>=PASS_SCORE).length>=PASS_COUNT;
+    if(ok) lvl++; else break;
+  }
+  return lvl;
+}
+function profile(name, all, from){
+  const mine=all.filter(s=>s.junior===name);
+  const inP=mine.filter(s=>s.t>=from);
+  const calls=inP.filter(s=>s.kind==="appel");
+  const scores=mine.map(s=>s.score).filter(v=>v!=null);
+  const last3=avg(scores.slice(-3)), prev3=avg(scores.slice(-6,-3));
+  const crit={};
+  for(const [id] of CRITERIA){
+    const vals=calls.map(s=>s.criteria?.[id]).filter(v=>v in PTS);
+    crit[id]= vals.length ? {pct:Math.round(vals.filter(v=>v==="acquis").length/vals.length*100), n:vals.length, score:avg(vals.map(v=>PTS[v]))} : null;
+  }
+  return {
+    name, mine, inP, n:inP.length, last: mine.length?mine[mine.length-1]:null,
+    level: levelReached(mine),
+    score: round(avg(inP.map(s=>s.score).filter(v=>v!=null))),
+    recent: round(last3), trend: last3!=null&&prev3!=null ? Math.round(last3-prev3) : null,
+    rdv: calls.length ? Math.round(calls.filter(s=>s.rdv).length/calls.length*100) : null,
+    talk: round(avg(calls.map(s=>s.talkShare))),
+    crit
+  };
+}
+function alertsFor(p){
+  const a=[];
+  const first=p.name.split(" ")[0];
+  if(!p.last) return a;
+  const idle=Math.floor((Date.now()-p.last.t)/DAY);
+  if(idle>=7) a.push({sev:"high", rank:1, text:`<b>${esc(p.name)}</b> ne s'est pas entraîné depuis ${idle} jours.`, act:`Relancer ${esc(first)} ou lui caler un créneau d'entraînement.`});
+  const recentCalls=p.mine.filter(s=>s.kind==="appel").slice(-5);
+  if(recentCalls.length>=3){
+    for(const [id,label] of CRITERIA){
+      const bad=recentCalls.filter(s=>s.criteria?.[id]==="a_travailler").length;
+      if(bad>=3){ a.push({sev:"high", rank:2, text:`<b>${esc(p.name)}</b> bloque sur « ${label.toLowerCase()} » (${bad} de ses ${recentCalls.length} derniers appels).`, act:"Sujet à travailler en binôme ou en jeu de rôle."}); break; }
+    }
+    const talk=avg(recentCalls.map(s=>s.talkShare));
+    if(talk!=null && talk<40) a.push({sev:"med", rank:4, text:`<b>${esc(p.name)}</b> parle trop : le prospect n'a que ${Math.round(talk)} % du temps de parole (cible : 60 %).`, act:"Travailler les questions ouvertes et les silences."});
+  }
+  if(p.trend!=null && p.trend<=-10) a.push({sev:"med", rank:3, text:`<b>${esc(p.name)}</b> est en baisse : ${p.trend} points sur ses 3 derniers appels.`, act:"Faire le point sur ce qui coince."});
+  const prepEmpty=p.mine.slice(-6).filter(s=>s.prepFilled===0).length;
+  if(prepEmpty>=3) a.push({sev:"med", rank:5, text:`<b>${esc(p.name)}</b> lance souvent ses appels sans préparation écrite (${prepEmpty} des 6 derniers).`, act:"Rappeler la règle : pas d'appel sans accroche préparée."});
+  const errs=p.mine.slice(-6).reduce((x,s)=>x+(Number(s.erreursSmile)||0),0);
+  if(errs>=2) a.push({sev:"med", rank:6, text:`<b>${esc(p.name)}</b> fait des erreurs sur les références Smile (${errs} sur ses derniers appels).`, act:"Revoir la plaquette et les références clients."});
+  if(p.level>=1 && p.level<3 && p.trend!=null && p.trend>=8) a.push({sev:"good", rank:7, text:`<b>${esc(p.name)}</b> progresse vite (+${p.trend} points) et a validé le niveau ${p.level}.`, act:"Le féliciter, et l'encourager sur le niveau suivant."});
+  if(p.level===3) a.push({sev:"good", rank:8, text:`<b>${esc(p.name)}</b> a validé les trois niveaux.`, act:"Prêt pour de vrais appels en autonomie."});
+  return a;
+}
+
+/* =========================================================
+   GRAPHIQUES SVG
+   ========================================================= */
+function lineChart(series, weeks){
+  const W=680,H=260,L=36,R=14,T=14,B=30;
+  const x=i=> weeks.length<2 ? L+(W-L-R)/2 : L+i*(W-L-R)/(weeks.length-1);
+  const y=v=> T+(100-v)/100*(H-T-B);
+  let g=`<line x1="${L}" x2="${W-R}" y1="${y(PASS_SCORE)}" y2="${y(PASS_SCORE)}" stroke="var(--ok)" stroke-dasharray="5 5" opacity=".6"/>
+    <text x="${W-R}" y="${y(PASS_SCORE)-5}" text-anchor="end" font-size="11" fill="var(--ok)">validation ${PASS_SCORE}</text>`;
+  for(const v of [0,25,50,100]) g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--mute)">${v}</text>`;
+  weeks.forEach((w,i)=>{ if(weeks.length<=8 || i%2===0) g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mute)">${new Date(w).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</text>`; });
+  series.forEach((s,si)=>{
+    const pts=s.values.map((v,i)=>v==null?null:[x(i),y(v)]);
+    let d="", pen=false;
+    pts.forEach(p=>{ if(!p){ return; } d+=(pen?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1); pen=true; });
+    g+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p=>{ if(p) g+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${s.color}"/>`; });
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score moyen par semaine">${g}</svg>`;
+}
+function barChart(weeks, counts){
+  const W=680,H=180,L=30,R=10,T=10,B=28, max=Math.max(4,...counts);
+  const bw=(W-L-R)/weeks.length;
+  let g="";
+  for(const v of [0,Math.round(max/2),max]){ const yy=T+(1-v/max)*(H-T-B); g+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--mute)">${v}</text>`; }
+  counts.forEach((c,i)=>{
+    const h=c/max*(H-T-B), xx=L+i*bw+bw*0.2;
+    g+=`<rect x="${xx}" y="${H-B-h}" width="${bw*0.6}" height="${h}" rx="4" fill="var(--blue)"/>`;
+    if(weeks.length<=8 || i%2===0) g+=`<text x="${xx+bw*0.3}" y="${H-9}" text-anchor="middle" font-size="11" fill="var(--mute)">${new Date(weeks[i]).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Appels d'entraînement par semaine">${g}</svg>`;
+}
+function heatColor(p){ if(p==null) return ["var(--paper)","var(--none)"]; if(p>=70) return ["var(--ok-soft)","var(--ok)"]; if(p>=40) return ["var(--mid-soft)","var(--mid)"]; return ["var(--ko-soft)","var(--ko)"]; }
+
+/* =========================================================
+   RENDU
+   ========================================================= */
+function render(){
+  const days=Number($("#mPeriod").value), from=Date.now()-days*DAY, prevFrom=from-days*DAY;
+  const sel=$("#mJunior").value;
+  const names=juniors(ALL);
+  const scope = sel ? ALL.filter(s=>s.junior===sel) : ALL;
+  const inP=scope.filter(s=>s.t>=from), prevP=scope.filter(s=>s.t>=prevFrom && s.t<from);
+  const calls=inP.filter(s=>s.kind==="appel"), prevCalls=prevP.filter(s=>s.kind==="appel");
+  const sc=round(avg(inP.map(s=>s.score).filter(v=>v!=null))), psc=round(avg(prevP.map(s=>s.score).filter(v=>v!=null)));
+  const rdv=calls.length?Math.round(calls.filter(s=>s.rdv).length/calls.length*100):null;
+  const prdv=prevCalls.length?Math.round(prevCalls.filter(s=>s.rdv).length/prevCalls.length*100):null;
+  const active=juniors(scope.filter(s=>s.t>=Date.now()-7*DAY)).length;
+  const delta=(a,b,unit="")=>{ if(a==null||b==null) return `<div class="d flat">pas de comparaison</div>`; const d=a-b; return `<div class="d ${d>0?"up":d<0?"down":"flat"}">${d>0?"+":""}${d}${unit} vs période précédente</div>`; };
+  const profiles=(sel?[sel]:names).map(n=>profile(n, ALL, from));
+  const alerts=profiles.flatMap(alertsFor).sort((a,b)=>({high:0,med:1,good:2}[a.sev]-{high:0,med:1,good:2}[b.sev]) || a.rank-b.rank);
+
+  // semaines
+  const wStart=weekStart(Math.max(from, scope.length?scope[0].t:from)), weeks=[];
+  for(let w=wStart; w<=Date.now(); w+=7*DAY) weeks.push(w);
+  const series=(sel?[sel]:names).map((n,i)=>({ name:n, color:COLORS[names.indexOf(n)%COLORS.length],
+    values:weeks.map(w=>round(avg(ALL.filter(s=>s.junior===n && s.t>=w && s.t<w+7*DAY).map(s=>s.score).filter(v=>v!=null)))) }));
+  const counts=weeks.map(w=>scope.filter(s=>s.t>=w && s.t<w+7*DAY).length);
+
+  const levelTag=l=>`<span class="tag l${l}">${l===0?"Niveau 1 en cours":l===3?"3 niveaux validés":`Niveau ${l} validé`}</span>`;
+
+  $("#mApp").innerHTML=`
+  ${!DEMO && !BACKUP?`<div class="demo">Attention : la sauvegarde des résultats n'est pas configurée sur le Space (secrets HF_TOKEN et DATASET_REPO). Les données seront perdues au prochain redémarrage.</div>`:""}
+  ${DEMO?`<div class="demo">Données de démonstration : cinq juniors fictifs sur six semaines. Les vraies données apparaissent ici dès que les juniors font leurs appels.</div>`:""}
+  <div class="kpis">
+    <div class="kpi"><div class="v">${inP.length}</div><div class="l">appels d'entraînement</div>${delta(inP.length,prevP.length)}</div>
+    <div class="kpi"><div class="v">${sel?(active?"Oui":"Non"):`${active} / ${names.length}`}</div><div class="l">${sel?"actif ces 7 derniers jours":"juniors actifs ces 7 derniers jours"}</div></div>
+    <div class="kpi"><div class="v">${rdv==null?"–":rdv+" %"}</div><div class="l">de rendez-vous obtenus</div>${delta(rdv,prdv," pts")}</div>
+    <div class="kpi"><div class="v" style="color:${scoreColor(sc)}">${sc??"–"}</div><div class="l">score moyen sur 100</div>${delta(sc,psc," pts")}</div>
+  </div>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Points d'attention</h2><p>Calculés automatiquement à partir des derniers appels.</p></div>
+    <div class="alerts">${alerts.length ? alerts.slice(0,8).map(a=>`<div class="alert ${a.sev}"><i></i><div>${a.text}<div class="act">${a.act}</div></div>
+      ${sel?"":`<button type="button" data-j="${esc(a.text.match(/<b>(.*?)<\/b>/)[1])}">Voir</button>`}</div>`).join("") : `<div class="panel empty">Rien à signaler sur la période.</div>`}</div>
+  </section>
+
+  <section class="sec grid2">
+    <div class="panel chart">
+      <div class="sec-head"><h2>Progression du score</h2><p>Moyenne par semaine</p></div>
+      ${weeks.length?lineChart(series,weeks):`<div class="empty">Pas encore de données.</div>`}
+      <div class="legend">${series.map(s=>`<span data-j="${esc(s.name)}"><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+    </div>
+    <div class="panel chart">
+      <div class="sec-head"><h2>Volume d'entraînement</h2><p>Appels par semaine</p></div>
+      ${weeks.length?barChart(weeks,counts):`<div class="empty">Pas encore de données.</div>`}
+    </div>
+  </section>
+
+  <section class="sec panel">
+    <div class="sec-head"><h2>Maîtrise de la trame</h2><p>Part des appels où chaque étape est acquise, sur la période.</p></div>
+    <div class="scroll"><table class="heat">
+      <thead><tr><th>Junior</th>${CRITERIA.map(c=>`<th class="c">${c[1]}</th>`).join("")}</tr></thead>
+      <tbody>${profiles.map(p=>`<tr><td class="name">${esc(p.name)}</td>${CRITERIA.map(([id])=>{ const c=p.crit[id]; const [bg,fg]=heatColor(c?.pct);
+        return `<td class="c" style="background:${bg};color:${fg}" title="${c?`${c.n} appels`:"aucun appel"}">${c?c.pct+" %":"–"}</td>`; }).join("")}</tr>`).join("")}
+      ${!sel && profiles.length>1 ? (()=>{ const team=profile("__team__", ALL.map(s=>({...s,junior:"__team__"})), from);
+        return `<tr><td class="name" style="color:var(--mute)">Équipe</td>${CRITERIA.map(([id])=>{ const c=team.crit[id]; const [bg,fg]=heatColor(c?.pct); return `<td class="c" style="background:${bg};color:${fg}">${c?c.pct+" %":"–"}</td>`; }).join("")}</tr>`; })() : ""}
+      </tbody></table></div>
+  </section>
+
+  <section class="sec panel">
+    <div class="sec-head"><h2>${sel?"Fiche de "+esc(sel):"Les juniors"}</h2><p>${sel?"":"Clique sur une ligne pour voir le détail."}</p></div>
+    <div class="scroll"><table>
+      <thead><tr><th>Junior</th><th>Appels</th><th>Dernier appel</th><th>Parcours</th><th>Score récent</th><th>Tendance</th><th>RDV</th><th>Parole prospect</th><th>Axe de travail actuel</th></tr></thead>
+      <tbody>${profiles.map(p=>`<tr class="${sel?"":"clickable"}" data-j="${esc(p.name)}">
+        <td><b style="font-weight:600">${esc(p.name)}</b></td><td>${p.n}</td>
+        <td>${p.last?ago(p.last.t):"–"}</td><td>${levelTag(p.level)}</td>
+        <td style="color:${scoreColor(p.recent)};font-weight:600">${p.recent??"–"}</td>
+        <td class="${p.trend>0?"up":p.trend<0?"down":"flat"}" style="font-weight:600">${p.trend==null?"–":(p.trend>0?"+":"")+p.trend}</td>
+        <td>${p.rdv==null?"–":p.rdv+" %"}</td><td style="color:${p.talk!=null&&p.talk<45?"var(--ko)":"inherit"}">${p.talk==null?"–":p.talk+" %"}</td>
+        <td class="maxe">${esc(p.last?.axe||"")}</td></tr>`).join("")}</tbody>
+    </table></div>
+  </section>
+
+  ${sel ? `<section class="sec panel"><div class="sec-head"><h2>Derniers appels de ${esc(sel.split(" ")[0])}</h2><p>Les transcriptions restent privées : seuls les résultats sont partagés.</p></div>
+    ${scope.slice(-12).reverse().map(s=>`<div class="sess"><span>${new Date(s.t).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
+      <span class="hs">${esc(s.scenarioTitle)}</span><span style="font-weight:600;color:${scoreColor(s.score)}">${s.score??"–"}</span>
+      <span class="hs" style="color:var(--mute)">${esc(s.verdict||s.axe||"")}</span></div>`).join("")}</section>` : ""}
+  `;
+  document.querySelectorAll("[data-j]").forEach(el=>el.addEventListener("click",()=>{ if(sel) return; $("#mJunior").value=el.dataset.j; render(); }));
+  $("#mSub").textContent = DEMO ? "Démonstration avec des juniors fictifs" : `${names.length} junior${names.length>1?"s":""} suivi${names.length>1?"s":""}, mis à jour à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+}
+
+function fillJuniors(){
+  const cur=$("#mJunior").value;
+  $("#mJunior").innerHTML=`<option value="">Tous les juniors</option>`+juniors(ALL).map(n=>`<option>${esc(n)}</option>`).join("");
+  if(juniors(ALL).includes(cur)) $("#mJunior").value=cur;
+}
+async function start(){
+  try{
+    await load();
+    $("#mLogin").hidden=true; $("#mApp").hidden=false; $("#mFilters").hidden=false;
+    $("#mLogout").hidden = DEMO;
+    fillJuniors(); render();
+  }catch(e){
+    sessionSet("laligne.managerPw",null);
+    $("#mApp").hidden=true; $("#mFilters").hidden=true; $("#mLogin").hidden=false; $("#mLoginErr").textContent=e.message;
+  }
+}
+$("#mPeriod").onchange=render;
+$("#mJunior").onchange=render;
+$("#mRefresh").onclick=start;
+$("#mLoginBtn").onclick=()=>{ sessionSet("laligne.managerPw",$("#mPw").value.trim()); DEMO=false; start(); };
+$("#mPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#mLoginBtn").click(); });
+$("#mDemoBtn").onclick=()=>{ DEMO=true; start(); };
+$("#mLogout").onclick=()=>{ sessionSet("laligne.managerPw",null); DEMO=false; ALL=[]; $("#mApp").hidden=true; $("#mFilters").hidden=true; $("#mLogin").hidden=false; $("#mLoginErr").textContent=""; $("#mPw").value=""; $("#mSub").textContent="Progression de l'équipe sur La Ligne"; };
+window.openManager = ()=>{
+  if(DEMO || sessionGet("laligne.managerPw")) start();
+  else { $("#mLogin").hidden=false; $("#mApp").hidden=true; $("#mFilters").hidden=true; setTimeout(()=>$("#mPw").focus(),50); }
+};
+
+})();
+
+/* =========================================================
+   DÉBRIEF
+   ========================================================= */
+function words(t){ return (t.trim().match(/\S+/g)||[]).length; }
+
+async function runDebrief(){
+  showView("debrief");
+  const s=S.scenario;
+  const jw = S.transcript.filter(t=>t.who==="junior").reduce((a,t)=>a+words(t.text),0);
+  const pw = S.transcript.filter(t=>t.who==="prospect").reduce((a,t)=>a+words(t.text),0);
+  const share = jw+pw ? Math.round(pw/(jw+pw)*100) : 0;
+  const body=$("#debriefBody");
+  body.innerHTML=`<div class="loading" role="status">Ton coach écoute l'appel et prépare ton débrief…</div>`;
+  const grid = GRIDS[s.kind];
+  const transcriptTxt = S.transcript.map(t=>`${t.who==="junior"?"COMMERCIAL":"PROSPECT"} : ${t.text.trim()}`).join("\n");
+  const prev = attemptsOf(s.id).slice(-1)[0];
+  const payload = `TYPE D'EXERCICE : ${s.kind}
+OBJECTIF DE L'EXERCICE : ${s.goal}
+
+FICHE PROSPECT REMISE AU COMMERCIAL : ${JSON.stringify(s.contact)}
+
+CONTEXTE CACHÉ DU PROSPECT SIMULÉ (ce que le commercial pouvait découvrir) :
+${s.prompt}
+
+PRÉPARATION ÉCRITE PAR LE COMMERCIAL AVANT L'APPEL :
+- Accroche : ${S.lastPrep.accroche || "(vide)"}
+- Problème identifié : ${S.lastPrep.probleme || "(vide)"}
+- Objectif de l'appel : ${S.lastPrep.objectif || "(vide)"}
+
+AXE DE TRAVAIL DONNÉ AU DÉBRIEF PRÉCÉDENT : ${lastAxe() || "(aucun, premier appel)"}
+Indique dans le verdict si cet axe a été appliqué, quand c'est pertinent.
+
+MESURES AUTOMATIQUES :
+- Durée de l'appel : ${fmt(S.lastDuration)}
+- Part de parole du prospect (en nombre de mots) : ${share} %
+
+GRILLE À UTILISER (id, critère, attendu) :
+${grid.map(g=>`- ${g[0]} | ${g[1]} | ${g[2]}`).join("\n")}
+
+TRANSCRIPTION :
+${transcriptTxt}`;
+  try{
+    const genBody = {
+      systemInstruction:{parts:[{text:DEBRIEF_SYSTEM}]},
+      contents:[{role:"user",parts:[{text:payload}]}],
+      generationConfig:{temperature:0.4, responseMimeType:"application/json"}
+    };
+    const r = S.viaServer
+      ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:$("#textModel").value, payload:genBody})})
+      : await fetch(`${API}/${$("#textModel").value}:generateContent?key=${encodeURIComponent(S.key)}`,{
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(genBody)});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data?.error?.message || `Erreur ${r.status}`);
+    const txt = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("").replace(/```json|```/g,"").trim();
+    const d = JSON.parse(txt);
+    const criteria = Object.fromEntries((d.criteres||[]).map(c=>[c.id, LVL[c.niveau]?c.niveau:"non_observe"]));
+    const rec = {
+      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+      date: new Date().toISOString(), junior: juniorName(),
+      scenarioId: s.id, scenarioTitle: s.title, kind: s.kind, level: s.num,
+      durationSec: Math.round(S.lastDuration/1000), talkShare: share,
+      rdv: s.kind==="messagerie" ? false : !!d.rdv_obtenu,
+      score: scoreOf(criteria), criteria, axe: d.axe_de_travail||"", verdict: d.verdict||"",
+      erreursSmile: (d.erreurs_smile||[]).length, prepFilled: [S.lastPrep.accroche,S.lastPrep.probleme,S.lastPrep.objectif].filter(Boolean).length
+    };
+    renderDebrief(d, rec, prev, grid);
+    const synced = await recordSession(rec);
+    const sy=$("#syncNote");
+    if(sy) sy.textContent = synced===null ? "" : synced ? "Résultat partagé avec ton manager." : "Résultat enregistré, il sera partagé dès que la connexion revient.";
+  }catch(e){
+    body.innerHTML=`<div class="panel" style="margin-top:24px"><h3>Le débrief n'a pas pu être généré</h3><p>${esc(e.message)}</p>
+      <div class="actions"><button class="btn" type="button" id="retryD">Relancer l'analyse</button><button class="btn ghost" type="button" id="toHome">Retour au parcours</button></div></div>
+      ${transcriptBlock()}`;
+    $("#retryD").onclick=runDebrief; $("#toHome").onclick=goHome;
+  }
+}
+
+function gauge(v){
+  const r=64, c=2*Math.PI*r, val=v??0;
+  return `<div class="gauge" role="img" aria-label="Score ${v??"non calculé"} sur 100">
+    <svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--paper)" stroke-width="12"/>
+    <circle cx="75" cy="75" r="${r}" fill="none" stroke="${scoreColor(v)}" stroke-width="12" stroke-linecap="round"
+      stroke-dasharray="${(val/100*c).toFixed(1)} ${c.toFixed(1)}"/></svg>
+    <div class="num"><span><b>${v??"–"}</b><small>sur 100</small></span></div></div>`;
+}
+
+function renderDebrief(d, rec, prev, grid){
+  const s=S.scenario;
+  const byId = Object.fromEntries((d.criteres||[]).map(c=>[c.id,c]));
+  const yes = s.kind==="barrage" ? "Contact obtenu" : "Rendez-vous obtenu";
+  const no = s.kind==="barrage" ? "Contact non obtenu" : "Pas de rendez-vous";
+  const pill = s.kind==="messagerie" ? `<span class="pill neutral">Message laissé</span>`
+    : (rec.rdv ? `<span class="pill yes">${yes}</span>` : `<span class="pill no">${no}</span>`);
+  let delta="";
+  if(prev && prev.score!=null && rec.score!=null){
+    const dv=rec.score-prev.score;
+    delta = dv>0 ? `<span class="pill up">+${dv} par rapport à ta dernière tentative</span>`
+          : dv<0 ? `<span class="pill down">${dv} par rapport à ta dernière tentative</span>`
+          : `<span class="pill neutral">Même score que ta dernière tentative</span>`;
+  }
+  const passedNow = rec.score!=null && rec.score>=PASS_SCORE;
+  const targetDur = s.kind==="messagerie" ? "Cible : moins de 30 secondes" : "Cible : 3 à 5 minutes";
+  $("#debriefBody").innerHTML=`
+  <div class="debrief">
+    <div class="dtop">
+      ${gauge(rec.score)}
+      <div>
+        <h2>${esc(d.verdict||"Débrief de ton appel")}</h2>
+        <div class="dtags">${pill}${delta}${passedNow?`<span class="pill yes">Au niveau de validation</span>`:""}</div>
+        <div class="actions">
+          <button class="btn orange" type="button" id="replay">Rejouer en appliquant l'axe</button>
+          <button class="btn ghost" type="button" id="toHome2">Retour au parcours</button>
+        </div>
+        <p class="sync" id="syncNote"></p>
+      </div>
+    </div>
+
+    <div class="axe"><h3>Ton axe de travail pour le prochain appel</h3><p>${esc(d.axe_de_travail||"")}</p></div>
+
+    <div class="metrics">
+      ${s.kind==="messagerie" ? "" : `<div class="panel"><h3>Temps de parole</h3>
+        <div class="bar" role="img" aria-label="Prospect ${rec.talkShare} %, toi ${100-rec.talkShare} %"><span style="width:${rec.talkShare}%"></span></div>
+        <div class="legend"><span>Prospect ${rec.talkShare} %</span><span>Toi ${100-rec.talkShare} %</span></div>
+        <p style="margin:8px 0 0;font-size:.9rem;color:var(--mute)">Cible : 60 % pour le prospect.</p></div>`}
+      <div class="panel"><h3>Durée</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${fmt(S.lastDuration)}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${targetDur}</p></div>
+    </div>
+
+    <div class="panel"><h3>Grille de la trame Smile</h3>
+      ${grid.map(g=>{ const c=byId[g[0]]||{niveau:"non_observe",commentaire:""}; const n=LVL[c.niveau]?c.niveau:"non_observe";
+        return `<div class="crit"><span class="lvl ${n}">${LVL[n]}</span><span class="name">${esc(g[1])}</span><span class="com">${esc(c.commentaire||"")}</span></div>`; }).join("")}
+    </div>
+
+    ${d.moment_cle?.citation ? `<div class="panel"><h3>Le moment où l'appel a basculé</h3>
+      <p class="quote">« ${esc(d.moment_cle.citation)} »</p><p style="margin:0">${esc(d.moment_cle.explication||"")}</p></div>` : ""}
+
+    ${(d.reformulations||[]).length ? `<div class="panel"><h3>À dire autrement</h3>
+      ${d.reformulations.map(r=>`<div class="ref"><div class="said">« ${esc(r.dit)} »</div><div class="better">« ${esc(r.mieux)} »</div></div>`).join("")}</div>` : ""}
+
+    ${(d.erreurs_smile||[]).length ? `<div class="panel"><h3>À corriger sur Smile</h3>
+      ${d.erreurs_smile.map(e=>`<p style="margin:0 0 6px">${esc(e)}</p>`).join("")}</div>` : ""}
+
+    ${transcriptBlock()}
+  </div>`;
+  $("#replay").onclick = () => goPrep(s.id);
+  $("#toHome2").onclick = goHome;
+}
+function transcriptBlock(){
+  return `<details class="transcript"><summary>Voir la transcription de l'appel</summary>
+    ${S.transcript.map(t=>`<p><b>${t.who==="junior"?"Toi":esc(firstName())} :</b> ${esc(t.text.trim())}</p>`).join("")}</details>`;
+}
+
+/* =========================================================
+   DÉMARRAGE
+   ========================================================= */
+try{
+  S.junior = loadJunior();
+  renderChrome();
+  goHome();
+  if(!S.junior) askJunior();
+  setTimeout(()=>flushOutbox().catch(()=>{}), 1500);
+}catch(err){ showFatal(err.message); }
+</script>
+</body>
+</html>
