@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: la-ligne
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/config
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MANAGER_PASSWORD
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: DATASET_REPO
+        sync: false
+ 
