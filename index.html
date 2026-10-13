@@ -1716,7 +1716,7 @@ function render(){
   const levelTag=l=>`<span class="tag l${l}">${l===0?"Niveau 1 en cours":l===3?"3 niveaux validés":`Niveau ${l} validé`}</span>`;
 
   $("#mApp").innerHTML=`
-  ${!DEMO && !BACKUP?`<div class="demo">Attention : la sauvegarde des résultats n'est pas configurée sur le Space (secrets HF_TOKEN et DATASET_REPO). Les données seront perdues au prochain redémarrage.</div>`:""}
+  ${!DEMO && !BACKUP?`<div class="demo">Attention : la sauvegarde des résultats n'est pas configurée (variables GITHUB_TOKEN et GITHUB_REPO sur Render). Les données seront perdues au prochain redémarrage.</div>`:""}
   ${DEMO?`<div class="demo">Données de démonstration : cinq juniors fictifs sur six semaines. Les vraies données apparaissent ici dès que les juniors font leurs appels.</div>`:""}
   <div class="kpis">
     <div class="kpi"><div class="v">${inP.length}</div><div class="l">appels d'entraînement</div>${delta(inP.length,prevP.length)}</div>
