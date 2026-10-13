@@ -1262,10 +1262,11 @@ async function startMic(){
 function onMicChunk(f32){
   let sum=0; for(let i=0;i<f32.length;i++) sum+=f32[i]*f32[i];
   A.micLevel = Math.max(Math.sqrt(sum/f32.length), A.micLevel*0.85);
+  if(Math.sqrt(sum/f32.length)>0.02) A.lastSpeechAt = performance.now();
   if(!A.sending) return;
   const out = resample(f32);
   A.queue.push(out); A.queued += out.length;
-  if(A.queued >= 1600){ // 100 ms à 16 kHz
+  if(A.queued >= 640){ // 40 ms à 16 kHz : envoi plus fréquent, réponse plus rapide
     const all = new Float32Array(A.queued); let o=0;
     for(const q of A.queue){ all.set(q,o); o+=q.length; }
     A.queue=[]; A.queued=0;
@@ -1328,6 +1329,11 @@ function playChunk(b64){
     if(v>=0x8000) v-=0x10000;
     ch[i] = v/0x8000;
   }
+  if(!A.turnStarted){
+    A.turnStarted = true;
+    const d = performance.now() - (A.lastSpeechAt||0);
+    if(A.lastSpeechAt && d>0 && d<6000 && S.transcript.some(t=>t.who==="junior")) (S.latencies=S.latencies||[]).push(d);
+  }
   const src = A.playCtx.createBufferSource(); src.buffer=buf; src.connect(A.playOut);
   const t = Math.max(A.nextTime, A.playCtx.currentTime+0.03);
   src.start(t); A.nextTime = t + buf.duration;
@@ -1383,7 +1389,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
-  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false;
+  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false;
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
   $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
@@ -1410,8 +1416,8 @@ function buildSetup(level){
   const chosen = s.gender==="M" ? $("#voiceM").value : $("#voiceF").value;
   const pace = $("#pace").value;
   const vad = {
-    natural:{ endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:650, prefixPaddingMs:120 },
-    fast:   { endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:400, prefixPaddingMs:80 },
+    natural:{ endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:500, prefixPaddingMs:100 },
+    fast:   { endOfSpeechSensitivity:"END_SENSITIVITY_HIGH", silenceDurationMs:300, prefixPaddingMs:60 },
     patient:{ endOfSpeechSensitivity:"END_SENSITIVITY_LOW",  silenceDurationMs:1200, prefixPaddingMs:150 }
   }[pace] || {};
   const setup = {
@@ -1421,8 +1427,17 @@ function buildSetup(level){
     systemInstruction:{ parts:[{text:s.prompt}] },
     inputAudioTranscription:{}, outputAudioTranscription:{}
   };
-  if(level<=1) setup.realtimeInputConfig = { automaticActivityDetection: vad };
-  if(level===0){ setup.enableAffectiveDialog = true; setup.proactivity = { proactiveAudio: true }; }
+  // Niveaux de connexion (repli automatique si Google refuse une option) :
+  // 0 : ton adaptatif + réponse sans réflexion préalable + détection de tour réglée
+  // 1 : réponse sans réflexion préalable + détection de tour réglée
+  // 2 : détection de tour réglée
+  // 3 : configuration minimale
+  if(level<=2) setup.realtimeInputConfig = { automaticActivityDetection: vad };
+  if(level<=1) setup.generationConfig.thinkingConfig = { thinkingBudget: 0 };  // supprime le temps de réflexion avant de répondre
+  if(level===0){
+    setup.enableAffectiveDialog = true;
+    if(s.kind==="messagerie") setup.proactivity = { proactiveAudio: true };  // le répondeur doit savoir se taire
+  }
   return setup;
 }
 function openLine(level){
@@ -1439,8 +1454,8 @@ function openLine(level){
   };
   ws.onclose = ev => {
     if(S.ws!==ws) return;
-    if(!S.setupDone && ev.code!==1000 && level<2){ openLine(level+1); return; }
-    if(!S.setupDone && ev.code!==1000 && level===2){
+    if(!S.setupDone && ev.code!==1000 && level<3){ openLine(level+1); return; }
+    if(!S.setupDone && ev.code!==1000 && level===3){
       // Le modèle vocal est refusé : on essaie automatiquement le suivant de la liste
       const next=[...$("#liveModel").options].map(o=>o.value).find(v=>!S.liveTried.includes(v));
       if(next && S.liveTried.length<4){ S.liveTried.push(next); S.liveModelOverride=next; openLine(0); return; }
@@ -1470,6 +1485,7 @@ async function handleServer(msg){
   const sc = msg.serverContent;
   if(sc){
     if(sc.interrupted) stopPlayback();
+    if(sc.turnComplete || sc.interrupted) A.turnStarted = false;
     for(const p of (sc.modelTurn?.parts||[])){ if(p.inlineData?.data) playChunk(p.inlineData.data); }
     if(sc.inputTranscription?.text) addT("junior", sc.inputTranscription.text);
     if(sc.outputTranscription?.text) addT("prospect", sc.outputTranscription.text);
@@ -1964,6 +1980,7 @@ function renderDebrief(d, rec, prev, grid){
         <div class="bar" role="img" aria-label="Prospect ${rec.talkShare} %, toi ${100-rec.talkShare} %"><span style="width:${rec.talkShare}%"></span></div>
         <div class="legend"><span>Prospect ${rec.talkShare} %</span><span>Toi ${100-rec.talkShare} %</span></div>
         <p style="margin:8px 0 0;font-size:.9rem;color:var(--mute)">Cible : 60 % pour le prospect.</p></div>`}
+      ${(S.latencies||[]).length ? `<div class="panel"><h3>Délai de réponse du prospect</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${(S.latencies.reduce((a,b)=>a+b,0)/S.latencies.length/1000).toFixed(1).replace(".",",")} s</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">En moyenne, entre la fin de ta phrase et sa réponse</p></div>` : ""}
       <div class="panel"><h3>Durée</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${fmt(S.lastDuration)}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${targetDur}</p></div>
     </div>
 
