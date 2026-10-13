@@ -3,14 +3,14 @@ services:
     name: la-ligne
     runtime: docker
     plan: free
+    region: frankfurt
     healthCheckPath: /api/config
     envVars:
       - key: GEMINI_API_KEY
         sync: false
       - key: MANAGER_PASSWORD
         sync: false
-      - key: HF_TOKEN
+      - key: GITHUB_TOKEN
         sync: false
-      - key: DATASET_REPO
+      - key: GITHUB_REPO
         sync: false
- 
