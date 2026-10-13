@@ -7,10 +7,12 @@ des appels d'entraînement pour l'onglet Manager.
 Secrets à définir dans Settings > Variables and secrets du Space :
   GEMINI_API_KEY    clé Google AI Studio (obligatoire)
   MANAGER_PASSWORD  mot de passe de l'onglet Manager (obligatoire)
-  HF_TOKEN          jeton Hugging Face avec droit d'écriture (recommandé, pour la sauvegarde)
-  DATASET_REPO      dataset privé de sauvegarde, ex. "ton-pseudo/la-ligne-resultats" (recommandé)
+Sauvegarde des résultats (une des deux options) :
+  GITHUB_TOKEN + GITHUB_REPO   dépôt GitHub privé dédié aux données, ex. "victordesenclos/la-ligne-data"
+  HF_TOKEN + DATASET_REPO      dataset privé Hugging Face, ex. "ton-pseudo/la-ligne-resultats"
 """
 import asyncio
+import base64
 import json
 import os
 import shutil
@@ -27,6 +29,9 @@ GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD", "").strip()
 HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 DATASET_REPO = os.getenv("DATASET_REPO", "").strip()
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
+GITHUB_REPO = os.getenv("GITHUB_REPO", "").strip()
+GITHUB_API = os.getenv("GITHUB_API", "https://api.github.com").rstrip("/")
 API = "https://generativelanguage.googleapis.com/v1beta"
 HERE = Path(__file__).parent
 
@@ -67,6 +72,77 @@ if DATASET_REPO and HF_TOKEN:
         allow_patterns=["sessions.jsonl"], every=2, token=HF_TOKEN, private=True,
     )
     lock = scheduler.lock
+
+# ---------- Sauvegarde dans un dépôt GitHub privé ----------
+class GitHubBackup:
+    """Copie sessions.jsonl dans un dépôt GitHub privé toutes les 2 minutes et à l'arrêt du service."""
+    def __init__(self):
+        self.url = f"{GITHUB_API}/repos/{GITHUB_REPO}/contents/sessions.jsonl"
+        self.headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28"}
+        self.sha = None
+        self.pushed_size = -1
+
+    def restore(self):
+        try:
+            r = httpx.get(self.url, headers=self.headers, timeout=30)
+            if r.status_code == 404:
+                print("Sauvegarde GitHub : aucun fichier pour l'instant, il sera créé au premier appel.")
+                return
+            r.raise_for_status()
+            d = r.json()
+            self.sha = d.get("sha")
+            content = base64.b64decode(d.get("content", "")) if d.get("content") else b""
+            if not content and d.get("download_url"):
+                content = httpx.get(d["download_url"], headers=self.headers, timeout=60).content
+            if not SESSIONS.exists() or SESSIONS.stat().st_size == 0:
+                SESSIONS.write_bytes(content)
+            self.pushed_size = SESSIONS.stat().st_size
+            print(f"Résultats restaurés depuis GitHub ({GITHUB_REPO})")
+        except Exception as e:
+            print(f"Sauvegarde GitHub : restauration impossible ({e})")
+
+    def push(self, force=False):
+        if not SESSIONS.exists():
+            return
+        with lock:
+            data = SESSIONS.read_bytes()
+        if not force and len(data) == self.pushed_size:
+            return
+        for attempt in range(2):
+            body = {"message": f"Sauvegarde La Ligne {time.strftime('%Y-%m-%d %H:%M')}",
+                    "content": base64.b64encode(data).decode()}
+            if self.sha:
+                body["sha"] = self.sha
+            try:
+                r = httpx.put(self.url, headers=self.headers, json=body, timeout=60)
+                if r.status_code in (200, 201):
+                    self.sha = r.json()["content"]["sha"]
+                    self.pushed_size = len(data)
+                    return
+                if r.status_code in (409, 422) and attempt == 0:
+                    g = httpx.get(self.url, headers=self.headers, timeout=30)
+                    self.sha = g.json().get("sha") if g.status_code == 200 else None
+                    continue
+                print(f"Sauvegarde GitHub : échec {r.status_code} {r.text[:200]}")
+                return
+            except Exception as e:
+                print(f"Sauvegarde GitHub : échec ({e})")
+                return
+
+    def loop(self):
+        while True:
+            time.sleep(120)
+            self.push()
+
+
+github_backup = None
+if GITHUB_TOKEN and GITHUB_REPO and scheduler is None:
+    github_backup = GitHubBackup()
+    github_backup.restore()
+    threading.Thread(target=github_backup.loop, daemon=True).start()
+
+BACKUP_ON = scheduler is not None or github_backup is not None or str(DATA_DIR) == "/data"
 
 FIELDS = {
     "id": str, "date": str, "junior": str, "scenarioId": str, "scenarioTitle": str, "kind": str,
@@ -118,6 +194,13 @@ def read_sessions() -> list:
 app = FastAPI()
 
 
+@app.on_event("shutdown")
+def save_on_shutdown():
+    # Render arrête le service quand il se met en veille : on sauvegarde une dernière fois
+    if github_backup is not None:
+        github_backup.push(force=True)
+
+
 @app.get("/")
 def index():
     return FileResponse(HERE / "index.html", headers={"Cache-Control": "no-cache"})
@@ -128,7 +211,7 @@ def config():
     return {
         "serverKey": bool(GEMINI_KEY),
         "managerReady": bool(MANAGER_PASSWORD),
-        "backup": scheduler is not None or str(DATA_DIR) == "/data",
+        "backup": BACKUP_ON,
     }
 
 
@@ -152,7 +235,7 @@ def list_sessions(request: Request):
         return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré dans le Space."}, status_code=503)
     if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
         return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
-    return {"ok": True, "sessions": read_sessions(), "backup": scheduler is not None or str(DATA_DIR) == "/data"}
+    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON}
 
 
 # ---------- Relais vers Gemini (la clé reste sur le serveur) ----------
