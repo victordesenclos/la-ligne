@@ -107,6 +107,7 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .company .co-name{font-weight:600;font-size:1.1rem}
 .company .co-who{color:var(--ink);font-size:.9rem}
 .company .co-meta{color:var(--mute);font-size:.84rem}
+.company .co-track{background:var(--orange-soft);color:#8A3A1C;border-radius:999px;padding:1px 8px;font-size:.78rem;font-weight:600;vertical-align:middle}
 .company .co-owner{background:var(--paper);border-radius:999px;padding:1px 8px;margin-left:4px}
 details.more-co{margin:4px 0 6px}
 details.more-co summary{cursor:pointer;color:var(--blue);font-weight:500;margin-bottom:12px}
@@ -453,7 +454,8 @@ const REF_RULES = `
 // Portefeuille de chaque junior (prénom en minuscules sans accent → comptes)
 const PORTFOLIOS = {
   thibaut:   ["decathlon", "auchan", "sncf"],
-  valentine: ["adeo", "leroymerlin", "boulanger"]
+  valentine: ["adeo", "leroymerlin", "boulanger"],
+  elisa:     ["decathlon-ux", "auchan-ux", "adeo-ux"]
 };
 
 const COMPANIES = [
@@ -564,6 +566,60 @@ const COMPANIES = [
     objection:"On sort d'une mauvaise expérience avec une ESN, je suis méfiante",
     decision:"Le DSI du groupe valide tout nouveau prestataire.",
     refs:"CRMA (application métier Odoo pour 600 utilisateurs), Suez (application de suivi des flux métier sur Symfony), Airbus (maintenance applicative depuis plus de 10 ans)."
+  },
+  {
+    id:"decathlon-ux", name:"Decathlon", track:"UX", owner:"Elisa",
+    desc:"distributeur d'articles de sport, siège à Villeneuve-d'Ascq",
+    contact:{first:"Léa", last:"Fontaine", role:"Head of UX Design e-commerce", gender:"F", voice:"Callirrhoe"},
+    assistant:{first:"Hugo", last:"Marchal", gender:"M", voice:"Umbriel"},
+    actu:"Refonte annoncée de l'application mobile Decathlon",
+    besoin:"Parcours mobiles, conversion du tunnel d'achat, accessibilité, design system",
+    relation:"Smile Lille accompagne déjà une autre équipe de Decathlon (plateforme d'objets connectés). Léa ne connaît pas Smile ni UX Republic.",
+    context:[
+      "La nouvelle application doit sortir dans 9 mois ; les tests montrent que le tunnel d'achat mobile perd beaucoup de clients.",
+      "Ton équipe design est petite (4 designers) et débordée ; la recherche utilisateur est souvent sautée faute de temps.",
+      "Le design system n'est pas appliqué de la même façon par les équipes web et mobile.",
+      "Les obligations d'accessibilité numérique se renforcent et tu sais que l'application n'est pas au niveau. Un renfort de designers en régie pourrait t'intéresser, mais tu ne le dis que si on te pose la question."
+    ],
+    objection:"On a une équipe design en interne",
+    decision:"Le directeur produit digital valide les budgets prestataires.",
+    refs:"UX Republic (entité UX du groupe : design, recherche utilisateur, CRO), STIB (refonte ergonomique d'une application mobile, notée 4,1/5), Ministère de l'Éducation nationale (Système de design de l'État et accessibilité)."
+  },
+  {
+    id:"auchan-ux", name:"Auchan", track:"UX", owner:"Elisa",
+    desc:"groupe de distribution alimentaire, Auchan Retail France, siège à Croix",
+    contact:{first:"Nicolas", last:"Garnier", role:"Directeur de l'expérience client digitale", gender:"M", voice:"Algenib"},
+    assistant:{first:"Inès", last:"Barbier", gender:"F", voice:"Autonoe"},
+    actu:"Refonte annoncée du programme de fidélité et de l'application client",
+    besoin:"Parcours de la future application fidélité, recherche utilisateur, conversion du drive",
+    relation:"Auchan fait partie des clients de l'agence Smile de Lille, mais pas sur l'UX.",
+    context:[
+      "L'application actuelle est mal notée sur les stores ; les avis parlent d'un parcours fidélité incompréhensible.",
+      "Le parcours de commande drive a un fort taux d'abandon au moment du choix du créneau.",
+      "Tu veux tester les nouveaux parcours avec de vrais clients avant le développement, mais tu n'as pas de chercheurs UX en interne.",
+      "Le marketing et l'IT ont des visions différentes de la nouvelle application ; tu dois les mettre d'accord."
+    ],
+    objection:"L'UX, on la fait faire par l'agence qui développe l'appli",
+    decision:"Sandrine Lemaire, directrice data et CRM, est associée à tout ce qui touche à la fidélité.",
+    refs:"UX Republic (recherche utilisateur, UX et CRO), My Visa (applications et portail client, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile)."
+  },
+  {
+    id:"adeo-ux", name:"Adeo", track:"UX", owner:"Elisa",
+    desc:"groupe d'enseignes de bricolage (Leroy Merlin, Weldom, Bricoman…), siège à Ronchin",
+    contact:{first:"Sophie", last:"Delattre", role:"Lead Design System groupe", gender:"F", voice:"Erinome"},
+    assistant:{first:"Julien", last:"Masset", gender:"M", voice:"Algieba"},
+    actu:"Mutualisation annoncée de la plateforme e-commerce entre les enseignes du groupe",
+    besoin:"Design system commun aux enseignes, accessibilité, cohérence des parcours",
+    relation:"Adeo fait partie des clients de l'agence Smile de Lille ; Sophie n'a jamais travaillé avec UX Republic.",
+    context:[
+      "La mutualisation de la plateforme impose un design system commun, mais chaque enseigne veut garder son identité visuelle.",
+      "Le design system actuel est à moitié documenté et peu utilisé par les équipes de développement.",
+      "Un audit a révélé de nombreux défauts d'accessibilité sur les sites des enseignes.",
+      "Ton équipe est en sous-effectif pour accompagner toutes les enseignes en même temps ; un renfort en régie pourrait t'intéresser, mais tu ne le dis que si on te pose la question."
+    ],
+    objection:"On a déjà une short-list d'agences pour le design",
+    decision:"Hélène Dufresne, directrice des plateformes digitales groupe, porte le programme.",
+    refs:"Pierre Fabre (design system commun à 7 marques, 150 sites), Ministère de l'Éducation nationale (Système de design de l'État, accessibilité), UX Republic (entité design et UX du groupe)."
   }
 ];
 
@@ -639,7 +695,7 @@ Comportement (niveau 3, appel réaliste) :
   } else if(m.kind==="barrage"){
     speakerName = `${a.first} ${a.last}`; speakerRole = aF ? "Assistante de direction" : "Assistant de direction";
     voice = a.voice; gender = a.gender; contactNom = `${full} (via le standard)`;
-    goal = `Obtenir de ${a.first} un moyen de joindre ${full} : un créneau de rappel, son e-mail ou un message transmis.`;
+    goal = `Obtenir ${/^[AEIOUYÉÈÊÀÂÎÔaeiouyéèêàâîô]/.test(a.first)?"d'":"de "}${a.first} un moyen de joindre ${full} : un créneau de rappel, son e-mail ou un message transmis.`;
     prompt = `Tu joues ${a.first} ${a.last}, assistant${ae} de direction chez ${co.name} (${co.desc}). Tu filtres les appels de ${full}, ${c.role}. Un commercial de Smile, une entreprise de services numériques, appelle pour ${F?"la":"le"} joindre.
 Ce scénario est un entraînement : le contexte est fictif.
 
@@ -667,7 +723,7 @@ Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. 
   return {
     id:m.id, key:`${co.id}-${m.id}`, group:m.group, num:m.num, kind:m.kind, title:m.title, sub:m.sub, goal,
     voice, gender, speaker:speakerName, speakerRole,
-    companyId:co.id, companyName:co.name, relation:co.relation, bestRefs:co.refs,
+    companyId:co.id, companyName: co.track ? `${co.name} (${co.track})` : co.name, relation:co.relation, bestRefs:co.refs,
     contact:{nom:contactNom, entreprise:`${co.name} (${co.desc})`, role:c.role, derniere:"Aucun échange", actu:co.actu, besoin:co.besoin},
     prompt
   };
@@ -686,7 +742,7 @@ Cinq domaines :
 - E-commerce et solutions digitales : plateformes B2C, B2B, omnicanal, avec l'expertise UX/UI.
 - Data et intelligence artificielle : data management, IA, analytics.
 - IoT et systèmes embarqués.
-Entités spécialisées du groupe : UX Republic (design et UX), Neopixl (mobile), Alter Way (cybersécurité, cloud et hébergement), Synotis (data), Creativestyle (e-commerce open source).
+Entités spécialisées du groupe : UX Republic (pure-player du design UX, de la recherche utilisateur, du CRO et du SEO), Neopixl (mobile), Alter Way (cybersécurité, cloud et hébergement), Synotis (data), Creativestyle (e-commerce open source).
 Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole.
 Applications métiers aussi : Odoo (partenaire Gold), GED.
 Références utilisables (problème → résultat) :
@@ -694,14 +750,15 @@ Références utilisables (problème → résultat) :
 - Cultura : stratégie e-commerce et omnicanale depuis plus de 10 ans ; stocks omnicanaux, commande en magasin, marketplace.
 - Accor : marketplace d'achats B2B construite en 6 mois, déploiement visé dans 90 pays.
 - Arkema : portail e-commerce B2B, premier produit livré en 2 mois.
-- Pierre Fabre : 150 sites de marques, 60 % d'économies sur les déploiements.
+- Pierre Fabre : design system commun aux 7 marques, 150 sites de marques, 60 % d'économies sur les déploiements.
 - Groupe Atlantic : référentiel produit unique, fiches produits mises en ligne plus vite.
 - Eram : migration du système d'information vers le cloud Google.
 - Decathlon : plateforme d'objets connectés, objectif 1 million d'utilisateurs mensuels.
 - Biogaran : IA générative, acculturation puis automatisation de la synthèse des remontées terrain.
-- STIB (transports bruxellois) : refonte de l'application mobile, 1,8 million de téléchargements, 300 000 utilisateurs actifs.
+- STIB (transports bruxellois) : refonte ergonomique et fonctionnelle de l'application mobile, 1,8 million de téléchargements, 300 000 utilisateurs actifs, note de 4,1/5.
+- My Visa (Visa Consumer France) : deux applications mobiles et un portail client, première de l'App Store en finance, plus de 50 000 téléchargements, 90 % d'engagement mobile.
 - Assurance Maladie (ameli.fr) : hébergement et infogérance 24/7 par Alter Way, marché renouvelé pour 4 ans.
-- Ministère de l'Éducation nationale : 14 sites Drupal déployés en 24 mois.
+- Ministère de l'Éducation nationale : 14 sites Drupal en 24 mois, avec le Système de design de l'État et le respect des normes d'accessibilité.
 - CRMA (Chambre des métiers) : application métier Odoo, 600 utilisateurs, 600 000 clients.
 - Oreca : migration cloud d'un e-commerce de 15 boutiques, montée en charge sans explosion des coûts.
 - Suez : application de suivi des flux de déchets entre tous les acteurs, sur Symfony.
@@ -996,7 +1053,7 @@ function companyCard(co, mine){
   const sel = co.id===S.company;
   const n = history().filter(h=>h.companyId===co.id).length;
   return `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
-    <span class="co-name">${esc(co.name)}</span>
+    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track">${esc(co.track)}</span>`:""}</span>
     <span class="co-who">${esc(co.contact.first+" "+co.contact.last)}, ${esc(co.contact.role)}</span>
     <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
   </button>`;
@@ -1023,7 +1080,7 @@ function renderHome(){
       <h1>${title}</h1>
       ${subtitle?`<p class="sub">${subtitle}</p>`:""}
       <div class="go">
-        <button class="btn orange big" id="goRec" type="button">${esc(co.name)} : ${esc(rec.title.toLowerCase())}</button>
+        <button class="btn orange big" id="goRec" type="button">${esc(co.name)}${co.track?" "+esc(co.track):""} : ${esc(rec.title.toLowerCase())}</button>
         ${!S.connected?`<button class="link" style="color:#fff" type="button" id="openSet">Connecter Gemini d'abord</button>`:""}
       </div>
     </div>
