@@ -70,7 +70,7 @@ if DATASET_REPO and HF_TOKEN:
 
 FIELDS = {
     "id": str, "date": str, "junior": str, "scenarioId": str, "scenarioTitle": str, "kind": str,
-    "level": str, "durationSec": int, "talkShare": int, "rdv": bool, "score": int, "criteria": dict,
+    "level": str, "companyId": str, "companyName": str, "durationSec": int, "talkShare": int, "rdv": bool, "score": int, "criteria": dict,
     "axe": str, "verdict": str, "erreursSmile": int, "prepFilled": int,
 }
 
