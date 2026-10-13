@@ -99,6 +99,17 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .state.rec{background:var(--orange);color:var(--white)}
 .minibar{height:6px;border-radius:999px;background:var(--paper);overflow:hidden;margin-top:4px}
 .minibar span{display:block;height:100%;background:var(--blue)}
+.companies{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:12px}
+@media (max-width:860px){.companies{grid-template-columns:1fr}}
+.company{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.company:hover{border-color:var(--blue)}
+.company[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.company .co-name{font-weight:600;font-size:1.1rem}
+.company .co-who{color:var(--ink);font-size:.9rem}
+.company .co-meta{color:var(--mute);font-size:.84rem}
+.company .co-owner{background:var(--paper);border-radius:999px;padding:1px 8px;margin-left:4px}
+details.more-co{margin:4px 0 6px}
+details.more-co summary{cursor:pointer;color:var(--blue);font-weight:500;margin-bottom:12px}
 .drills{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:36px}
 @media (max-width:760px){.drills{grid-template-columns:1fr}}
 .drills .step{margin-right:0}
@@ -434,112 +445,231 @@ const REF_RULES = `
 - Si la référence citée n'a aucun rapport avec ton métier, fais-le remarquer poliment.
 - Si le commercial reste vague (« on fait plein de choses », « on est leader »), demande-lui un exemple concret.`;
 
-const SCENARIOS = [
+/* =========================================================
+   COMPTES ET PERSONNAGES
+   Chaque compte a son interlocuteur, son contexte et ses objections.
+   Les contextes sont fictifs : ce sont des scénarios d'entraînement inspirés des entreprises.
+   ========================================================= */
+// Portefeuille de chaque junior (prénom en minuscules sans accent → comptes)
+const PORTFOLIOS = {
+  thibaut:   ["decathlon", "auchan", "sncf"],
+  valentine: ["adeo", "leroymerlin", "boulanger"]
+};
+
+const COMPANIES = [
   {
-    id:"n1", group:"level", num:"1", kind:"appel", voice:"Aoede", gender:"F",
-    title:"Prospect bienveillant", sub:"Prendre confiance et dérouler la trame",
-    goal:"Décrocher un rendez-vous de 30 minutes avec Claire Martin.",
-    contact:{nom:"Claire Martin", entreprise:"Nordis Maison (ETI, équipement de la maison, 900 salariés, 45 magasins)", role:"Directrice digitale", derniere:"Aucun échange", actu:"Lancement de la livraison en 2 h sur la métropole lilloise (post LinkedIn de l'entreprise)", besoin:"Performance e-commerce, synchronisation des stocks"},
-    prompt:`Tu joues Claire Martin, directrice digitale de Nordis Maison, une ETI de distribution d'équipement de la maison basée à Villeneuve-d'Ascq (900 salariés, 45 magasins dans le nord de la France). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+    id:"decathlon", name:"Decathlon", owner:"Thibaut",
+    desc:"distributeur d'articles de sport, siège à Villeneuve-d'Ascq",
+    contact:{first:"Julien", last:"Vasseur", role:"Head of Digital Product e-commerce France", gender:"M", voice:"Puck"},
+    assistant:{first:"Margaux", last:"Petit", gender:"F", voice:"Despina"},
+    actu:"Extension en ligne du programme « seconde vie » (produits d'occasion et reconditionnés)",
+    besoin:"Nouveaux parcours e-commerce, performance du site aux pics de trafic",
+    relation:"Smile Lille accompagne déjà une autre équipe de Decathlon (plateforme d'objets connectés). Julien ne connaît pas Smile personnellement.",
+    context:[
+      "Ton équipe fait évoluer le site e-commerce France ; la priorité de l'année est l'occasion et le reconditionné, qui demandent de nouveaux parcours (reprise, état du produit, garantie).",
+      "Les pics de trafic (soldes, rentrée sportive) font ralentir le site et coûtent du chiffre d'affaires.",
+      "Tes équipes internes sont saturées ; tu fais appel à des prestataires au cas par cas.",
+      "Tu ne sais pas que Smile travaille déjà avec une autre équipe de Decathlon ; si le commercial te le dit, ça te rassure."
+    ],
+    objection:"On a beaucoup d'équipes en interne, on développe nous-mêmes",
+    decision:"Anne Rigaud, ta directrice e-commerce, valide les budgets prestataires.",
+    refs:"Decathlon (plateforme d'objets connectés, relation existante), Cultura (omnicanal et marketplace depuis 10 ans), Somfy (performance et dette technique d'une plateforme e-commerce)."
+  },
+  {
+    id:"auchan", name:"Auchan", owner:"Thibaut",
+    desc:"groupe de distribution alimentaire, Auchan Retail France, siège à Croix",
+    contact:{first:"Sandrine", last:"Lemaire", role:"Directrice data et CRM", gender:"F", voice:"Kore"},
+    assistant:{first:"Paul", last:"Morel", gender:"M", voice:"Achird"},
+    actu:"Refonte annoncée du programme de fidélité et de l'application client",
+    besoin:"Vue client unique entre magasins et web, personnalisation, IA générative",
+    relation:"Auchan fait partie des clients de l'agence Smile de Lille, sur d'autres sujets que la data.",
+    context:[
+      "Les données clients sont éclatées entre magasins, site, application et carte de fidélité : impossible d'avoir une vue client unique.",
+      "La direction veut des offres personnalisées dans la nouvelle application d'ici un an.",
+      "Un pilote d'IA générative a été lancé en interne mais n'a jamais dépassé le stade du test.",
+      "Tu connais vaguement Smile pour des sujets web, pas pour la data."
+    ],
+    objection:"Sur la data, on a déjà un intégrateur référencé au niveau du groupe",
+    decision:"Le DSI d'Auchan Retail France doit valider tout choix technique.",
+    refs:"Biogaran (IA générative, du test à la mise en production), Somfy (Data Factory de 10 personnes), Groupe Atlantic (référentiel produit unique)."
+  },
+  {
+    id:"sncf", name:"SNCF", owner:"Thibaut",
+    desc:"SNCF Voyageurs, activité TER Hauts-de-France, à Lille",
+    contact:{first:"Karim", last:"Benhamou", role:"Responsable du pôle applications métiers TER Hauts-de-France", gender:"M", voice:"Charon"},
+    assistant:{first:"Nadia", last:"Lefort", gender:"F", voice:"Sulafat"},
+    actu:"Plan de modernisation des outils numériques des agents en gare et à bord",
+    besoin:"Modernisation d'applications métiers, applications mobiles terrain, cloud",
+    relation:"Aucune relation connue entre Smile et cette direction.",
+    context:[
+      "Plusieurs applications métiers ont plus de 15 ans et deviennent difficiles à maintenir.",
+      "Les agents veulent des outils mobiles simples ; les applications actuelles ne fonctionnent pas hors connexion.",
+      "Tous les achats passent par des marchés publics et des accords-cadres : un rendez-vous ne peut pas déboucher directement sur une commande.",
+      "Un appel d'offres de maintenance applicative est prévu l'an prochain ; tu es preneur de retours d'expérience en amont."
+    ],
+    objection:"Chez nous, tout passe par les appels d'offres, je ne peux rien vous acheter comme ça",
+    decision:"Le service achats et la DSI régionale sont associés à toute consultation.",
+    refs:"STIB (application mobile des transports bruxellois, 1,8 million de téléchargements), Assurance Maladie (ameli.fr, marché public renouvelé), CRMA (application métier Odoo pour 600 utilisateurs)."
+  },
+  {
+    id:"adeo", name:"Adeo", owner:"Valentine",
+    desc:"groupe d'enseignes de bricolage (Leroy Merlin, Weldom, Bricoman…), siège à Ronchin",
+    contact:{first:"Hélène", last:"Dufresne", role:"Directrice des plateformes digitales groupe", gender:"F", voice:"Leda"},
+    assistant:{first:"Thomas", last:"Lebrun", gender:"M", voice:"Iapetus"},
+    actu:"Mutualisation annoncée de la plateforme e-commerce entre les enseignes du groupe",
+    besoin:"Plateforme commune multi-enseignes, commerce composable, données produit",
+    relation:"Adeo fait partie des clients de l'agence Smile de Lille.",
+    context:[
+      "Chaque enseigne a historiquement sa propre plateforme : coûts de maintenance élevés, fonctionnalités développées plusieurs fois.",
+      "Le groupe veut un socle commun composable, avec un catalogue produit partagé.",
+      "Le chantier est sensible : les enseignes veulent garder leur identité.",
+      "Tu cherches des retours d'expérience concrets de plateformes multi-marques."
+    ],
+    objection:"On a déjà une short-list d'intégrateurs pour ce programme",
+    decision:"Un comité de programme réunit les directeurs digitaux de chaque enseigne.",
+    refs:"Pierre Fabre (150 sites de marques sur un socle commun, 60 % d'économies), Somfy (14 sites sur un modèle commun), Groupe Atlantic (référentiel produit unique)."
+  },
+  {
+    id:"leroymerlin", name:"Leroy Merlin", owner:"Valentine",
+    desc:"enseigne de bricolage du groupe Adeo, siège à Lezennes",
+    contact:{first:"Maxime", last:"Carpentier", role:"Responsable e-commerce et marketplace France", gender:"M", voice:"Orus"},
+    assistant:{first:"Camille", last:"Faure", gender:"F", voice:"Zephyr"},
+    actu:"Ouverture de la marketplace à de nouvelles catégories de vendeurs",
+    besoin:"Intégration des vendeurs, qualité des fiches produits, lien avec les services en magasin",
+    relation:"Smile accompagne déjà le groupe Adeo ; Maxime n'a jamais travaillé directement avec Smile.",
+    context:[
+      "La marketplace grossit vite : l'intégration d'un nouveau vendeur prend trop de temps.",
+      "Les fiches produits envoyées par les vendeurs sont de qualité inégale, ce qui fait baisser la conversion.",
+      "Tu veux mieux relier la marketplace aux services en magasin (retrait, pose).",
+      "Tu as un budget pour l'an prochain, mais les priorités ne sont pas arrêtées."
+    ],
+    objection:"On a les équipes du groupe Adeo pour ça",
+    decision:"Ta directrice e-commerce et l'équipe plateforme du groupe Adeo.",
+    refs:"Accor (marketplace B2B construite en 6 mois), Cultura (marketplace et omnicanal), Groupe Atlantic (qualité des données produit)."
+  },
+  {
+    id:"boulanger", name:"Boulanger", owner:"Valentine",
+    desc:"distributeur d'électroménager et de multimédia, siège à Lesquin",
+    contact:{first:"Émilie", last:"Ravel", role:"Directrice des systèmes e-commerce", gender:"F", voice:"Aoede"},
+    assistant:{first:"Antoine", last:"Roux", gender:"M", voice:"Fenrir"},
+    actu:"Lancement d'un service en ligne de réparation et de reconditionnement",
+    besoin:"Tenue du site aux pics de trafic, service après-vente digitalisé, cloud",
+    relation:"Aucune relation directe connue entre Smile et Boulanger.",
+    context:[
+      "Le site a ralenti lors du dernier Black Friday ; la direction ne veut pas revivre ça.",
+      "Le nouveau service de réparation doit relier le site, les magasins et les ateliers.",
+      "L'hébergement actuel coûte cher et une migration vers le cloud est à l'étude.",
+      "Tu sors d'une mauvaise expérience avec une ESN qui avait sous-dimensionné son équipe."
+    ],
+    objection:"On sort d'une mauvaise expérience avec une ESN, je suis méfiante",
+    decision:"Le DSI du groupe valide les choix d'hébergement.",
+    refs:"Oreca (migration cloud d'un e-commerce, montée en charge sans explosion des coûts), Eram (migration du SI vers le cloud), Somfy (reprise d'un prestataire en place)."
+  }
+];
+
+const MODES = [
+  {id:"n1", group:"level", num:"1", kind:"appel", title:"Prospect bienveillant", sub:"Prendre confiance et dérouler la trame"},
+  {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Rebondir sans forcer"},
+  {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Interlocuteur pressé, tout se joue en 3 minutes"},
+  {id:"barrage", group:"drill", num:"A", kind:"barrage", title:"Passer le barrage", sub:"L'assistant filtre les appels"},
+  {id:"messagerie", group:"drill", num:"B", kind:"messagerie", title:"Laisser un message", sub:"30 secondes sur répondeur"}
+];
+
+function normName(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
+function myCompanyIds(first){ return PORTFOLIOS[normName(first)] || []; }
+function companyById(id){ return COMPANIES.find(c=>c.id===id) || COMPANIES[0]; }
+
+function buildScenario(companyId, modeId){
+  const co = companyById(companyId), m = MODES.find(x=>x.id===modeId) || MODES[0];
+  const c = co.contact, F = c.gender==="F", e = F ? "e" : "";
+  const full = `${c.first} ${c.last}`;
+  const base = `Tu joues ${full}, ${c.role} chez ${co.name} (${co.desc}). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+Ce scénario est un entraînement : le contexte ci-dessous est fictif, inspiré de l'entreprise.
 
 Contexte que tu connais :
-- Nordis Maison vient d'annoncer le lancement de la livraison en 2 heures dans la métropole lilloise.
-- Votre site e-commerce tourne sur une plateforme vieillissante qui supporte mal les pics de trafic ; les stocks des magasins remontent sur le site avec plusieurs heures de retard.
-- Vous travaillez déjà avec une agence web pour la maintenance du site, dont tu es moyennement satisfaite.
-- Le DSI, Thomas Leroy, est associé à toute décision technique.
+${co.context.map(l=>"- "+l).join("\n")}
+- ${co.decision}
+- Actualité récente de ton entreprise : ${co.actu}.`;
 
-Ta situation à cet instant : tu sors d'une réunion, tu as un café à la main, plutôt de bonne humeur.
+  const levels = {
+    n1:`Ta situation à cet instant : tu sors d'une réunion, plutôt de bonne humeur.
 
 Comportement (prospect bienveillant) :
 - Tu décroches en disant simplement « Allô ? ».
-- Tu as un peu de temps et tu es plutôt aimable, mais tu restes une professionnelle occupée.
-- Si le commercial cite la livraison en 2 heures, tu es agréablement surprise et plus ouverte.
-- Si on te pose une question ouverte sur ton site ou tes stocks, tu évoques les difficultés, sans tout dire d'un coup.
-- Tu fais au maximum une objection légère, par exemple « on a déjà une agence pour le site ».
-- Si le commercial ne fait que parler de Smile sans te poser de questions, tu deviens plus distante et tu cherches à écourter.
-- Tu acceptes un rendez-vous si le commercial t'a posé au moins une question sur ton contexte et te propose un créneau précis. S'il propose deux créneaux, tu en choisis un. Tu peux suggérer d'inviter Thomas Leroy.
-- Si l'appel dépasse environ 6 minutes, tu indiques que tu dois raccrocher.${REF_RULES}
-${COMMON_RULES}`
-  },
-  {
-    id:"n2", group:"level", num:"2", kind:"appel", voice:"Charon", gender:"M",
-    title:"Objections classiques", sub:"Rebondir sans forcer",
-    goal:"Décrocher un rendez-vous malgré les objections de Marc Duvivier.",
-    contact:{nom:"Marc Duvivier", entreprise:"Hexalis Sport (ETI, distribution d'articles de sport, 600 salariés, 30 magasins)", role:"DSI", derniere:"Aucun échange", actu:"Deux offres d'emploi de Product Owner e-commerce publiées le mois dernier", besoin:"Évolutions e-commerce plus rapides, refonte du site"},
-    prompt:`Tu joues Marc Duvivier, DSI d'Hexalis Sport, une ETI de distribution d'articles de sport basée à Roubaix (600 salariés, 30 magasins). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
-
-Contexte que tu connais :
-- Tu viens de publier deux offres d'emploi de Product Owner e-commerce : la direction veut accélérer sur le digital.
-- Une refonte du site e-commerce est envisagée pour l'an prochain, mais rien n'est lancé.
-- Une ESN nationale assure aujourd'hui la maintenance du site ; ta frustration principale est la lenteur des évolutions (plusieurs semaines pour la moindre modification).
-- Le budget de l'an prochain n'est pas encore arbitré.
-
-Ta situation à cet instant : tu es à ton bureau, tu lis tes mails en même temps, tu n'écoutes qu'à moitié au début.
+- Tu as un peu de temps et tu es plutôt aimable, mais tu restes un${e} professionnel${F?"le":""} occupé${e}.
+- Si le commercial cite ton actualité, tu es agréablement surpris${e} et plus ouvert${e}.
+- Si on te pose une question ouverte sur tes sujets, tu évoques tes difficultés, sans tout dire d'un coup.
+- Tu fais au maximum une objection légère : « ${co.objection} ».
+- Si le commercial ne fait que parler de Smile sans te poser de questions, tu deviens distant${e} et tu cherches à écourter.
+- Tu acceptes un rendez-vous si le commercial t'a posé au moins une question sur ton contexte et te propose un créneau précis. S'il propose deux créneaux, tu en choisis un.
+- Si l'appel dépasse environ 6 minutes, tu indiques que tu dois raccrocher.`,
+    n2:`Ta situation à cet instant : tu es à ton bureau, tu lis tes mails en même temps, tu n'écoutes qu'à moitié au début.
 
 Comportement (niveau 2, objections classiques) :
-- Tu décroches en disant « Marc Duvivier, j'écoute. ».
-- Tu es poli mais neutre et un peu méfiant face aux appels commerciaux.
-- Tu as ces objections en tête : « Envoyez-moi plutôt un mail », « On travaille déjà avec un prestataire », « On n'a pas de budget avant l'an prochain ». Tu les sors quand elles viennent naturellement dans la conversation, dans l'ordre qui s'y prête, avec tes propres mots, pas comme une liste.
+- Tu décroches en disant « ${full}, j'écoute. ».
+- Tu es poli${e} mais neutre et un peu méfiant${e} face aux appels commerciaux.
+- Tu as ces objections en tête : « Envoyez-moi plutôt un mail », « ${co.objection} », « On n'a pas de budget avant l'an prochain ». Tu les sors quand elles viennent naturellement, dans l'ordre qui s'y prête, avec tes propres mots.
 - Si le commercial traite bien une objection (il reformule, rassure, pose une question), tu t'ouvres un peu. S'il insiste lourdement ou récite un argumentaire, tu te refermes.
-- Si le commercial pose une question qui touche la lenteur des évolutions ou la refonte, tu en parles franchement.
-- Tu acceptes un rendez-vous seulement si le commercial a bien traité au moins deux objections et t'a posé au moins une question pertinente. Sinon, tu restes sur « envoyez-moi un mail » et tu conclus.${REF_RULES}
-${COMMON_RULES}`
-  },
-  {
-    id:"n3", group:"level", num:"3", kind:"appel", voice:"Kore", gender:"F",
-    title:"Appel réaliste", sub:"DSI pressée, tout se joue en 3 minutes",
-    goal:"Obtenir un rendez-vous avec une DSI qui n'a que deux minutes.",
-    contact:{nom:"Nathalie Vermeersch", entreprise:"Groupe Ferlane (ETI, distribution alimentaire spécialisée, 1 500 salariés)", role:"DSI", derniere:"Aucun échange", actu:"Nommée DSI il y a deux mois, après dix ans dans un grand groupe de distribution (annonce LinkedIn)", besoin:"Rationalisation du SI, migration cloud"},
-    prompt:`Tu joues Nathalie Vermeersch, DSI du Groupe Ferlane, une ETI de distribution alimentaire spécialisée basée à Arras (1 500 salariés). Tu as été nommée il y a deux mois, après dix ans dans un grand groupe de distribution. Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
-
-Contexte que tu connais :
-- Tu es en plein « plan des 100 jours » : audit du système d'information en cours.
-- Le datacenter est vieillissant et une migration vers le cloud est envisagée.
-- Il y a trop de prestataires différents ; tu veux en réduire le nombre.
-
-Ta situation à cet instant : tu marches dans un couloir entre deux réunions, tu es pressée et un peu sur la défensive.
+- Si une question touche un point de ton contexte, tu en parles franchement.
+- Tu acceptes un rendez-vous seulement si le commercial a bien traité au moins deux objections et t'a posé au moins une question pertinente. Sinon, tu restes sur « envoyez-moi un mail » et tu conclus.`,
+    n3:`Ta situation à cet instant : tu marches dans un couloir entre deux réunions, pressé${e} et un peu sur la défensive.
 
 Comportement (niveau 3, appel réaliste) :
-- Tu décroches en disant « Oui, Nathalie Vermeersch ? » d'un ton pressé.
-- Tu es entre deux réunions. Très tôt, tu dis « Je n'ai que deux minutes ».
+- Tu décroches en disant « Oui, ${c.first} ${c.last} ? » d'un ton pressé.
+- Très tôt, tu dis « Je n'ai que deux minutes ».
 - Si le commercial parle plus de deux phrases d'affilée sans te poser de question, tu le coupes : « Oui, concrètement, vous voulez quoi ? ».
-- Tu peux tester le commercial : « C'est quoi Smile, en une phrase ? ».
-- Tes objections possibles : « Je ne suis pas intéressée », « Je n'ai pas le temps en ce moment », « J'ai déjà trop de prestataires ».
-- Tu acceptes un rendez-vous seulement si le commercial fait référence à ta prise de poste, pose au moins une question pertinente et propose un créneau précis. Une référence pertinente (migration cloud, ou changement de prestataire réussi) te convainc fortement.
-- Sinon, au bout d'environ 3 minutes, tu mets fin poliment : « Envoyez-moi un mail, je regarderai. Bonne journée. »${REF_RULES}
-${COMMON_RULES}`
-  },
-  {
-    id:"barrage", group:"drill", num:"A", kind:"barrage", voice:"Leda", gender:"F", speaker:"Sophie Leclercq", speakerRole:"Assistante de direction",
-    title:"Passer le barrage", sub:"L'assistante filtre les appels",
-    goal:"Obtenir de l'assistante un moyen de joindre le DSI : un créneau de rappel, son e-mail ou un transfert.",
-    contact:{nom:"Pierre Dewaele (via le standard)", entreprise:"Valmore Textile (ETI, textile, 700 salariés)", role:"DSI", derniere:"Aucun échange", actu:"Ouverture d'un site e-commerce B2B pour les revendeurs (communiqué de presse)", besoin:"Plateforme B2B, intégration avec l'ERP"},
-    prompt:`Tu joues Sophie Leclercq, assistante de direction chez Valmore Textile, une ETI textile basée à Tourcoing (700 salariés). Tu filtres les appels de Pierre Dewaele, le DSI. Un commercial de Smile, une entreprise de services numériques, appelle pour joindre Pierre Dewaele.
+- Tu peux le tester : « C'est quoi Smile, en une phrase ? ».
+- Tes objections possibles : « Je ne suis pas intéressé${e} », « Je n'ai pas le temps en ce moment », « ${co.objection} ».
+- Tu acceptes un rendez-vous seulement si le commercial fait référence à ton actualité ou à ta situation, pose au moins une question pertinente et propose un créneau précis. Une référence client vraiment proche de ton problème te convainc fortement.
+- Sinon, au bout d'environ 3 minutes, tu conclus poliment : « Envoyez-moi un mail, je regarderai. Bonne journée. »`
+  };
+
+  const a = co.assistant, aF = a.gender==="F", ae = aF ? "e" : "";
+  let prompt, speakerName=null, speakerRole=null, voice=c.voice, gender=c.gender, goal, contactNom=full;
+
+  if(m.kind==="appel"){
+    prompt = base + "\n\n" + levels[m.id] + REF_RULES + "\n" + COMMON_RULES;
+    goal = m.id==="n3" ? `Obtenir un rendez-vous avec ${full}, qui n'a que deux minutes.`
+         : m.id==="n2" ? `Décrocher un rendez-vous malgré les objections de ${full}.`
+         : `Décrocher un rendez-vous de 30 minutes avec ${full}.`;
+  } else if(m.kind==="barrage"){
+    speakerName = `${a.first} ${a.last}`; speakerRole = aF ? "Assistante de direction" : "Assistant de direction";
+    voice = a.voice; gender = a.gender; contactNom = `${full} (via le standard)`;
+    goal = `Obtenir de ${a.first} un moyen de joindre ${full} : un créneau de rappel, son e-mail ou un message transmis.`;
+    prompt = `Tu joues ${a.first} ${a.last}, assistant${ae} de direction chez ${co.name} (${co.desc}). Tu filtres les appels de ${full}, ${c.role}. Un commercial de Smile, une entreprise de services numériques, appelle pour ${F?"la":"le"} joindre.
+Ce scénario est un entraînement : le contexte est fictif.
 
 Contexte que tu connais :
-- Pierre Dewaele est très sollicité par les commerciaux et t'a demandé de filtrer.
-- Il est disponible en général le jeudi matin avant 9 h.
-- Son e-mail suit le format prénom.nom@valmore-textile.fr.
-- Valmore vient d'ouvrir un site e-commerce B2B pour ses revendeurs, et Pierre Dewaele est débordé par ce projet.
+- ${full} est très sollicité${e} par les commerciaux et t'a demandé de filtrer.
+- ${F?"Elle":"Il"} est en général disponible le jeudi matin avant 9 h.
+- Son e-mail suit le format prénom.nom.
+- En ce moment, ${F?"elle":"il"} est très pris${e} par ce sujet : ${co.actu.toLowerCase()}.
 
 Comportement :
-- Tu décroches en disant « Valmore Textile, bonjour. ».
-- Tu poses les questions classiques d'un barrage : « C'est à quel sujet ? », « Vous êtes de quelle société ? », « C'est commercial ? », « Il est en réunion. ».
-- Si le commercial est vague, insistant ou condescendant, tu proposes seulement d'écrire à l'adresse générale contact@valmore-textile.fr et tu conclus.
-- Si le commercial est courtois, te donne une raison précise et crédible (par exemple le projet B2B) et te demande ton aide, tu deviens coopérative : tu donnes le meilleur moment pour rappeler, ou le format de son e-mail, ou tu proposes de lui transmettre un message.
+- Tu décroches en disant « ${co.name}, bonjour. ».
+- Tu poses les questions classiques d'un barrage : « C'est à quel sujet ? », « Vous êtes de quelle société ? », « C'est commercial ? », « ${F?"Elle":"Il"} est en réunion. ».
+- Si le commercial est vague, insistant ou condescendant, tu proposes seulement d'écrire à l'adresse générale du standard et tu conclus.
+- Si le commercial est courtois, te donne une raison précise et crédible liée à l'actualité de l'entreprise et te demande ton aide, tu deviens coopérati${aF?"ve":"f"} : tu donnes le meilleur moment pour rappeler, ou le format de l'e-mail, ou tu proposes de transmettre un message.
 - Tu ne transfères jamais directement l'appel.
-${COMMON_RULES}`
-  },
-  {
-    id:"messagerie", group:"drill", num:"B", kind:"messagerie", voice:"Orus", gender:"M", speaker:"Messagerie de Thomas Bertin", speakerRole:"Répondeur",
-    title:"Laisser un message", sub:"30 secondes sur répondeur",
-    goal:"Laisser un message de moins de 30 secondes qui donne envie de rappeler.",
-    contact:{nom:"Thomas Bertin", entreprise:"Maison Lerouge (ETI, ameublement, 400 salariés)", role:"Directeur e-commerce", derniere:"Aucun échange", actu:"Lancement d'une marketplace sur le site de Maison Lerouge", besoin:"Performance de la marketplace, catalogue produit"},
-    prompt:`Tu joues uniquement la messagerie vocale de Thomas Bertin, directeur e-commerce de Maison Lerouge.
-Quand tu reçois le premier message, prononce exactement cette annonce, puis arrête-toi : « Bonjour, vous êtes bien sur la messagerie de Thomas Bertin, Maison Lerouge. Je ne suis pas disponible pour le moment, laissez-moi un message après le bip. Bip. »
-Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. Tu ne réponds à aucune question. Tu n'es pas un humain, tu es un répondeur qui enregistre.`
+${COMMON_RULES}`;
+  } else {
+    speakerName = `Messagerie de ${full}`; speakerRole = "Répondeur";
+    goal = "Laisser un message de moins de 30 secondes qui donne envie de rappeler.";
+    prompt = `Tu joues uniquement la messagerie vocale de ${full}, ${c.role} chez ${co.name}.
+Quand tu reçois le premier message, prononce exactement cette annonce, puis arrête-toi : « Bonjour, vous êtes bien sur la messagerie de ${full}, ${co.name}. Je ne suis pas disponible pour le moment, laissez-moi un message après le bip. Bip. »
+Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. Tu ne réponds à aucune question. Tu n'es pas un humain, tu es un répondeur qui enregistre.`;
   }
-];
+
+  return {
+    id:m.id, key:`${co.id}-${m.id}`, group:m.group, num:m.num, kind:m.kind, title:m.title, sub:m.sub, goal,
+    voice, gender, speaker:speakerName, speakerRole,
+    companyId:co.id, companyName:co.name, relation:co.relation, bestRefs:co.refs,
+    contact:{nom:contactNom, entreprise:`${co.name} (${co.desc})`, role:c.role, derniere:"Aucun échange", actu:co.actu, besoin:co.besoin},
+    prompt
+  };
+}
+
+let SCENARIOS = MODES.map(m=>buildScenario(COMPANIES[0].id, m.id));
 
 /* =========================================================
    CONTENU : DÉBRIEF
@@ -556,7 +686,13 @@ Références utilisables (problème → résultat) :
 - Pierre Fabre : 150 sites de marques, 60 % d'économies sur les déploiements.
 - Groupe Atlantic : référentiel produit unique, fiches produits mises en ligne plus vite.
 - Eram : migration du système d'information vers le cloud Google.
-- Decathlon : plateforme d'objets connectés, objectif 1 million d'utilisateurs mensuels.`;
+- Decathlon : plateforme d'objets connectés, objectif 1 million d'utilisateurs mensuels.
+- Biogaran : IA générative, acculturation puis automatisation de la synthèse des remontées terrain.
+- STIB (transports bruxellois) : refonte de l'application mobile, 1,8 million de téléchargements, 300 000 utilisateurs actifs.
+- Assurance Maladie (ameli.fr) : hébergement et infogérance 24/7 par Alter Way, marché renouvelé pour 4 ans.
+- Ministère de l'Éducation nationale : 14 sites Drupal déployés en 24 mois.
+- CRMA (Chambre des métiers) : application métier Odoo, 600 utilisateurs, 600 000 clients.
+- Oreca : migration cloud d'un e-commerce de 15 boutiques, montée en charge sans explosion des coûts.`;
 
 const TRAME = `TRAME DE PROSPECTION SMILE LILLE (référence officielle)
 Objectif : décrocher un rendez-vous qualifié, pas vendre au téléphone. Appel de 3 à 5 minutes maximum. Écouter plus que parler : viser 60 % de temps de parole pour le prospect.
@@ -645,6 +781,14 @@ const S = {
   prepDrafts:{}, junior:null
 };
 const MAX_CALL_MS = 10 * 60 * 1000;
+// Compte cible choisi par le junior
+S.company = null;
+function company(){ return companyById(S.company); }
+function setCompany(id){
+  S.company = companyById(id).id; safeSet("laligne.company", S.company);
+  SCENARIOS = MODES.map(m=>buildScenario(S.company, m.id));
+  S.scenario = scById(S.scenario ? S.scenario.id : "n1");
+}
 // Mode serveur (Space Hugging Face) : clé Gemini côté serveur, résultats partagés avec l'onglet Manager
 S.server = false;
 function sharing(){ return S.server; }
@@ -713,6 +857,8 @@ $("#whoForm").addEventListener("submit", e=>{
   const first=$("#whoFirst").value.trim(), last=$("#whoLast").value.trim();
   if(!first||!last){ e.preventDefault(); return; }
   S.junior={first,last}; safeSet("laligne.junior", JSON.stringify(S.junior));
+  const mineIds=myCompanyIds(first);
+  if(mineIds.length && !mineIds.includes(S.company)) setCompany(mineIds[0]);
   renderChrome(); renderHome();
 });
 function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
@@ -775,8 +921,8 @@ async function connect(key, silent){
       && !/(tts|image|embedding|live|audio|aqa|gemma|learnlm|robotics|computer)/i.test(m.name));
     if(!live.length) throw new Error("aucun modèle vocal temps réel n'est disponible pour cette clé.");
     if(!text.length) throw new Error("aucun modèle texte n'est disponible pour cette clé.");
-    fillSelect("#liveModel", live, m => /native-audio/i.test(m.name), "laligne.liveModel");
-    fillSelect("#textModel", text, m => /flash/i.test(m.name) && !/lite/i.test(m.name), "laligne.textModel");
+    fillSelect("#liveModel", live, m => (/native-audio/i.test(m.name)?1000:0) + modelVersion(m.name)*10 - (/preview|exp/i.test(m.name)?1:0), "laligne.liveModel.v3");
+    fillSelect("#textModel", text, m => (/flash/i.test(m.name)?1000:0) - (/lite/i.test(m.name)?500:0) + modelVersion(m.name)*10 - (/preview|exp/i.test(m.name)?1:0), "laligne.textModel.v3");
     S.key = key; S.connected = true;
     S.viaServer = viaServer;
     if(!viaServer && !CONFIG.GEMINI_API_KEY && $("#rememberKey").checked) safeSet("laligne.key", key);
@@ -790,9 +936,11 @@ async function connect(key, silent){
   if(!$("#viewHome").hidden) renderHome();
   if(!$("#viewPrep").hidden) renderPrep();
 }
-function fillSelect(sel, list, prefer, storeKey){
+// Numéro de version d'un modèle (gemini-3.8-flash → 3.8) pour toujours proposer le plus récent
+function modelVersion(name){ const m=String(name).match(/gemini-(\d+(?:\.\d+)?)/i); return m ? parseFloat(m[1]) : 0; }
+function fillSelect(sel, list, rank, storeKey){
   const el = $(sel); el.innerHTML="";
-  const sorted = [...list].sort((a,b) => (prefer(b)?1:0)-(prefer(a)?1:0));
+  const sorted = [...list].sort((a,b) => rank(b)-rank(a));
   for(const m of sorted){
     const o=document.createElement("option");
     o.value=m.name; o.textContent=`${m.displayName||m.name} (${m.name.replace("models/","")})`;
@@ -826,19 +974,30 @@ function stepCard(s, rec){
     <div class="top"><span class="badge">${st.key==="done"?"✓":s.num}</span><strong>${esc(s.title)}</strong></div>
     <div class="meta">${esc(s.sub)}</div>${stateHtml}${best}</button>`;
 }
+function companyCard(co, mine){
+  const sel = co.id===S.company;
+  const n = history().filter(h=>h.companyId===co.id).length;
+  return `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
+    <span class="co-name">${esc(co.name)}</span>
+    <span class="co-who">${esc(co.contact.first+" "+co.contact.last)}, ${esc(co.contact.role)}</span>
+    <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
+  </button>`;
+}
 function renderHome(){
-  const h=history(), rec=recommended();
+  const h=history(), rec=recommended(), co=company();
   const calls=h.filter(x=>x.kind==="appel");
   const rdvRate = calls.length ? Math.round(calls.filter(x=>x.rdv).length/calls.length*100) : null;
   const recent=h.slice(-5).map(x=>x.score).filter(v=>v!=null);
   const avg = recent.length ? Math.round(recent.reduce((a,b)=>a+b,0)/recent.length) : null;
   const axe=lastAxe();
   const recSt=statusOf(rec.id);
-  const title = !h.length ? `Premier appel : ${esc(rec.contact.nom.split(" (")[0])} t'attend.`
+  const who = rec.speaker || `${co.contact.first} ${co.contact.last}`;
+  const title = !h.length ? `Premier appel : ${esc(who)}, chez ${esc(co.name)}.`
               : axe ? esc(axe) : "Continue sur ta lancée.";
-  const subtitle = !h.length ? "Prépare ton accroche en deux minutes, puis appelle. Le débrief arrive juste après."
-              : axe ? "C'est ton axe de travail, issu de ton dernier débrief. Garde-le en tête pour le prochain appel."
-              : "";
+  const subtitle = !h.length ? "Choisis ton compte et ta difficulté plus bas, prépare ton accroche, puis appelle. Le débrief arrive juste après."
+              : axe ? "C'est ton axe de travail, issu de ton dernier débrief. Garde-le en tête pour le prochain appel." : "";
+  const mineIds = myCompanyIds(S.junior?.first);
+  const mine = COMPANIES.filter(c=>mineIds.includes(c.id)), others = COMPANIES.filter(c=>!mineIds.includes(c.id));
   $("#viewHome").innerHTML = `
   <section class="hero">
     <div class="focus">
@@ -846,7 +1005,7 @@ function renderHome(){
       <h1>${title}</h1>
       ${subtitle?`<p class="sub">${subtitle}</p>`:""}
       <div class="go">
-        <button class="btn orange big" id="goRec" type="button">${recSt.n?"Rejouer":"Préparer"} : ${esc(rec.title.toLowerCase())}</button>
+        <button class="btn orange big" id="goRec" type="button">${esc(co.name)} : ${esc(rec.title.toLowerCase())}</button>
         ${!S.connected?`<button class="link" style="color:#fff" type="button" id="openSet">Connecter Gemini d'abord</button>`:""}
       </div>
     </div>
@@ -858,23 +1017,30 @@ function renderHome(){
     </div>
   </section>
 
-  <div class="sec-title"><h2>Ton parcours</h2><p>Un niveau est validé avec ${PASS_COUNT} appels à ${PASS_SCORE} ou plus.</p></div>
+  <div class="sec-title"><h2>1. Choisis ton compte</h2><p>Chaque compte a son interlocuteur, son contexte et ses objections.</p></div>
+  ${mine.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}</div>
+    <details class="more-co" ${mineIds.includes(S.company)?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
+    : `<div class="companies">${COMPANIES.map(c=>companyCard(c,false)).join("")}</div>`}
+
+  <div class="sec-title" style="margin-top:30px"><h2>2. Choisis la difficulté</h2><p>Un niveau est validé avec ${PASS_COUNT} appels à ${PASS_SCORE} ou plus, tous comptes confondus.</p></div>
   <div class="path">${SCENARIOS.filter(s=>s.group==="level").map(s=>stepCard(s, s.id===rec.id)).join("")}</div>
-  <div class="sec-title"><h2>Exercices ciblés</h2><p>À faire quand tu veux, pour travailler un moment précis.</p></div>
+  <div class="sec-title"><h2>Exercices ciblés</h2><p>Pour travailler un moment précis de l'appel.</p></div>
   <div class="drills">${SCENARIOS.filter(s=>s.group==="drill").map(s=>stepCard(s, s.id===rec.id)).join("")}</div>
 
   <div class="sec-title"><h2>Tes derniers appels</h2></div>
   <div class="history">
-    ${h.length ? `<div class="hrow head"><span>Date</span><span>Scénario</span><span>Score</span><span class="hide-s">Résultat</span><span class="hide-s">Axe de travail</span></div>` +
+    ${h.length ? `<div class="hrow head"><span>Date</span><span>Compte et difficulté</span><span>Score</span><span class="hide-s">Résultat</span><span class="hide-s">Axe de travail</span></div>` +
       h.slice(-8).reverse().map(x=>`<div class="hrow"><span>${new Date(x.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
-        <span>${esc(x.scenarioTitle)}</span><span class="score-tag" style="color:${scoreColor(x.score)}">${x.score??"–"}</span>
-        <span class="hide-s">${x.kind==="messagerie"?"Message laissé":x.rdv?(x.kind==="barrage"?"Contact obtenu":"Rendez-vous"):"Sans suite"}</span>
+        <span><b style="font-weight:500">${esc(x.companyName||"")}</b><br><span style="color:var(--mute);font-size:.88rem">${esc(x.scenarioTitle)}</span></span>
+        <span class="score-tag" style="color:${scoreColor(x.score)}">${x.score??"–"}</span>
+        <span class="hide-s">${x.score==null?"Débrief non généré":x.kind==="messagerie"?"Message laissé":x.rdv?(x.kind==="barrage"?"Contact obtenu":"Rendez-vous"):"Sans suite"}</span>
         <span class="hide-s" style="color:var(--mute)">${esc(x.axe||"")}</span></div>`).join("")
       : `<div class="empty">Tes appels apparaîtront ici, avec leur score et ton axe de travail.</div>`}
   </div>`;
   $("#goRec").onclick=()=>goPrep(rec.id);
   const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
   document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
+  document.querySelectorAll(".company").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
 }
 function goHome(){ showView("home"); renderHome(); }
 
@@ -897,9 +1063,11 @@ const MEMO_OBJ = [
   ["Pas la bonne personne","« Pourriez-vous me rediriger vers la bonne personne ? »"],
   ["Pas intéressé","« Qu'est-ce qui ne vous intéresse pas exactement : travailler avec une ESN, ou pas de sujet en ce moment ? »"]
 ];
-const MEMO_REFS = "Somfy (reprise d'un prestataire, 14 sites), Cultura (omnicanal depuis 10 ans), Accor (marketplace B2B en 6 mois), Arkema (B2B en 2 mois), Eram (migration cloud), Pierre Fabre (150 sites, 60 % d'économies). À Lille : 96 experts, 15 ans de présence, Kiabi, Auchan, Adeo, Decathlon.";
+const MEMO_REFS = "Somfy (reprise d'un prestataire, 14 sites), Cultura (omnicanal depuis 10 ans), Accor (marketplace B2B en 6 mois), Arkema (B2B en 2 mois), Eram et Oreca (migration cloud), Pierre Fabre (150 sites, 60 % d'économies), STIB (appli mobile transport, 1,8 M de téléchargements), ameli.fr (marché public renouvelé). À Lille : 96 experts, 15 ans de présence, Kiabi, Auchan, Adeo, Decathlon.";
 function memoHtml(){
+  const sc=S.scenario;
   return `<div class="memo-body">
+    ${sc&&sc.bestRefs?`<p style="margin:0 0 8px;background:var(--blue-soft);border-radius:10px;padding:8px 10px"><b>Pour ${esc(sc.companyName)} :</b> ${esc(sc.bestRefs)}</p>`:""}
     <ol>${MEMO_STEPS.map(m=>`<li><b>${m[0]}</b> : ${esc(m[1])}</li>`).join("")}</ol>
     <p style="margin:6px 0 4px;font-weight:600">Objections</p>
     ${MEMO_OBJ.map(o=>`<div class="obj"><b>${o[0]}</b>${esc(o[1])}</div>`).join("")}
@@ -909,18 +1077,19 @@ function memoHtml(){
 function goPrep(id){ S.scenario=scById(id); showView("prep"); renderPrep(); }
 function readPrep(){
   const s=S.scenario, el=id=>$(id);
-  if(el("#pA")) S.prepDrafts[s.id]={accroche:el("#pA").value.trim(), probleme:el("#pB").value.trim(), objectif:el("#pC").value.trim()};
-  return {id:s.id, ...(S.prepDrafts[s.id]||{accroche:"",probleme:"",objectif:""})};
+  if(el("#pA")) S.prepDrafts[s.key]={accroche:el("#pA").value.trim(), probleme:el("#pB").value.trim(), objectif:el("#pC").value.trim()};
+  return {id:s.id, ...(S.prepDrafts[s.key]||{accroche:"",probleme:"",objectif:""})};
 }
 function renderPrep(){
   const s=S.scenario, c=s.contact, st=statusOf(s.id);
-  const prep=S.prepDrafts[s.id]||{accroche:"",probleme:"",objectif:""};
+  const prep=S.prepDrafts[s.key]||{accroche:"",probleme:"",objectif:""};
   const axe=lastAxe();
   const isMsg=s.kind==="messagerie", isBar=s.kind==="barrage";
   $("#viewPrep").innerHTML=`
-  <button class="link back" type="button" id="backHome">Retour au parcours</button>
+  <button class="link back" type="button" id="backHome">Changer de compte ou de difficulté</button>
   <div class="prep">
     <aside class="card">
+      <p style="margin:0 0 4px;color:var(--mute);font-size:.9rem">${esc(s.companyName)}</p>
       <h2>${esc(s.title)}</h2>
       <p class="goal">${esc(s.goal)}</p>
       <dl class="fiche">
@@ -929,6 +1098,8 @@ function renderPrep(){
         <div><dt>Dernière activité</dt><dd>${esc(c.derniere)}</dd></div>
         <div><dt>Actualité repérée</dt><dd class="actu">${esc(c.actu)}</dd></div>
         <div><dt>Besoin supposé</dt><dd>${esc(c.besoin)}</dd></div>
+        <div><dt>Relation avec Smile</dt><dd>${esc(s.relation)}</dd></div>
+        <div><dt>Note</dt><dd style="font-weight:400;color:var(--mute);font-size:.88rem">Contexte fictif d'entraînement, inspiré de l'entreprise.</dd></div>
         ${st.n?`<div><dt>Tes tentatives</dt><dd>${st.n} appel${st.n>1?"s":""}, meilleur score ${st.best} sur 100</dd></div>`:""}
       </dl>
     </aside>
@@ -1132,6 +1303,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
+  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false;
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
   $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
@@ -1163,7 +1335,7 @@ function buildSetup(level){
     patient:{ endOfSpeechSensitivity:"END_SENSITIVITY_LOW",  silenceDurationMs:1200, prefixPaddingMs:150 }
   }[pace] || {};
   const setup = {
-    model: $("#liveModel").value,
+    model: S.liveModelOverride || $("#liveModel").value,
     generationConfig:{ responseModalities:["AUDIO"], temperature:1.0,
       speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName: chosen || s.voice } } } },
     systemInstruction:{ parts:[{text:s.prompt}] },
@@ -1188,6 +1360,11 @@ function openLine(level){
   ws.onclose = ev => {
     if(S.ws!==ws) return;
     if(!S.setupDone && ev.code!==1000 && level<2){ openLine(level+1); return; }
+    if(!S.setupDone && ev.code!==1000 && level===2){
+      // Le modèle vocal est refusé : on essaie automatiquement le suivant de la liste
+      const next=[...$("#liveModel").options].map(o=>o.value).find(v=>!S.liveTried.includes(v));
+      if(next && S.liveTried.length<4){ S.liveTried.push(next); S.liveModelOverride=next; openLine(0); return; }
+    }
     if(S.callActive || !S.startedAt){
       if(ev.code!==1000 && !S.errorShown){
         callError(`La ligne a été coupée par Google (code ${ev.code}${ev.reason?` : ${ev.reason}`:""}). Vérifie le modèle vocal choisi dans les réglages.`);
@@ -1199,6 +1376,7 @@ function openLine(level){
 async function handleServer(msg){
   if(msg.setupComplete){
     S.setupDone = true;
+    if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v3", S.liveModelOverride); }
     $("#callState").textContent="Ça sonne…";
     await ringTone();
     if(!S.ws || S.ws.readyState!==1) return;
@@ -1309,6 +1487,8 @@ function demoData(){
   const out=[]; const now=Date.now();
   const axes={objections:"Sur « envoyez-moi un mail », pose une question avant d'accepter.",ecoute:"Laisse un silence de deux secondes après chaque question.",
     valeur:"Cite une référence du même secteur que le prospect.",decouverte:"Pose au moins deux questions ouvertes avant de pitcher.",rdv:"Propose deux créneaux précis au lieu de « quand vous voulez »."};
+  const demoCo=[["Decathlon","Auchan","SNCF"],["Adeo","Leroy Merlin","Boulanger"]];
+  profiles.forEach((p,pi)=>p.cos=demoCo[pi%2]);
   for(const p of profiles){
     let done={n1:0,n2:0,n3:0}, k=0;
     for(let d=42; d>=(p.stopDays||0); d--){
@@ -1324,7 +1504,8 @@ function demoData(){
         crit[id] = v>=72?"acquis":v>=45?"en_cours":"a_travailler";
       }
       const kind = drill ? (rnd()<0.5?"barrage":"messagerie") : "appel";
-      out.push({ id:p.name+d, date:new Date(now-d*DAY-rnd()*DAY/2).toISOString(), t:now-d*DAY, junior:p.name,
+      const coName=p.cos[Math.floor(rnd()*3)];
+      out.push({ companyName:coName, companyId:coName.toLowerCase().replace(/\s/g,""), id:p.name+d, date:new Date(now-d*DAY-rnd()*DAY/2).toISOString(), t:now-d*DAY, junior:p.name,
         scenarioId: drill?kind:level, scenarioTitle: drill?(kind==="barrage"?"Passer le barrage":"Laisser un message"):({n1:"Prospect bienveillant",n2:"Objections classiques",n3:"Appel réaliste"}[level]),
         kind, level: drill?"":level.slice(1), durationSec: 120+Math.round(rnd()*240), talkShare: Math.round(35+rnd()*30 - (p.weak==="ecoute"?12:0)),
         rdv: kind==="appel" && score>62 && rnd()<0.8, score, criteria: kind==="appel"?crit:{}, axe: axes[p.weak], verdict:"",
@@ -1494,6 +1675,19 @@ function render(){
   </section>
 
   <section class="sec panel">
+    <div class="sec-head"><h2>Résultats par compte</h2><p>Sur la période sélectionnée.</p></div>
+    <div class="scroll"><table>
+      <thead><tr><th>Compte</th><th>Appels</th><th>Score moyen</th><th>RDV obtenus</th><th>Juniors</th></tr></thead>
+      <tbody>${(()=>{ const by={}; inP.forEach(x=>{ const k=x.companyName||"Non précisé"; (by[k]=by[k]||[]).push(x); });
+        const rows=Object.entries(by).sort((a,b)=>b[1].length-a[1].length);
+        return rows.length ? rows.map(([k,list])=>{ const sc=round(avg(list.map(x=>x.score).filter(v=>v!=null))); const cl=list.filter(x=>x.kind==="appel");
+          return `<tr><td><b style="font-weight:600">${esc(k)}</b></td><td>${list.length}</td><td style="font-weight:600;color:${scoreColor(sc)}">${sc??"–"}</td>
+            <td>${cl.length?Math.round(cl.filter(x=>x.rdv).length/cl.length*100)+" %":"–"}</td><td class="maxe">${esc(juniors(list).join(", "))}</td></tr>`; }).join("")
+          : `<tr><td colspan="5" class="empty">Aucun appel sur la période.</td></tr>`; })()}</tbody>
+    </table></div>
+  </section>
+
+  <section class="sec panel">
     <div class="sec-head"><h2>${sel?"Fiche de "+esc(sel):"Les juniors"}</h2><p>${sel?"":"Clique sur une ligne pour voir le détail."}</p></div>
     <div class="scroll"><table>
       <thead><tr><th>Junior</th><th>Appels</th><th>Dernier appel</th><th>Parcours</th><th>Score récent</th><th>Tendance</th><th>RDV</th><th>Parole prospect</th><th>Axe de travail actuel</th></tr></thead>
@@ -1509,7 +1703,7 @@ function render(){
 
   ${sel ? `<section class="sec panel"><div class="sec-head"><h2>Derniers appels de ${esc(sel.split(" ")[0])}</h2><p>Les transcriptions restent privées : seuls les résultats sont partagés.</p></div>
     ${scope.slice(-12).reverse().map(s=>`<div class="sess"><span>${new Date(s.t).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
-      <span class="hs">${esc(s.scenarioTitle)}</span><span style="font-weight:600;color:${scoreColor(s.score)}">${s.score??"–"}</span>
+      <span class="hs">${esc(s.companyName||"")}<br><span style="color:var(--mute);font-size:.85rem">${esc(s.scenarioTitle)}</span></span><span style="font-weight:600;color:${scoreColor(s.score)}">${s.score??"–"}</span>
       <span class="hs" style="color:var(--mute)">${esc(s.verdict||s.axe||"")}</span></div>`).join("")}</section>` : ""}
   `;
   document.querySelectorAll("[data-j]").forEach(el=>el.addEventListener("click",()=>{ if(sel) return; $("#mJunior").value=el.dataset.j; render(); }));
@@ -1565,7 +1759,10 @@ async function runDebrief(){
   const payload = `TYPE D'EXERCICE : ${s.kind}
 OBJECTIF DE L'EXERCICE : ${s.goal}
 
+COMPTE : ${s.companyName}
 FICHE PROSPECT REMISE AU COMMERCIAL : ${JSON.stringify(s.contact)}
+RELATION CONNUE AVEC SMILE : ${s.relation}
+RÉFÉRENCES SMILE LES PLUS PERTINENTES POUR CE COMPTE : ${s.bestRefs}
 
 CONTEXTE CACHÉ DU PROSPECT SIMULÉ (ce que le commercial pouvait découvrir) :
 ${s.prompt}
@@ -1593,12 +1790,20 @@ ${transcriptTxt}`;
       contents:[{role:"user",parts:[{text:payload}]}],
       generationConfig:{temperature:0.4, responseMimeType:"application/json"}
     };
-    const r = S.viaServer
-      ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:$("#textModel").value, payload:genBody})})
-      : await fetch(`${API}/${$("#textModel").value}:generateContent?key=${encodeURIComponent(S.key)}`,{
-          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(genBody)});
-    const data = await r.json();
-    if(!r.ok) throw new Error(data?.error?.message || `Erreur ${r.status}`);
+    // Essaie le modèle choisi, puis les suivants si Google le refuse (modèle retiré, indisponible…)
+    const candidates=[$("#textModel").value, ...[...$("#textModel").options].map(o=>o.value).filter(v=>v!==$("#textModel").value)].slice(0,5);
+    let data=null, lastErr="";
+    for(const model of candidates){
+      const r = S.viaServer
+        ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model, payload:genBody})})
+        : await fetch(`${API}/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{
+            method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(genBody)});
+      const d = await r.json().catch(()=>({}));
+      if(r.ok){ data=d; if(model!==$("#textModel").value){ $("#textModel").value=model; safeSet("laligne.textModel.v3", model); } break; }
+      lastErr = d?.error?.message || `Erreur ${r.status}`;
+      if(![400,403,404,410].includes(r.status) && !/no longer|not found|deprecated|not supported|unavailable/i.test(lastErr)) break;
+    }
+    if(!data) throw new Error(lastErr);
     const txt = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("").replace(/```json|```/g,"").trim();
     const d = JSON.parse(txt);
     const criteria = Object.fromEntries((d.criteres||[]).map(c=>[c.id, LVL[c.niveau]?c.niveau:"non_observe"]));
@@ -1606,6 +1811,7 @@ ${transcriptTxt}`;
       id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
       date: new Date().toISOString(), junior: juniorName(),
       scenarioId: s.id, scenarioTitle: s.title, kind: s.kind, level: s.num,
+      companyId: s.companyId, companyName: s.companyName,
       durationSec: Math.round(S.lastDuration/1000), talkShare: share,
       rdv: s.kind==="messagerie" ? false : !!d.rdv_obtenu,
       score: scoreOf(criteria), criteria, axe: d.axe_de_travail||"", verdict: d.verdict||"",
@@ -1616,6 +1822,14 @@ ${transcriptTxt}`;
     const sy=$("#syncNote");
     if(sy) sy.textContent = synced===null ? "" : synced ? "Résultat partagé avec ton manager." : "Résultat enregistré, il sera partagé dès que la connexion revient.";
   }catch(e){
+    // L'appel compte quand même dans le suivi, sans score
+    if(!S.partialSaved){
+      S.partialSaved=true;
+      recordSession({ id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())), date:new Date().toISOString(), junior:juniorName(),
+        scenarioId:s.id, scenarioTitle:s.title, kind:s.kind, level:s.num, companyId:s.companyId, companyName:s.companyName,
+        durationSec:Math.round(S.lastDuration/1000), talkShare:share, rdv:false, score:null, criteria:{}, axe:lastAxe(),
+        verdict:"Débrief non généré", erreursSmile:0, prepFilled:[S.lastPrep.accroche,S.lastPrep.probleme,S.lastPrep.objectif].filter(Boolean).length }).catch(()=>{});
+    }
     body.innerHTML=`<div class="panel" style="margin-top:24px"><h3>Le débrief n'a pas pu être généré</h3><p>${esc(e.message)}</p>
       <div class="actions"><button class="btn" type="button" id="retryD">Relancer l'analyse</button><button class="btn ghost" type="button" id="toHome">Retour au parcours</button></div></div>
       ${transcriptBlock()}`;
@@ -1702,6 +1916,7 @@ function transcriptBlock(){
    ========================================================= */
 try{
   S.junior = loadJunior();
+  setCompany(safeGet("laligne.company") || (S.junior && myCompanyIds(S.junior.first)[0]) || COMPANIES[0].id);
   renderChrome();
   goHome();
   if(!S.junior) askJunior();
