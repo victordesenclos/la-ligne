@@ -532,38 +532,38 @@ const COMPANIES = [
   {
     id:"leroymerlin", name:"Leroy Merlin", owner:"Valentine",
     desc:"enseigne de bricolage du groupe Adeo, siège à Lezennes",
-    contact:{first:"Maxime", last:"Carpentier", role:"Responsable e-commerce et marketplace France", gender:"M", voice:"Orus"},
+    contact:{first:"Maxime", last:"Carpentier", role:"Head of Data/IA, Leroy Merlin France", gender:"M", voice:"Orus"},
     assistant:{first:"Camille", last:"Faure", gender:"F", voice:"Zephyr"},
-    actu:"Ouverture de la marketplace à de nouvelles catégories de vendeurs",
-    besoin:"Intégration des vendeurs, qualité des fiches produits, lien avec les services en magasin",
+    actu:"Lancement d'un assistant de conseil bricolage basé sur l'IA générative, sur le site et l'application",
+    besoin:"Qualité et gouvernance des données, passage à l'échelle des cas d'usage IA, renfort en profils data",
     relation:"Smile accompagne déjà le groupe Adeo ; Maxime n'a jamais travaillé directement avec Smile.",
     context:[
-      "La marketplace grossit vite : l'intégration d'un nouveau vendeur prend trop de temps.",
-      "Les fiches produits envoyées par les vendeurs sont de qualité inégale, ce qui fait baisser la conversion.",
-      "Tu veux mieux relier la marketplace aux services en magasin (retrait, pose).",
-      "Tu as un budget pour l'an prochain, mais les priorités ne sont pas arrêtées."
+      "Ton équipe a lancé plusieurs cas d'usage d'IA (recommandation produit, assistant de conseil), mais peu passent en production à grande échelle.",
+      "Les données produit et client sont de qualité inégale : c'est le premier frein à vos projets d'IA.",
+      "La direction attend des résultats mesurables sur le chiffre d'affaires d'ici la fin de l'année.",
+      "Tu manques de data engineers et de profils MLOps ; recruter prend des mois. Un renfort en régie pourrait t'intéresser, mais tu ne le dis que si on te pose la question."
     ],
-    objection:"On a les équipes du groupe Adeo pour ça",
-    decision:"Ta directrice e-commerce et l'équipe plateforme du groupe Adeo.",
-    refs:"Accor (marketplace B2B construite en 6 mois), Cultura (marketplace et omnicanal), Groupe Atlantic (qualité des données produit)."
+    objection:"Pour la data, on s'appuie sur les équipes du groupe Adeo",
+    decision:"Le directeur data du groupe Adeo arbitre les investissements data.",
+    refs:"Biogaran (IA générative, du pilote à la mise en production), Somfy (Data Factory de 10 personnes), Groupe Atlantic (qualité et gouvernance des données produit). Entité du groupe : Synotis, spécialiste de la data."
   },
   {
     id:"boulanger", name:"Boulanger", owner:"Valentine",
     desc:"distributeur d'électroménager et de multimédia, siège à Lesquin",
-    contact:{first:"Émilie", last:"Ravel", role:"Directrice des systèmes e-commerce", gender:"F", voice:"Aoede"},
+    contact:{first:"Émilie", last:"Ravel", role:"Responsable applications métier", gender:"F", voice:"Aoede"},
     assistant:{first:"Antoine", last:"Roux", gender:"M", voice:"Fenrir"},
     actu:"Lancement d'un service en ligne de réparation et de reconditionnement",
-    besoin:"Tenue du site aux pics de trafic, service après-vente digitalisé, cloud",
+    besoin:"Applications des ateliers et du SAV, intégration avec l'ERP, maintenance applicative",
     relation:"Aucune relation directe connue entre Smile et Boulanger.",
     context:[
-      "Le site a ralenti lors du dernier Black Friday ; la direction ne veut pas revivre ça.",
-      "Le nouveau service de réparation doit relier le site, les magasins et les ateliers.",
-      "L'hébergement actuel coûte cher et une migration vers le cloud est à l'étude.",
+      "Le nouveau service de réparation s'appuie sur des applications d'atelier vieillissantes, développées en interne il y a plus de 10 ans.",
+      "Les outils du SAV, des ateliers et des magasins communiquent mal : beaucoup de ressaisies et d'erreurs.",
+      "Ton équipe passe son temps sur la maintenance et n'a plus de temps pour les nouveaux projets. Un renfort en régie ou une maintenance externalisée pourraient t'aider, mais tu ne le dis que si on te pose la question.",
       "Tu sors d'une mauvaise expérience avec une ESN qui avait sous-dimensionné son équipe."
     ],
     objection:"On sort d'une mauvaise expérience avec une ESN, je suis méfiante",
-    decision:"Le DSI du groupe valide les choix d'hébergement.",
-    refs:"Oreca (migration cloud d'un e-commerce, montée en charge sans explosion des coûts), Eram (migration du SI vers le cloud), Somfy (reprise d'un prestataire en place)."
+    decision:"Le DSI du groupe valide tout nouveau prestataire.",
+    refs:"CRMA (application métier Odoo pour 600 utilisateurs), Suez (application de suivi des flux métier sur Symfony), Airbus (maintenance applicative depuis plus de 10 ans)."
   }
 ];
 
@@ -589,7 +589,8 @@ Ce scénario est un entraînement : le contexte ci-dessous est fictif, inspiré 
 Contexte que tu connais :
 ${co.context.map(l=>"- "+l).join("\n")}
 - ${co.decision}
-- Actualité récente de ton entreprise : ${co.actu}.`;
+- Actualité récente de ton entreprise : ${co.actu}.
+- Comme beaucoup de décideurs, tu reçois chaque semaine plusieurs appels d'ESN qui se ressemblent tous ; tu en es lassé${e}. Ce qui peut te faire changer d'avis : un commercial qui connaît ta situation, qui va droit au but et qui t'apporte quelque chose de concret.`;
 
   const levels = {
     n1:`Ta situation à cet instant : tu sors d'une réunion, plutôt de bonne humeur.
@@ -599,7 +600,8 @@ Comportement (prospect bienveillant) :
 - Tu as un peu de temps et tu es plutôt aimable, mais tu restes un${e} professionnel${F?"le":""} occupé${e}.
 - Si le commercial cite ton actualité, tu es agréablement surpris${e} et plus ouvert${e}.
 - Si on te pose une question ouverte sur tes sujets, tu évoques tes difficultés, sans tout dire d'un coup.
-- Tu fais au maximum une objection légère : « ${co.objection} ».
+- Juste après sa présentation, tu demandes souvent : « C'est pour quoi exactement ? ».
+- Tu fais au maximum une objection légère, par exemple « ${co.objection} » ou « Pas de besoin pour le moment ».
 - Si le commercial ne fait que parler de Smile sans te poser de questions, tu deviens distant${e} et tu cherches à écourter.
 - Tu acceptes un rendez-vous si le commercial t'a posé au moins une question sur ton contexte et te propose un créneau précis. S'il propose deux créneaux, tu en choisis un.
 - Si l'appel dépasse environ 6 minutes, tu indiques que tu dois raccrocher.`,
@@ -608,7 +610,8 @@ Comportement (prospect bienveillant) :
 Comportement (niveau 2, objections classiques) :
 - Tu décroches en disant « ${full}, j'écoute. ».
 - Tu es poli${e} mais neutre et un peu méfiant${e} face aux appels commerciaux.
-- Tu as ces objections en tête : « Envoyez-moi plutôt un mail », « ${co.objection} », « On n'a pas de budget avant l'an prochain ». Tu les sors quand elles viennent naturellement, dans l'ordre qui s'y prête, avec tes propres mots.
+- Tu as ces objections en tête : « C'est pour quoi exactement ? », « Je suis sollicité${e} par énormément d'ESN », « Envoyez-moi plutôt un mail », « Pas de besoin pour le moment », « ${co.objection} », « On n'a pas de budget avant l'an prochain ». Tu en sors trois ou quatre, quand elles viennent naturellement, dans l'ordre qui s'y prête, avec tes propres mots.
+- Tu peux demander : « Qu'est-ce que vous faites de différent des autres ESN ? ». Une réponse générique (« on est des experts », « on est leader ») te laisse froid${e}.
 - Si le commercial traite bien une objection (il reformule, rassure, pose une question), tu t'ouvres un peu. S'il insiste lourdement ou récite un argumentaire, tu te refermes.
 - Si une question touche un point de ton contexte, tu en parles franchement.
 - Tu acceptes un rendez-vous seulement si le commercial a bien traité au moins deux objections et t'a posé au moins une question pertinente. Sinon, tu restes sur « envoyez-moi un mail » et tu conclus.`,
@@ -619,7 +622,8 @@ Comportement (niveau 3, appel réaliste) :
 - Très tôt, tu dis « Je n'ai que deux minutes ».
 - Si le commercial parle plus de deux phrases d'affilée sans te poser de question, tu le coupes : « Oui, concrètement, vous voulez quoi ? ».
 - Tu peux le tester : « C'est quoi Smile, en une phrase ? ».
-- Tes objections possibles : « Je ne suis pas intéressé${e} », « Je n'ai pas le temps en ce moment », « ${co.objection} ».
+- Dès la présentation, tu coupes : « C'est pour quoi exactement ? ».
+- Tes objections possibles : « Je ne peux pas faire de rendez-vous avec toutes les ESN qui m'appellent », « Pas de besoin pour le moment », « Je n'ai pas le temps », « ${co.objection} ».
 - Tu acceptes un rendez-vous seulement si le commercial fait référence à ton actualité ou à ta situation, pose au moins une question pertinente et propose un créneau précis. Une référence client vraiment proche de ton problème te convainc fortement.
 - Sinon, au bout d'environ 3 minutes, tu conclus poliment : « Envoyez-moi un mail, je regarderai. Bonne journée. »`
   };
@@ -675,9 +679,16 @@ let SCENARIOS = MODES.map(m=>buildScenario(COMPANIES[0].id, m.id));
    CONTENU : DÉBRIEF
    ========================================================= */
 const SMILE_FICHE = `CONNAISSANCES SUR SMILE (pour évaluer le pitch du commercial)
-Smile : entreprise européenne de services numériques, leader de l'open source, 32 ans d'expérience, environ 2 000 collaborateurs, 19 agences dans 9 pays, plus de 350 projets par an. Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole.
-Offres : e-commerce B2C et B2B (plateformes, commerce composable, PIM, gestion des commandes, marketplaces), expérience digitale (sites, usines à sites), data et IA (gouvernance, plateformes data, IA générative), cloud (migration, infogérance 24/7, cybersécurité), applications métiers (Odoo, GED), mobile, IoT, embarqué.
-Modes d'intervention : forfait, expertise au temps passé, centre de services, équipe agile.
+Pitch officiel : Smile, c'est environ 2 000 personnes passionnées de tech en Europe. Smile intervient soit en projet (forfait, engagement de résultat), soit en régie (expertise au temps passé, renfort d'équipe), et aussi en centre de services.
+Cinq domaines :
+- Développement web et mobile : sites et applications riches, performants et sécurisés.
+- Cloud et infrastructures : migration et gestion cloud, DevOps, cybersécurité.
+- E-commerce et solutions digitales : plateformes B2C, B2B, omnicanal, avec l'expertise UX/UI.
+- Data et intelligence artificielle : data management, IA, analytics.
+- IoT et systèmes embarqués.
+Entités spécialisées du groupe : UX Republic (design et UX), Neopixl (mobile), Alter Way (cybersécurité, cloud et hébergement), Synotis (data), Creativestyle (e-commerce open source).
+Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole.
+Applications métiers aussi : Odoo (partenaire Gold), GED.
 Références utilisables (problème → résultat) :
 - Somfy : reprise d'un prestataire en place sans perturber le business ; 14 sites sur un modèle commun ; satisfaction client 8/10.
 - Cultura : stratégie e-commerce et omnicanale depuis plus de 10 ans ; stocks omnicanaux, commande en magasin, marketplace.
@@ -692,7 +703,9 @@ Références utilisables (problème → résultat) :
 - Assurance Maladie (ameli.fr) : hébergement et infogérance 24/7 par Alter Way, marché renouvelé pour 4 ans.
 - Ministère de l'Éducation nationale : 14 sites Drupal déployés en 24 mois.
 - CRMA (Chambre des métiers) : application métier Odoo, 600 utilisateurs, 600 000 clients.
-- Oreca : migration cloud d'un e-commerce de 15 boutiques, montée en charge sans explosion des coûts.`;
+- Oreca : migration cloud d'un e-commerce de 15 boutiques, montée en charge sans explosion des coûts.
+- Suez : application de suivi des flux de déchets entre tous les acteurs, sur Symfony.
+- Airbus : maintenance applicative et support des simulateurs depuis plus de 10 ans.`;
 
 const TRAME = `TRAME DE PROSPECTION SMILE LILLE (référence officielle)
 Objectif : décrocher un rendez-vous qualifié, pas vendre au téléphone. Appel de 3 à 5 minutes maximum. Écouter plus que parler : viser 60 % de temps de parole pour le prospect.
@@ -711,7 +724,12 @@ Réponses types aux objections :
 - « Pas le temps » : c'est justement quand on est chargé que Smile aide à gagner du temps (automatisation, amélioration des processus) ; 30 minutes pour évaluer.
 - « Pas de projet immédiat » : échanger sur la roadmap et anticiper les besoins futurs.
 - « Pas la bonne personne » : demander à être redirigé vers la bonne personne.
-- « Pas intéressé » : demander ce qui n'intéresse pas exactement (ne travaille pas avec des ESN, ou pas de sujet pour le moment ?).`;
+- « Pas intéressé » : demander ce qui n'intéresse pas exactement (ne travaille pas avec des ESN, ou pas de sujet pour le moment ?).
+Objections les plus fréquentes sur le terrain, et ce qu'on attend :
+- « C'est pour quoi exactement ? » : répondre en une phrase claire liée à l'actualité du prospect (pas un catalogue d'offres), puis enchaîner sur une question.
+- « Je suis sollicité par trop d'ESN » / « Je ne peux pas faire de rendez-vous avec toutes les ESN qui m'appellent » : reconnaître que c'est légitime, se différencier concrètement (présence locale à Lille, référence proche de son problème, entité spécialisée du groupe, projet ou régie selon son besoin), proposer un échange court en promettant de ne pas insister si ce n'est pas pertinent.
+- Prospect trop pressé : ne pas dérouler le pitch ; aller à l'essentiel en une phrase, ou demander le meilleur moment pour rappeler.
+- « Pas de besoin pour le moment » : proposer d'échanger sur la roadmap pour anticiper, ou évoquer un renfort en régie si son équipe est chargée.`;
 
 const GRIDS = {
   appel:[
@@ -1055,11 +1073,15 @@ const MEMO_STEPS = [
   ["Rendez-vous","« Je vous propose 30 minutes pour voir si on peut vous aider sur [besoin]. Plutôt [créneau 1] ou [créneau 2] ? »"],
   ["Conclusion","« Parfait, je vous envoie l'invitation à [e-mail]. Merci, bonne journée. »"]
 ];
+const MEMO_PITCH = "Smile, c'est environ 2 000 passionnés de tech en Europe. On accompagne nos clients en projet ou en régie sur le web et le mobile, le cloud et la cybersécurité, l'e-commerce, la data et l'IA, l'IoT et l'embarqué. Le groupe compte aussi des entités spécialisées : UX Republic (UX), Neopixl (mobile), Alter Way (cybersécurité), Synotis (data), Creativestyle (e-commerce open source).";
 const MEMO_OBJ = [
+  ["C'est pour quoi exactement ?","Une phrase, liée à son actualité, puis une question. Pas le catalogue des offres."],
+  ["Trop d'ESN m'appellent","« Je comprends, vous devez en avoir beaucoup. » Puis une différence concrète : agence à Lille, référence proche de son sujet, projet ou régie selon son besoin. « 30 minutes, et si ce n'est pas pertinent je ne vous relance pas. »"],
+  ["Trop pressé","Pas de pitch : l'essentiel en une phrase, ou « Quel est le meilleur moment pour vous rappeler ? »"],
+  ["Pas de besoin pour le moment","Échanger sur la roadmap pour anticiper, ou proposer un renfort en régie si l'équipe est chargée."],
   ["Pas de budget","Solutions modulaires, à son rythme. Le rendez-vous sert à faire connaissance et explorer ses priorités, cette année ou la suivante."],
   ["Déjà un prestataire","La plupart de nos clients travaillent avec d'autres sociétés. Smile vient en complément, avec une expertise pointue. Preuve : Somfy."],
   ["Pas le temps","C'est justement quand on est chargé qu'on peut faire gagner du temps. 30 minutes pour évaluer."],
-  ["Pas de projet","Échanger sur sa roadmap pour anticiper les besoins."],
   ["Pas la bonne personne","« Pourriez-vous me rediriger vers la bonne personne ? »"],
   ["Pas intéressé","« Qu'est-ce qui ne vous intéresse pas exactement : travailler avec une ESN, ou pas de sujet en ce moment ? »"]
 ];
@@ -1068,6 +1090,7 @@ function memoHtml(){
   const sc=S.scenario;
   return `<div class="memo-body">
     ${sc&&sc.bestRefs?`<p style="margin:0 0 8px;background:var(--blue-soft);border-radius:10px;padding:8px 10px"><b>Pour ${esc(sc.companyName)} :</b> ${esc(sc.bestRefs)}</p>`:""}
+    <p style="margin:0 0 4px;font-weight:600">Le pitch Smile</p><p style="margin:0 0 10px">${esc(MEMO_PITCH)}</p>
     <ol>${MEMO_STEPS.map(m=>`<li><b>${m[0]}</b> : ${esc(m[1])}</li>`).join("")}</ol>
     <p style="margin:6px 0 4px;font-weight:600">Objections</p>
     ${MEMO_OBJ.map(o=>`<div class="obj"><b>${o[0]}</b>${esc(o[1])}</div>`).join("")}
