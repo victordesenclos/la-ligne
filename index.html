@@ -256,6 +256,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
 .mhead p{margin:2px 0 0;color:var(--mute)}
 .mfilters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mfilters select{border:1.5px solid var(--line);border-radius:999px;padding:7px 12px;background:var(--white)}
+.danger-btn{background:var(--ko);color:var(--white)}
 .mlogin{max-width:460px;margin:40px auto;background:var(--white);border:1.5px solid var(--line);border-radius:18px;padding:26px}
 .mlogin h2{margin:0 0 6px}
 .mlogin p{color:var(--mute);margin:0 0 14px}
@@ -356,6 +357,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
         <select id="mJunior" aria-label="Junior"></select>
         <button class="btn ghost small" id="mRefresh" type="button">Actualiser</button>
         <button class="btn ghost small" id="mLogout" type="button">Se déconnecter</button>
+        <button class="btn small danger-btn" id="mReset" type="button">Remettre à zéro</button>
       </div>
     </div>
     <section class="mlogin" id="mLogin" hidden>
@@ -384,6 +386,21 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     </div>
     <p class="hint" id="whoShare" style="margin-top:14px"></p>
     <div class="foot"><button class="btn orange" type="submit">Commencer</button></div>
+  </form>
+</dialog>
+
+<!-- Remise à zéro des analyses -->
+<dialog id="dlgReset">
+  <form class="dlg" method="dialog" id="resetForm">
+    <h2>Remettre à zéro les analyses</h2>
+    <p class="hint">Tous les résultats d'entraînement seront effacés de l'onglet Manager : appels, scores, niveaux, points d'attention. Les compteurs et l'historique des juniors repartiront aussi de zéro sur leurs ordinateurs à leur prochaine connexion.</p>
+    <p class="hint">Une copie des données actuelles est archivée avant l'effacement, dans la sauvegarde. Les prospects réels créés par les juniors ne sont pas touchés.</p>
+    <div class="field"><label for="resetConfirm">Pour confirmer, tape <b>REMETTRE A ZERO</b></label><input id="resetConfirm" autocomplete="off"></div>
+    <p class="merr" id="resetErr"></p>
+    <div class="foot">
+      <button class="btn ghost" type="button" id="resetCancel">Annuler</button>
+      <button class="btn danger-btn" type="submit" id="resetGo">Tout remettre à zéro</button>
+    </div>
   </form>
 </dialog>
 
@@ -1098,6 +1115,13 @@ function renderChrome(){
   const fx=safeGet("laligne.phoneFx"); if(fx!==null) $("#phoneFx").checked = fx==="1";
   $("#phoneFx").onchange=()=>safeSet("laligne.phoneFx",$("#phoneFx").checked?"1":"0");
   fetch("api/config",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(cfg=>{
+    // Le manager a remis les analyses à zéro : on efface l'historique local antérieur
+    if(cfg && cfg.resetAt && cfg.resetAt!==safeGet("laligne.resetAt")){
+      const t=new Date(cfg.resetAt).getTime();
+      const keep=l=>l.filter(x=>new Date(x.date).getTime()>=t);
+      try{ saveHistory(keep(history())); safeSet("laligne.outbox", JSON.stringify(keep(outbox()))); }catch(e){}
+      safeSet("laligne.resetAt", cfg.resetAt);
+    }
     if(cfg && cfg.serverKey){
       S.server = true; $("#keyBlock").hidden = true; renderChrome();
       connect("serveur", true);
@@ -2250,7 +2274,7 @@ async function start(){
   try{
     await load();
     $("#mLogin").hidden=true; $("#mApp").hidden=false; $("#mFilters").hidden=false;
-    $("#mLogout").hidden = DEMO;
+    $("#mLogout").hidden = DEMO; $("#mReset").hidden = DEMO;
     fillJuniors(); render();
   }catch(e){
     sessionSet("laligne.managerPw",null);
@@ -2263,6 +2287,28 @@ $("#mRefresh").onclick=start;
 $("#mLoginBtn").onclick=()=>{ sessionSet("laligne.managerPw",$("#mPw").value.trim()); DEMO=false; start(); };
 $("#mPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#mLoginBtn").click(); });
 $("#mDemoBtn").onclick=()=>{ DEMO=true; start(); };
+$("#mReset").onclick=()=>{
+  $("#resetConfirm").value=""; $("#resetErr").textContent="";
+  const d=$("#dlgReset"); try{ d.showModal(); }catch(e){ d.setAttribute("open",""); }
+};
+$("#resetCancel").onclick=()=>$("#dlgReset").close();
+$("#resetForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const v=$("#resetConfirm").value.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  if(v!=="REMETTRE A ZERO"){ $("#resetErr").textContent="Tape exactement REMETTRE A ZERO pour confirmer."; return; }
+  $("#resetGo").disabled=true; $("#resetErr").textContent="";
+  try{
+    const r=await fetch("api/reset",{method:"POST",headers:{"x-manager-password":sessionGet("laligne.managerPw")||""}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok) throw new Error(d.error||`Erreur ${r.status}`);
+    $("#dlgReset").close();
+    // Remet aussi à zéro l'historique local de cet ordinateur
+    try{ localStorage.removeItem("laligne.history"); localStorage.removeItem("laligne.outbox"); localStorage.setItem("laligne.resetAt", d.resetAt); }catch(err){}
+    await start();
+    const t=document.querySelector("#toast"); if(t){ t.textContent=`Analyses remises à zéro. ${d.archived} appel${d.archived>1?"s":""} archivé${d.archived>1?"s":""}.`; t.hidden=false; setTimeout(()=>t.hidden=true,5000); }
+  }catch(err){ $("#resetErr").textContent=`La remise à zéro a échoué : ${err.message}`; }
+  $("#resetGo").disabled=false;
+});
 $("#mLogout").onclick=()=>{ sessionSet("laligne.managerPw",null); DEMO=false; ALL=[]; $("#mApp").hidden=true; $("#mFilters").hidden=true; $("#mLogin").hidden=false; $("#mLoginErr").textContent=""; $("#mPw").value=""; $("#mSub").textContent="Progression de l'équipe sur La Ligne"; };
 window.openManager = ()=>{
   if(DEMO || sessionGet("laligne.managerPw")) start();
