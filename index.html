@@ -107,6 +107,21 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .company .co-name{font-weight:600;font-size:1.1rem}
 .company .co-who{color:var(--ink);font-size:.9rem}
 .company .co-meta{color:var(--mute);font-size:.84rem}
+.co-wrap{display:flex;flex-direction:column;gap:6px}
+.co-wrap .company{flex:1}
+.co-actions{display:flex;gap:6px;flex-wrap:wrap}
+.co-btn{background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;color:var(--blue);font-weight:600;font-size:.86rem;text-align:center;flex:1}
+.co-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+.co-btn.danger{color:var(--ko);flex:0 0 auto}
+.co-btn.danger:hover{border-color:var(--ko);background:var(--ko-soft)}
+.company .co-track.real{background:var(--ok-soft);color:var(--ok)}
+.help-box{width:100%;max-width:640px;margin-top:20px;text-align:left;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.22);border-radius:14px;padding:14px 18px;font-size:.95rem}
+.help-box .hi{margin:0 0 10px}
+.help-box .hi:last-child{margin-bottom:0}
+.help-box .hi b{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;font-weight:600;margin-bottom:2px}
+.help-box .say{font-size:1.08rem;font-weight:500}
+.toggle.help{background:var(--orange)}
+.aid-note{background:var(--paper);border-radius:10px;padding:8px 12px;font-size:.88rem;color:var(--mute);margin:0 0 14px}
 .company .co-track{background:var(--orange-soft);color:#8A3A1C;border-radius:999px;padding:1px 8px;font-size:.78rem;font-weight:600;vertical-align:middle}
 .company .co-owner{background:var(--paper);border-radius:999px;padding:1px 8px;margin-left:4px}
 details.more-co{margin:4px 0 6px}
@@ -312,7 +327,9 @@ details.transcript p{margin:8px 0;font-size:.93rem}
           <button class="btn hang" id="hangBtn" type="button">Raccrocher</button>
           <button class="btn toggle" id="memoToggle" type="button" aria-pressed="false">Aide-mémoire</button>
           <button class="btn toggle" id="liveToggle" type="button" aria-pressed="false">Afficher la transcription</button>
+          <button class="btn toggle help" id="helpBtn" type="button">Souffleur IA</button>
         </div>
+        <div class="help-box" id="helpBox" hidden aria-live="polite"></div>
         <div class="live" id="liveText" hidden></div>
         <div class="callerr" id="callErr" hidden></div>
       </div>
@@ -359,6 +376,37 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     </div>
     <p class="hint" id="whoShare" style="margin-top:14px"></p>
     <div class="foot"><button class="btn orange" type="submit">Commencer</button></div>
+  </form>
+</dialog>
+
+<!-- Prospect réel personnalisé -->
+<dialog id="dlgCustom">
+  <form class="dlg" method="dialog" id="customForm">
+    <h2 id="customTitle">Personnaliser un prospect réel</h2>
+    <p class="hint">Entraîne-toi sur une vraie personne avec les informations que tu as trouvées. Ces informations restent sur cet ordinateur : seul le nom de l'entreprise apparaît dans le suivi du manager. Utilise uniquement des informations professionnelles publiques (LinkedIn, presse, site de l'entreprise).</p>
+    <div class="row">
+      <div class="field"><label for="cuCompany">Entreprise</label><input id="cuCompany" required></div>
+      <div class="field"><label for="cuDesc">Activité de l'entreprise</label><input id="cuDesc" placeholder="Ex. : distributeur d'articles de sport"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="field"><label for="cuFirst">Prénom</label><input id="cuFirst" required></div>
+      <div class="field"><label for="cuLast">Nom</label><input id="cuLast" required></div>
+      <div class="field" style="max-width:150px"><label for="cuGender">Voix</label><select id="cuGender"><option value="F">Féminine</option><option value="M">Masculine</option></select></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="cuRole">Poste</label><input id="cuRole" required placeholder="Ex. : Head of Digital Product"></div>
+    <div class="field" style="margin-top:12px"><label for="cuActu">Actualité repérée</label><textarea id="cuActu" required placeholder="Ex. : vient de prendre son poste, post LinkedIn sur la refonte de l'application…"></textarea></div>
+    <div class="field" style="margin-top:12px"><label for="cuContext">Ce que tu sais de son contexte et de ses enjeux (une information par ligne)</label><textarea id="cuContext" style="min-height:96px" placeholder="Ex. : son équipe recrute deux data engineers&#10;Ex. : l'entreprise migre vers le cloud"></textarea></div>
+    <div class="field" style="margin-top:12px"><label for="cuBesoin">Besoin supposé</label><input id="cuBesoin"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="field"><label for="cuObjection">Objection probable</label><input id="cuObjection" placeholder="Ex. : on travaille déjà avec une ESN"></div>
+      <div class="field"><label for="cuDecision">Autres décideurs</label><input id="cuDecision" placeholder="Ex. : le DSI valide les budgets"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="cuRelation">Relation avec Smile</label><input id="cuRelation"></div>
+    <div class="field" style="margin-top:12px"><label for="cuRefs">Références Smile à mettre en avant</label><input id="cuRefs"></div>
+    <div class="foot">
+      <button class="btn ghost" type="button" id="customCancel">Annuler</button>
+      <button class="btn orange" type="submit">Enregistrer le prospect</button>
+    </div>
   </form>
 </dialog>
 
@@ -511,7 +559,7 @@ const COMPANIES = [
     ],
     objection:"Chez nous, tout passe par les appels d'offres, je ne peux rien vous acheter comme ça",
     decision:"Le service achats et la DSI régionale sont associés à toute consultation.",
-    refs:"STIB (application mobile des transports bruxellois, 1,8 million de téléchargements), Assurance Maladie (ameli.fr, marché public renouvelé), CRMA (application métier Odoo pour 600 utilisateurs)."
+    refs:"STIB (application mobile des transports bruxellois, 1,8 million de téléchargements), ameli.fr (30 millions de visites par mois, marché public renouvelé), CRMA (application métier Odoo pour 600 utilisateurs), GRDF (plateforme métier à grande échelle, 20 000 compteurs)."
   },
   {
     id:"adeo", name:"Adeo", owner:"Valentine",
@@ -583,7 +631,7 @@ const COMPANIES = [
     ],
     objection:"On a une équipe design en interne",
     decision:"Le directeur produit digital valide les budgets prestataires.",
-    refs:"UX Republic (entité UX du groupe : design, recherche utilisateur, CRO), STIB (refonte ergonomique d'une application mobile, notée 4,1/5), Ministère de l'Éducation nationale (Système de design de l'État et accessibilité)."
+    refs:"UX Republic (entité UX du groupe : design, recherche utilisateur, CRO), My Visa (application mobile, 90 % d'engagement, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile, notée 4,1/5), Ministère de l'Éducation nationale (Système de design de l'État et accessibilité)."
   },
   {
     id:"auchan-ux", name:"Auchan", track:"UX", owner:"Elisa",
@@ -624,11 +672,11 @@ const COMPANIES = [
 ];
 
 const MODES = [
-  {id:"n1", group:"level", num:"1", kind:"appel", title:"Prospect bienveillant", sub:"Prendre confiance et dérouler la trame"},
-  {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Rebondir sans forcer"},
-  {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Interlocuteur pressé, tout se joue en 3 minutes"},
-  {id:"barrage", group:"drill", num:"A", kind:"barrage", title:"Passer le barrage", sub:"L'assistant filtre les appels"},
-  {id:"messagerie", group:"drill", num:"B", kind:"messagerie", title:"Laisser un message", sub:"30 secondes sur répondeur"}
+  {id:"n1", group:"level", num:"1", kind:"appel", title:"Prospect bienveillant", sub:"Avec le souffleur IA en direct et l'aide-mémoire", aid:"souffleur"},
+  {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Avec l'aide-mémoire Smile, sans souffleur", aid:"memo"},
+  {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Sans aucune aide, tout se joue en 3 minutes", aid:"none"},
+  {id:"barrage", group:"drill", num:"A", kind:"barrage", title:"Passer le barrage", sub:"L'assistant filtre les appels", aid:"memo"},
+  {id:"messagerie", group:"drill", num:"B", kind:"messagerie", title:"Laisser un message", sub:"30 secondes sur répondeur", aid:"memo"}
 ];
 
 function normName(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
@@ -640,7 +688,7 @@ function buildScenario(companyId, modeId){
   const c = co.contact, F = c.gender==="F", e = F ? "e" : "";
   const full = `${c.first} ${c.last}`;
   const base = `Tu joues ${full}, ${c.role} chez ${co.name} (${co.desc}). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
-Ce scénario est un entraînement : le contexte ci-dessous est fictif, inspiré de l'entreprise.
+${co.custom ? "Ce scénario s'appuie sur des informations réelles collectées par le commercial sur cette personne. Reste fidèle à ces informations, n'invente pas de faits marquants supplémentaires, et comble les manques de façon réaliste et sobre." : "Ce scénario est un entraînement : le contexte ci-dessous est fictif, inspiré de l'entreprise."}
 
 Contexte que tu connais :
 ${co.context.map(l=>"- "+l).join("\n")}
@@ -721,9 +769,9 @@ Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. 
   }
 
   return {
-    id:m.id, key:`${co.id}-${m.id}`, group:m.group, num:m.num, kind:m.kind, title:m.title, sub:m.sub, goal,
+    id:m.id, key:`${co.id}-${m.id}`, aid:m.aid, custom:!!co.custom, group:m.group, num:m.num, kind:m.kind, title:m.title, sub:m.sub, goal,
     voice, gender, speaker:speakerName, speakerRole,
-    companyId:co.id, companyName: co.track ? `${co.name} (${co.track})` : co.name, relation:co.relation, bestRefs:co.refs,
+    companyId:co.id, companyName: co.custom ? `${co.name} (prospect réel)` : co.track ? `${co.name} (${co.track})` : co.name, relation:co.relation, bestRefs:co.refs,
     contact:{nom:contactNom, entreprise:`${co.name} (${co.desc})`, role:c.role, derniere:"Aucun échange", actu:co.actu, besoin:co.besoin},
     prompt
   };
@@ -731,38 +779,87 @@ Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. 
 
 let SCENARIOS = MODES.map(m=>buildScenario(COMPANIES[0].id, m.id));
 
+/* Prospects réels personnalisés (gardés uniquement sur cet ordinateur) */
+function customList(){ try{ return JSON.parse(localStorage.getItem("laligne.custom")||"[]"); }catch(e){ return []; } }
+function saveCustomList(l){ try{ localStorage.setItem("laligne.custom", JSON.stringify(l)); }catch(e){} }
+function registerCustom(){
+  for(let i=COMPANIES.length-1;i>=0;i--) if(COMPANIES[i].custom) COMPANIES.splice(i,1);
+  for(const c of customList()){
+    const F=c.gender==="F";
+    COMPANIES.push({
+      id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"",
+      desc:c.desc||"entreprise",
+      contact:{first:c.first, last:c.last, role:c.role, gender:c.gender, voice:F?"Kore":"Charon"},
+      assistant:{first:F?"Thomas":"Claire", last:"Durand", gender:F?"M":"F", voice:F?"Orus":"Leda"},
+      actu:c.actu, besoin:c.besoin||"À découvrir pendant l'appel",
+      relation:c.relation||"Aucune relation connue avec Smile.",
+      context:(c.context||"").split("\n").map(x=>x.trim()).filter(Boolean).concat(c.context?[]:["Tu as des priorités chargées cette année ; le commercial doit les faire émerger par ses questions."]),
+      objection:c.objection||"On travaille déjà avec une ESN",
+      decision:c.decision||"Tu décides avec ta direction.",
+      refs:c.refs||"Choisir la référence Smile la plus proche de son enjeu."
+    });
+  }
+}
+registerCustom();
+
 /* =========================================================
    CONTENU : DÉBRIEF
    ========================================================= */
-const SMILE_FICHE = `CONNAISSANCES SUR SMILE (pour évaluer le pitch du commercial)
-Pitch officiel : Smile, c'est environ 2 000 personnes passionnées de tech en Europe. Smile intervient soit en projet (forfait, engagement de résultat), soit en régie (expertise au temps passé, renfort d'équipe), et aussi en centre de services.
-Cinq domaines :
-- Développement web et mobile : sites et applications riches, performants et sécurisés.
-- Cloud et infrastructures : migration et gestion cloud, DevOps, cybersécurité.
-- E-commerce et solutions digitales : plateformes B2C, B2B, omnicanal, avec l'expertise UX/UI.
-- Data et intelligence artificielle : data management, IA, analytics.
-- IoT et systèmes embarqués.
-Entités spécialisées du groupe : UX Republic (pure-player du design UX, de la recherche utilisateur, du CRO et du SEO), Neopixl (mobile), Alter Way (cybersécurité, cloud et hébergement), Synotis (data), Creativestyle (e-commerce open source).
-Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole.
-Applications métiers aussi : Odoo (partenaire Gold), GED.
-Références utilisables (problème → résultat) :
-- Somfy : reprise d'un prestataire en place sans perturber le business ; 14 sites sur un modèle commun ; satisfaction client 8/10.
-- Cultura : stratégie e-commerce et omnicanale depuis plus de 10 ans ; stocks omnicanaux, commande en magasin, marketplace.
-- Accor : marketplace d'achats B2B construite en 6 mois, déploiement visé dans 90 pays.
-- Arkema : portail e-commerce B2B, premier produit livré en 2 mois.
-- Pierre Fabre : design system commun aux 7 marques, 150 sites de marques, 60 % d'économies sur les déploiements.
-- Groupe Atlantic : référentiel produit unique, fiches produits mises en ligne plus vite.
-- Eram : migration du système d'information vers le cloud Google.
-- Decathlon : plateforme d'objets connectés, objectif 1 million d'utilisateurs mensuels.
-- Biogaran : IA générative, acculturation puis automatisation de la synthèse des remontées terrain.
-- STIB (transports bruxellois) : refonte ergonomique et fonctionnelle de l'application mobile, 1,8 million de téléchargements, 300 000 utilisateurs actifs, note de 4,1/5.
-- My Visa (Visa Consumer France) : deux applications mobiles et un portail client, première de l'App Store en finance, plus de 50 000 téléchargements, 90 % d'engagement mobile.
-- Assurance Maladie (ameli.fr) : hébergement et infogérance 24/7 par Alter Way, marché renouvelé pour 4 ans.
-- Ministère de l'Éducation nationale : 14 sites Drupal en 24 mois, avec le Système de design de l'État et le respect des normes d'accessibilité.
-- CRMA (Chambre des métiers) : application métier Odoo, 600 utilisateurs, 600 000 clients.
-- Oreca : migration cloud d'un e-commerce de 15 boutiques, montée en charge sans explosion des coûts.
-- Suez : application de suivi des flux de déchets entre tous les acteurs, sur Symfony.
-- Airbus : maintenance applicative et support des simulateurs depuis plus de 10 ans.`;
+const SMILE_FICHE = `CONNAISSANCES SUR SMILE (source : présentation corporate du groupe Smile et pitch officiel de l'agence)
+
+PITCH OFFICIEL
+Smile, c'est environ 2 000 personnes passionnées de tech en Europe. Smile intervient soit en projet (forfait, engagement de résultat), soit en régie (expertise au temps passé, renfort d'équipe), et aussi en centre de services.
+Cinq domaines : développement web et mobile ; cloud et infrastructures (migration, DevOps, cybersécurité) ; e-commerce et solutions digitales (B2C, B2B, omnicanal, UX/UI) ; data et intelligence artificielle ; IoT et systèmes embarqués.
+
+CHIFFRES CLÉS DU GROUPE
+Entreprise européenne de services numériques, leader de l'open source. Environ 2 000 collaborateurs, 19 agences dans 9 pays (agences en France, Suisse, Belgique, Pays-Bas, Luxembourg, Allemagne ; centres de production en France, Ukraine, Pologne, Maroc). Plus de 350 projets par an, 32 ans d'expérience, 160 M€ de chiffre d'affaires en 2023, 10 ans de collaboration en moyenne avec plus de 150 clients historiques.
+Valeurs : Open (open source, innovation, indépendance, transparence), Human (proximité client, écoute), Expert (passion, exigence, pragmatisme), Sustainable (numérique responsable, accessibilité, sécurité, éthique, autonomie stratégique).
+Agence de Lille : 96 experts, 15e année de présence, plus de 30 clients, 4 secteurs d'activité ; clients dont Kiabi, Auchan, Adeo, Decathlon, Saint Maclou, Bricoman, Damart, Nocibé, Oney, Crédit Agricole, OVH, Afibel, Motoblouz, Devred, Eqiom, Illicado.
+
+APPROCHE « DU PROJET AU PRODUIT » EN 5 TEMPS
+Conseiller (stratégie digitale, cadrage, IA, data et cloud, lean product, urbanisation et architecture) ; Co-designer (UX research, conception UX-UI, analytics, SEO-SXO-CRO) ; Construire (MVP, plateformes industrialisées, applications cloud natives) ; Opérer (cloud management, GreenOps et FinOps, sécurité, conduite du changement et formation) ; Optimiser (UX analytics, amélioration continue, performance, acquisition de trafic).
+
+MODES D'INTERVENTION
+Forfait (livrables et engagement de résultats) ; Expertise ou régie (au temps passé, sur site ou à distance) ; Centre de services (équipe dédiée multidisciplinaire, industrialisée) ; Accompagnement agile (à l'échelle ou en task force).
+
+ENTITÉS DU GROUPE
+Smile (conseil et intégration des technologies ouvertes) ; UX Republic (UX design, CRO, SEO) ; Neopixl (mobile et wearables) ; Alter Way (cybersécurité, Move2Cloud, hébergement, infogérance, multicloud) ; SensioLabs (créateur du framework open source Symfony) ; Synotis (Suisse, data strategy et data management) ; Creativestyle (Allemagne, e-commerce open source).
+
+OFFRES ET CAS D'USAGE
+- Digital experience (20 ans d'expérience) : design systems (ateliers UI/UX, Sobki, la distribution Drupal de Smile), plateformes DXP personnalisées, usines à sites multi-marques, pays et langues, extranets de fidélisation et de self-care. Partenaires : Drupal, Acquia, Ibexa, Strapi, Liferay.
+- E-commerce B2C et B2B (17 ans d'expérience) : plateformes internationales multimarques, commerce composable (MACH), stratégie omnicanale (clienteling, gestion des commandes, PIM), marketplaces, Digital Factory. Partenaires : Adobe Commerce, Shopware, OroCommerce, Mirakl, Akeneo, Octopia, Gally, OneStock.
+- Data et IA : data consulting (stratégie, gouvernance, qualité), data solutions (architectures industrialisées), AI Factory (analyse, prédiction, personnalisation, IA générative), approche MVP pour accélérer le retour sur investissement. Partenaires : Talend, DataGalaxy, Denodo, Gravitee, Dataiku.
+- Mobile : plus de 400 projets mobiles, plus de 10 millions de téléchargements, natif, hybride et cross-plateforme, innovation IA et AR/VR ; transport, fidélisation, commerce mobile, RH, industrie.
+- Applications métiers (30 ans d'open source) : applications métier modernes (microservices, API-first, cloud natif, low code), ERP Odoo (partenaire Gold), GED Alfresco et Nuxeo, archivage VITAM (Smile en est le créateur).
+- Cloud : cloud management 24/7, cloud consulting, cybersécurité (audits, tests d'intrusion, RSSI à la demande, SIEM, scans de vulnérabilités), Kubernetes certifié KTP et KCSP. Partenaires : Azure, AWS, Google Cloud, OVHcloud, Cloudflare. Clients cloud : Accor, Carrefour, RATP, Eiffage, TAG Heuer, ameli.fr.
+- Embarqué : Linux embarqué, IHM (C/C++, Qt/QML, Rust, Python), systèmes temps réel ; contributeur Yocto et Buildroot.
+- IoT : solutions cloud pour l'IoT de bout en bout, sécurité IoT.
+
+RÉFÉRENCES CLIENTS (problème → réalisation → résultat)
+- Pierre Fabre : mieux connaître ses clients et harmoniser 7 marques dans plus de 50 pays → plateforme DXP Ibexa, design system commun, modèle testé sur 2 sites pilotes puis étendu → 150 sites de marques et pays, 60 % d'économies sur le déploiement.
+- Ministère de l'Éducation nationale : unifier l'expérience digitale → usine à sites Drupal avec le Système de design de l'État, accessibilité, référencement, moteur Elastic Search → 14 sites en 24 mois.
+- My Visa (Visa Consumer France) : relation client omnicanale → 2 applications natives et un portail client, sécurité PCI DSS, gestionnaire d'API, gamification JO 2024 → première de l'App Store en finance, plus de 50 000 téléchargements, 90 % d'engagement mobile.
+- STIB (transports bruxellois) : satisfaction et fidélisation des voyageurs → refonte ergonomique et fonctionnelle de l'application, billets dématérialisés, itinéraires en temps réel, accessibilité → 1,8 million de téléchargements, 300 000 utilisateurs actifs, note de 4,1/5.
+- Somfy (e-commerce) : coûts élevés et manque de maîtrise chez le prestataire en place → reprise sans perturber le business, migration de 16 sites Magento B2B et B2C, Digital Factory avec experts locaux et centre de production en Ukraine, front Hyvä, migration cloud Adobe → 14 sites en modèle commun, NPS de 8/10 ; après 2 ans, Somfy a aussi confié sa Data Factory.
+- Somfy (data) : échanges de données temps réel pour la vente indirecte → Data Factory Talend de 10 personnes, intégration continue, DevOps Azure.
+- Eram : agilité, sécurité et coûts → urbanisation du SI et migration vers Google Cloud, solutions open source, modèle pay as you go.
+- Biogaran : dissiper les appréhensions sur l'IA générative → conférences, webinaires, interventions en CODIR, puis POC d'automatisation de la synthèse des remontées des délégués (voice of customer) sur Azure OpenAI.
+- Groupe Atlantic : qualité des informations produit sur les sites du groupe → PIM Akeneo transverse conforme au référentiel bâtiment Fab-DIS → fiches produits mises en ligne plus vite, coûts réduits ; meilleur projet B2B Akeneo PIM Summit 2020.
+- Cultura : concurrence des marketplaces → depuis plus de 10 ans, commerce composable autour d'Adobe Commerce headless, Akeneo, OneStock, Gally et Mirakl ; stocks omnicanaux, commande en magasin, tablette vendeur ; direction de programme et Digital Factory de plus de 10 personnes.
+- Accor : économies d'échelle sur les achats des hôtels → marketplace B2B depuis 2018, socle construit en 6 mois (Mirakl, Adobe Commerce, Akeneo, Talend), infrastructure AWS infogérée → plus d'1 milliard d'euros de chiffre d'affaires visé, déploiement cible dans 90 pays, Award B2B Mirakl ; une heure d'interruption coûterait des dizaines de millions d'euros.
+- Arkema : digitaliser la relation B2B → portail OroCommerce, MVP en 2 mois, phase UX courte et design réutilisable → déploiement cible dans plus de 50 pays.
+- Suez : suivi manuel des flux de déchets → application CircularChain sur Symfony, traçabilité par blockchain, supervision pour toutes les parties prenantes.
+- CRMA (Chambre des métiers et de l'artisanat) : nouvel outil après la loi PACTE → CRM, ventes, facturation et espace client accessible (RGAA) sur Odoo, interfaces SAP et Chorus Pro → 1,5 M€ sur 4 ans, 600 utilisateurs, 600 000 clients.
+- EPSI : migration vers une nouvelle architecture matérielle → portage d'une distribution Linux embarquée sur une carte avec GPU → 75 % de temps de traitement en moins, 3 produits optimisés.
+- Stellantis : prototyper les cockpits de demain → C++, Qt/QML, commande vocale, Android Auto, plateau dédié en agile → 12 projets livrés, un cockpit en 6 semaines.
+- Airbus : optimiser le temps réel des simulateurs A380 et A400M → expertise puis réalisation → maintenance et évolutions depuis plus de 10 ans.
+- Oreca (avec Alter Way) : migrer un e-commerce Magento de 15 boutiques sport vers AWS → conseil, POC, mise en production et montée en compétence des équipes → scalabilité sans explosion des coûts.
+- ameli.fr (avec Alter Way) : site public le plus visité de France → hébergement et infogérance 24/7 sur cloud privé, site refondu sous Drupal 9 → 30 millions de visites par mois, marché renouvelé en 2024 pour 4 ans.
+- Decathlon (IoT) : connecter les équipements sportifs du groupe → firmwares FreeRTOS (tapis RUN500, tracker de vélo électrique), plateforme IoT sur AWS, SDK mobile → objectif d'un million d'utilisateurs mensuels en 2027, plus de 3 ans de collaboration.
+- GRDF : télérelève des compteurs des gros consommateurs → plateforme IoT du relevé à la facturation sur AWS → 20 000 compteurs connectés, 50 % du gaz consommé en France ; 3e projet d'envergure ensemble.
+
+SECTEURS ET CLIENTS DU GROUPE
+Banque et assurance (Bpifrance, Groupe BPCE, BNP Paribas, Crédit Agricole, Groupama, Visa) ; énergie (Suez, Engie, Veolia, GRDF, CEA, Groupe E) ; chimie (Arkema, Azelis, Saipol, ICL, Socomore) ; industrie (Thales, Alstom, Naval Group, Renault, Somfy) ; santé (Pierre Fabre, Biogaran, Cerba) ; luxe (Louis Vuitton, Dior, Moët Hennessy, Hermès, TAG Heuer) ; distribution (Casino, Biocoop, Swatch, Miele, Devred) ; public (INRAE, Assurance Maladie, Ministère de la Culture, RTM).`;
 
 const TRAME = `TRAME DE PROSPECTION SMILE LILLE (référence officielle)
 Objectif : décrocher un rendez-vous qualifié, pas vendre au téléphone. Appel de 3 à 5 minutes maximum. Écouter plus que parler : viser 60 % de temps de parole pour le prospect.
@@ -1052,11 +1149,15 @@ function stepCard(s, rec){
 function companyCard(co, mine){
   const sel = co.id===S.company;
   const n = history().filter(h=>h.companyId===co.id).length;
-  return `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
-    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track">${esc(co.track)}</span>`:""}</span>
+  const card = `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
+    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track ${co.custom?"real":""}">${esc(co.custom?"Prospect réel":co.track)}</span>`:""}</span>
     <span class="co-who">${esc(co.contact.first+" "+co.contact.last)}, ${esc(co.contact.role)}</span>
-    <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
+    <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine||co.custom?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
   </button>`;
+  const actions = co.custom
+    ? `<div class="co-actions"><button type="button" class="co-btn co-edit" data-id="${co.id}">Modifier</button><button type="button" class="co-btn danger co-del" data-id="${co.id}" aria-label="Supprimer ${esc(co.contact.first)}">Supprimer</button></div>`
+    : `<div class="co-actions"><button type="button" class="co-btn co-perso" data-base="${co.id}">+ PERSONNALISER</button></div>`;
+  return `<div class="co-wrap">${card}${actions}</div>`;
 }
 function renderHome(){
   const h=history(), rec=recommended(), co=company();
@@ -1072,7 +1173,8 @@ function renderHome(){
   const subtitle = !h.length ? "Choisis ton compte et ta difficulté plus bas, prépare ton accroche, puis appelle. Le débrief arrive juste après."
               : axe ? "C'est ton axe de travail, issu de ton dernier débrief. Garde-le en tête pour le prochain appel." : "";
   const mineIds = myCompanyIds(S.junior?.first);
-  const mine = COMPANIES.filter(c=>mineIds.includes(c.id)), others = COMPANIES.filter(c=>!mineIds.includes(c.id));
+  const base = COMPANIES.filter(c=>!c.custom), reals = COMPANIES.filter(c=>c.custom);
+  const mine = base.filter(c=>mineIds.includes(c.id)), others = base.filter(c=>!mineIds.includes(c.id));
   $("#viewHome").innerHTML = `
   <section class="hero">
     <div class="focus">
@@ -1080,7 +1182,7 @@ function renderHome(){
       <h1>${title}</h1>
       ${subtitle?`<p class="sub">${subtitle}</p>`:""}
       <div class="go">
-        <button class="btn orange big" id="goRec" type="button">${esc(co.name)}${co.track?" "+esc(co.track):""} : ${esc(rec.title.toLowerCase())}</button>
+        <button class="btn orange big" id="goRec" type="button">${esc(co.name)}${co.custom?" (prospect réel)":co.track?" "+esc(co.track):""} : ${esc(rec.title.toLowerCase())}</button>
         ${!S.connected?`<button class="link" style="color:#fff" type="button" id="openSet">Connecter Gemini d'abord</button>`:""}
       </div>
     </div>
@@ -1094,8 +1196,10 @@ function renderHome(){
 
   <div class="sec-title"><h2>1. Choisis ton compte</h2><p>Chaque compte a son interlocuteur, son contexte et ses objections.</p></div>
   ${mine.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}</div>
-    <details class="more-co" ${mineIds.includes(S.company)?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
-    : `<div class="companies">${COMPANIES.map(c=>companyCard(c,false)).join("")}</div>`}
+    <details class="more-co" ${mineIds.includes(S.company)||company().custom?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
+    : `<div class="companies">${base.map(c=>companyCard(c,false)).join("")}</div>`}
+  ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects réels</h2><p>Ajoutés avec « Personnaliser ». Ils restent sur cet ordinateur.</p></div>
+    <div class="companies">${reals.map(c=>companyCard(c,true)).join("")}</div>` : ""}
 
   <div class="sec-title" style="margin-top:30px"><h2>2. Choisis la difficulté</h2><p>Un niveau est validé avec ${PASS_COUNT} appels à ${PASS_SCORE} ou plus, tous comptes confondus.</p></div>
   <div class="path">${SCENARIOS.filter(s=>s.group==="level").map(s=>stepCard(s, s.id===rec.id)).join("")}</div>
@@ -1116,7 +1220,50 @@ function renderHome(){
   const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
   document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
   document.querySelectorAll(".company").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
+  document.querySelectorAll(".co-perso").forEach(b=>b.onclick=()=>openCustom(b.dataset.base, null));
+  document.querySelectorAll(".co-edit").forEach(b=>b.onclick=()=>openCustom(null, b.dataset.id));
+  document.querySelectorAll(".co-del").forEach(b=>b.onclick=()=>{
+    const c=customList().find(x=>x.id===b.dataset.id); if(!c) return;
+    if(!confirm(`Supprimer ${c.first} ${c.last} (${c.company}) de cet ordinateur ?`)) return;
+    saveCustomList(customList().filter(x=>x.id!==c.id)); registerCustom();
+    if(S.company===c.id) setCompany((S.junior && myCompanyIds(S.junior.first)[0]) || COMPANIES[0].id);
+    renderHome();
+  });
 }
+let customEditing=null;
+function openCustom(baseId, customId){
+  const f=id=>$("#"+id);
+  const c = customId ? customList().find(x=>x.id===customId) : null;
+  const b = companyById(c ? c.base : baseId);
+  customEditing = c ? c.id : null;
+  $("#customTitle").textContent = c ? `Modifier ${c.first} ${c.last}` : `Personnaliser un prospect réel chez ${b.name}`;
+  f("cuCompany").value = c ? c.company : b.name;
+  f("cuDesc").value = c ? (c.desc||"") : b.desc;
+  f("cuFirst").value = c ? c.first : ""; f("cuLast").value = c ? c.last : "";
+  f("cuGender").value = c ? c.gender : "F";
+  f("cuRole").value = c ? c.role : "";
+  f("cuActu").value = c ? c.actu : "";
+  f("cuContext").value = c ? (c.context||"") : "";
+  f("cuBesoin").value = c ? (c.besoin||"") : "";
+  f("cuObjection").value = c ? (c.objection||"") : b.objection;
+  f("cuDecision").value = c ? (c.decision||"") : "";
+  f("cuRelation").value = c ? (c.relation||"") : b.relation;
+  f("cuRefs").value = c ? (c.refs||"") : b.refs;
+  f("cuCompany").dataset.base = c ? c.base : b.id;
+  openDlg("#dlgCustom");
+}
+$("#customCancel").onclick = ()=>$("#dlgCustom").close();
+$("#customForm").addEventListener("submit", e=>{
+  const f=id=>$("#"+id).value.trim();
+  if(!f("cuCompany")||!f("cuFirst")||!f("cuLast")||!f("cuRole")||!f("cuActu")){ e.preventDefault(); toast("Remplis au moins l'entreprise, le prénom, le nom, le poste et l'actualité."); return; }
+  const rec = { id: customEditing || "real-"+Date.now().toString(36), base: $("#cuCompany").dataset.base, owner: S.junior?.first||"",
+    company:f("cuCompany"), desc:f("cuDesc"), first:f("cuFirst"), last:f("cuLast"), gender:$("#cuGender").value, role:f("cuRole"),
+    actu:f("cuActu"), context:$("#cuContext").value.trim(), besoin:f("cuBesoin"), objection:f("cuObjection"),
+    decision:f("cuDecision"), relation:f("cuRelation"), refs:f("cuRefs") };
+  const list=customList().filter(x=>x.id!==rec.id); list.push(rec); saveCustomList(list);
+  registerCustom(); setCompany(rec.id); renderHome();
+  toast(`${rec.first} ${rec.last} est prêt${rec.gender==="F"?"e":""} pour l'entraînement.`);
+});
 function goHome(){ showView("home"); renderHome(); }
 
 /* =========================================================
@@ -1142,6 +1289,15 @@ const MEMO_OBJ = [
   ["Pas la bonne personne","« Pourriez-vous me rediriger vers la bonne personne ? »"],
   ["Pas intéressé","« Qu'est-ce qui ne vous intéresse pas exactement : travailler avec une ESN, ou pas de sujet en ce moment ? »"]
 ];
+const MEMO_REFS_ALL = [
+  ["E-commerce","Cultura (composable commerce, 10 ans), Accor (marketplace B2B en 6 mois, 90 pays), Arkema (B2B, MVP en 2 mois), Somfy (reprise d'un prestataire, 16 sites migrés, NPS 8/10)"],
+  ["Expérience digitale et UX","Pierre Fabre (7 marques, 150 sites, 60 % d'économies), Ministère de l'Éducation (14 sites en 24 mois, design system de l'État), UX Republic"],
+  ["Mobile","My Visa (1re app finance, 90 % d'engagement), STIB (1,8 M de téléchargements, 4,1/5), 400+ projets mobiles, Neopixl"],
+  ["Data et IA","Biogaran (IA générative, CODIR puis POC), Somfy (Data Factory de 10 personnes), Groupe Atlantic (PIM Akeneo, prix 2020), Synotis"],
+  ["Cloud et cybersécurité","Eram (Google Cloud), Oreca (AWS, 15 boutiques), ameli.fr (30 M de visites par mois, infogérance 24/7), Alter Way"],
+  ["Applications métiers","CRMA (Odoo, 600 utilisateurs), Suez (CircularChain sur Symfony), VITAM (créé par Smile), Odoo partenaire Gold"],
+  ["IoT et embarqué","Decathlon (objets connectés), GRDF (20 000 compteurs), Stellantis (1 cockpit en 6 semaines), EPSI (-75 % de temps de traitement), Airbus (10 ans)"]
+];
 const MEMO_REFS = "Somfy (reprise d'un prestataire, 14 sites), Cultura (omnicanal depuis 10 ans), Accor (marketplace B2B en 6 mois), Arkema (B2B en 2 mois), Eram et Oreca (migration cloud), Pierre Fabre (150 sites, 60 % d'économies), STIB (appli mobile transport, 1,8 M de téléchargements), ameli.fr (marché public renouvelé). À Lille : 96 experts, 15 ans de présence, Kiabi, Auchan, Adeo, Decathlon.";
 function memoHtml(){
   const sc=S.scenario;
@@ -1152,6 +1308,10 @@ function memoHtml(){
     <p style="margin:6px 0 4px;font-weight:600">Objections</p>
     ${MEMO_OBJ.map(o=>`<div class="obj"><b>${o[0]}</b>${esc(o[1])}</div>`).join("")}
     <p style="margin:10px 0 4px;font-weight:600">Références à citer</p><p style="margin:0">${esc(MEMO_REFS)}</p>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Toutes les références par domaine</summary>
+      ${MEMO_REFS_ALL.map(r=>`<div class="obj"><b>${r[0]}</b>${esc(r[1])}</div>`).join("")}
+      <div class="obj"><b>Chiffres du groupe</b>2 000 personnes, 19 agences, 9 pays, 350+ projets par an, 32 ans d'expérience, 160 M€ de CA en 2023, 150+ clients historiques suivis 10 ans en moyenne.</div>
+    </details>
   </div>`;
 }
 function goPrep(id){ S.scenario=scById(id); showView("prep"); renderPrep(); }
@@ -1179,12 +1339,13 @@ function renderPrep(){
         <div><dt>Actualité repérée</dt><dd class="actu">${esc(c.actu)}</dd></div>
         <div><dt>Besoin supposé</dt><dd>${esc(c.besoin)}</dd></div>
         <div><dt>Relation avec Smile</dt><dd>${esc(s.relation)}</dd></div>
-        <div><dt>Note</dt><dd style="font-weight:400;color:var(--mute);font-size:.88rem">Contexte fictif d'entraînement, inspiré de l'entreprise.</dd></div>
+        <div><dt>Note</dt><dd style="font-weight:400;color:var(--mute);font-size:.88rem">${s.custom?"Prospect réel : informations saisies par toi.":"Contexte fictif d'entraînement, inspiré de l'entreprise."}</dd></div>
         ${st.n?`<div><dt>Tes tentatives</dt><dd>${st.n} appel${st.n>1?"s":""}, meilleur score ${st.best} sur 100</dd></div>`:""}
       </dl>
     </aside>
     <section class="card">
       ${axe?`<div class="axe-remind"><b>Ton axe de travail :</b> ${esc(axe)}</div>`:""}
+      <p class="aid-note">${s.aid==="souffleur"?"Pendant l'appel : souffleur IA en direct (bouton orange) et aide-mémoire Smile.":s.aid==="memo"?"Pendant l'appel : aide-mémoire Smile uniquement.":"Pendant l'appel : aucune aide. Prépare-toi bien."}</p>
       <h2 style="margin-bottom:14px">Ta préparation</h2>
       <div class="prepq">
         <div class="field"><label for="pA">Quelle est mon accroche ?</label><textarea id="pA" placeholder="${isMsg?"Le fait récent que je cite dans mon message":"Le fait récent que je vais citer"}">${esc(prep.accroche)}</textarea></div>
@@ -1204,12 +1365,75 @@ function renderPrep(){
   const os=$("#openSet2"); if(os) os.onclick=()=>openDlg("#dlgSettings");
 }
 function prepareCallScreen(){
+  const aid = S.scenario.aid || "memo";
   $("#memoSide").innerHTML = `<h3>Aide-mémoire</h3>${memoHtml()}`;
-  const open = safeGet("laligne.memoOpen")==="1";
+  $("#memoToggle").hidden = aid==="none";
+  $("#helpBtn").hidden = aid!=="souffleur";
+  $("#helpBox").hidden = true; $("#helpBox").innerHTML="";
+  const open = aid!=="none" && safeGet("laligne.memoOpen")==="1";
   $("#memoSide").hidden=!open; $("#callWrap").classList.toggle("memo-open",open);
   $("#memoToggle").setAttribute("aria-pressed",String(open));
   $("#timer").classList.remove("warn");
 }
+/* Souffleur IA (niveau 1) : propose en direct quoi dire, un use case et une référence */
+const HELP_SYSTEM = `Tu es le souffleur d'un commercial junior de Smile pendant un appel de prospection à froid, en direct. Il lit ta suggestion pendant qu'il parle : sois très court, concret et utilisable immédiatement. Tutoie-le.
+Appuie-toi uniquement sur les informations Smile ci-dessous ; n'invente aucun client, chiffre ou offre.
+
+${SMILE_FICHE}
+
+Rappels de la trame : objectif = décrocher un rendez-vous de 30 minutes, pas vendre. Questions ouvertes, écouter plus que parler. Face à « trop d'ESN » : reconnaître, se différencier concrètement, proposer un échange court. Face à « c'est pour quoi exactement ? » : une phrase liée à son actualité puis une question.
+
+Réponds uniquement avec un objet JSON :
+{"a_dire": "la phrase à dire maintenant, deux phrases au maximum, ton naturel à l'oral",
+ "use_case": "un cas d'usage concret que Smile pourrait apporter à ce prospect, en une phrase",
+ "reference": "une référence ou une entité Smile à citer, avec le résultat, en une phrase",
+ "question": "la prochaine question ouverte à poser"}`;
+
+function fastModels(){
+  const all=[...$("#textModel").options].map(o=>o.value);
+  return [...all.filter(m=>/lite/i.test(m)), ...all.filter(m=>!/lite/i.test(m))].slice(0,4);
+}
+async function askHelp(){
+  if(S.helpBusy) return;
+  const box=$("#helpBox"), s=S.scenario;
+  S.helpBusy=true; S.helpUsed=(S.helpUsed||0)+1;
+  box.hidden=false; box.innerHTML=`<p class="hi">Le souffleur réfléchit…</p>`;
+  const recent=S.transcript.slice(-14).map(t=>`${t.who==="junior"?"COMMERCIAL":"PROSPECT"} : ${t.text.trim()}`).join("\n") || "(l'appel commence, rien n'a encore été dit)";
+  const payload = `ENTREPRISE APPELÉE : ${s.companyName}
+INTERLOCUTEUR : ${JSON.stringify(s.contact)}
+RELATION CONNUE AVEC SMILE : ${s.relation}
+RÉFÉRENCES LES PLUS PERTINENTES : ${s.bestRefs}
+
+TRANSCRIPTION RÉCENTE (la dernière réplique est en bas) :
+${recent}
+
+Que doit dire le commercial maintenant ?`;
+  const body={ systemInstruction:{parts:[{text:HELP_SYSTEM}]}, contents:[{role:"user",parts:[{text:payload}]}],
+    generationConfig:{temperature:0.7, responseMimeType:"application/json"} };
+  let d=null, err="";
+  for(const model of fastModels()){
+    try{
+      const r = S.viaServer
+        ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model, payload:body})})
+        : await fetch(`${API}/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const j=await r.json().catch(()=>({}));
+      if(r.ok){
+        const txt=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("").replace(/```json|```/g,"").trim();
+        d=JSON.parse(txt); break;
+      }
+      err=j?.error?.message||`Erreur ${r.status}`;
+    }catch(e){ err=e.message; }
+  }
+  S.helpBusy=false;
+  if(!d){ box.innerHTML=`<p class="hi">Le souffleur n'a pas pu répondre (${esc(/quota|exceeded/i.test(err)?"quota Gemini atteint, réessaie dans un instant":err)}).</p>`; return; }
+  box.innerHTML = `
+    <p class="hi"><b>À dire maintenant</b><span class="say">« ${esc(d.a_dire||"")} »</span></p>
+    ${d.use_case?`<p class="hi"><b>Use case à proposer</b>${esc(d.use_case)}</p>`:""}
+    ${d.reference?`<p class="hi"><b>Référence à citer</b>${esc(d.reference)}</p>`:""}
+    ${d.question?`<p class="hi"><b>Question suivante</b>${esc(d.question)}</p>`:""}`;
+}
+$("#helpBtn").onclick = askHelp;
+
 $("#memoToggle").onclick=()=>{
   const open=$("#memoSide").hidden;
   $("#memoSide").hidden=!open; $("#callWrap").classList.toggle("memo-open",open);
@@ -1389,7 +1613,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
-  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false;
+  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false;
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
   $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
@@ -1856,6 +2080,7 @@ async function runDebrief(){
 OBJECTIF DE L'EXERCICE : ${s.goal}
 
 COMPTE : ${s.companyName}
+AIDES DISPONIBLES PENDANT L'APPEL : ${s.aid==="souffleur"?"souffleur IA et aide-mémoire":s.aid==="memo"?"aide-mémoire":"aucune"}${s.aid==="souffleur"?` (souffleur utilisé ${S.helpUsed||0} fois)`:""}
 FICHE PROSPECT REMISE AU COMMERCIAL : ${JSON.stringify(s.contact)}
 RELATION CONNUE AVEC SMILE : ${s.relation}
 RÉFÉRENCES SMILE LES PLUS PERTINENTES POUR CE COMPTE : ${s.bestRefs}
@@ -1886,20 +2111,45 @@ ${transcriptTxt}`;
       contents:[{role:"user",parts:[{text:payload}]}],
       generationConfig:{temperature:0.4, responseMimeType:"application/json"}
     };
-    // Essaie le modèle choisi, puis les suivants si Google le refuse (modèle retiré, indisponible…)
-    const candidates=[$("#textModel").value, ...[...$("#textModel").options].map(o=>o.value).filter(v=>v!==$("#textModel").value)].slice(0,5);
-    let data=null, lastErr="";
-    for(const model of candidates){
-      const r = S.viaServer
-        ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model, payload:genBody})})
-        : await fetch(`${API}/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{
-            method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(genBody)});
-      const d = await r.json().catch(()=>({}));
-      if(r.ok){ data=d; if(model!==$("#textModel").value){ $("#textModel").value=model; safeSet("laligne.textModel.v3", model); } break; }
-      lastErr = d?.error?.message || `Erreur ${r.status}`;
-      if(![400,403,404,410].includes(r.status) && !/no longer|not found|deprecated|not supported|unavailable/i.test(lastErr)) break;
+    // Essaie le modèle choisi, puis les suivants si Google le refuse (modèle retiré, quota atteint…).
+    // Si tous les modèles sont au quota, attend le délai indiqué par Google et recommence.
+    const chosen=$("#textModel").value;
+    const candidates=[chosen, ...[...$("#textModel").options].map(o=>o.value).filter(v=>v!==chosen)].slice(0,5);
+    let data=null, lastErr="", hadQuota=false;
+    for(let round=0; round<3 && !data; round++){
+      let waitMs=0, allQuota=true;
+      for(const model of candidates){
+        const r = S.viaServer
+          ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model, payload:genBody})})
+          : await fetch(`${API}/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{
+              method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(genBody)});
+        const d = await r.json().catch(()=>({}));
+        // On ne garde le modèle de secours que si le modèle choisi est retiré (pas pour un simple quota)
+        if(r.ok){ data=d; if(model!==chosen && !hadQuota){ $("#textModel").value=model; safeSet("laligne.textModel.v3", model); } break; }
+        lastErr = d?.error?.message || `Erreur ${r.status}`;
+        if(r.status===429 || /quota|rate limit|exhausted/i.test(lastErr)){
+          const m = lastErr.match(/retry in ([\d.]+)\s*s/i);
+          const info = (d?.error?.details||[]).find(x=>x.retryDelay);
+          const sec = m ? parseFloat(m[1]) : info ? parseFloat(info.retryDelay) : 20;
+          waitMs = Math.max(waitMs, Math.min(65, sec+1)*1000);
+          hadQuota = true;
+          continue;   // chaque modèle a son propre quota : on essaie le suivant
+        }
+        allQuota=false;
+        if(![400,403,404,410].includes(r.status) && !/no longer|not found|deprecated|not supported|unavailable/i.test(lastErr)) break;
+      }
+      if(data || !allQuota || round===2) break;
+      // Tous les modèles sont au quota : compte à rebours puis nouvel essai
+      for(let t=Math.ceil(waitMs/1000); t>0; t--){
+        body.innerHTML=`<div class="loading" role="status">Beaucoup de débriefs en même temps. Nouvel essai dans ${t} s…<br><span style="font-size:.88rem">Ton appel est bien conservé, ne ferme pas la page.</span></div>`;
+        await new Promise(res=>setTimeout(res,1000));
+      }
+      body.innerHTML=`<div class="loading" role="status">Ton coach écoute l'appel et prépare ton débrief…</div>`;
     }
-    if(!data) throw new Error(lastErr);
+    if(!data){
+      if(/quota|rate limit|exhausted/i.test(lastErr)) throw new Error("Le quota gratuit de Gemini est atteint. Réessaie dans une minute avec « Relancer l'analyse ». Pour supprimer cette limite, l'administrateur doit activer la facturation sur le projet Google de la clé API.");
+      throw new Error(lastErr);
+    }
     const txt = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("").replace(/```json|```/g,"").trim();
     const d = JSON.parse(txt);
     const criteria = Object.fromEntries((d.criteres||[]).map(c=>[c.id, LVL[c.niveau]?c.niveau:"non_observe"]));
