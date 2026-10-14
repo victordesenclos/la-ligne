@@ -1393,75 +1393,133 @@ function lastProspectLine(){
   return "";
 }
 function shortRef(co){ const r=(co.refs||"").split("), ")[0]; return r.endsWith(")")?r:r+")"; }
+/* Coaching par compte : questions de découverte ciblées et réponse à l'objection propre à chaque interlocuteur */
+const COACH = {
+  "decathlon":{ objKeys:/interne|nous-memes|on developpe|nos equipes/, objReply:"On renforce vos équipes en régie, sans prendre la main : vos devs gardent le produit.",
+    questions:["Comment le site tient-il les pics de trafic, aux soldes par exemple ?","Qu'est-ce que la seconde vie change dans vos parcours en ligne ?","Vos équipes ont-elles la capacité de tout absorber cette année ?"]},
+  "auchan":{ objKeys:/integrateur|reference|au niveau du groupe/, objReply:"On peut venir en complément de votre intégrateur, sur un sujet précis comme l'IA générative.",
+    questions:["Arrivez-vous à avoir une vue client unique entre magasins et appli ?","Où en est votre pilote d'IA générative ?","Qu'attend la direction de la nouvelle appli fidélité ?"]},
+  "sncf":{ objKeys:/appel(s)? d.?offre|marche|achats|accord-cadre/, objReply:"Bien sûr. Un échange en amont vous aide justement à préparer le cahier des charges.",
+    questions:["Vos applis terrain fonctionnent-elles hors connexion ?","Combien de vos applications métiers ont plus de dix ans ?","Quand est prévu votre prochain appel d'offres de maintenance ?"]},
+  "adeo":{ objKeys:/short-?list|deja (choisi|des integrateurs|une liste)/, objReply:"Normal. 30 minutes pour vous partager le retour Pierre Fabre : 7 marques sur un socle commun.",
+    questions:["Comment chaque enseigne garde-t-elle son identité sur un socle commun ?","Le catalogue produit est-il déjà partagé entre enseignes ?","Quelle est la plus grosse difficulté du programme aujourd'hui ?"]},
+  "leroymerlin":{ objKeys:/adeo|equipes du groupe|le groupe/, objReply:"On vient en complément du groupe, avec des data engineers en régie.",
+    questions:["Combien de vos cas d'usage IA sont passés en production ?","La qualité des données produit freine-t-elle vos projets ?","Arrivez-vous à recruter assez de data engineers ?"]},
+  "boulanger":{ objKeys:/mauvaise experience|mefian|sous-dimension|decu/, objReply:"Je comprends. On peut démarrer petit, sur un périmètre test, pour faire nos preuves.",
+    questions:["Vos applications d'atelier sont-elles faciles à faire évoluer ?","Il y a beaucoup de ressaisies entre SAV, ateliers et magasins ?","Votre équipe a-t-elle encore du temps pour les nouveaux projets ?"]},
+  "decathlon-ux":{ objKeys:/interne|equipe design|designers/, objReply:"On renforce vos designers, surtout en recherche utilisateur, là où le temps manque.",
+    questions:["Combien de clients perdez-vous dans le tunnel d'achat mobile ?","Avez-vous le temps de faire de la recherche utilisateur ?","Où en est l'accessibilité de l'appli ?"]},
+  "auchan-ux":{ objKeys:/agence/, objReply:"L'agence développe ; UX Republic teste d'abord les parcours avec de vrais clients.",
+    questions:["Que disent les avis sur le parcours fidélité ?","Où les clients abandonnent-ils dans le parcours drive ?","Testez-vous les parcours avec de vrais clients avant de développer ?"]},
+  "adeo-ux":{ objKeys:/short-?list|agences/, objReply:"Normal. Je peux vous montrer le design system Pierre Fabre : 7 marques, une base commune.",
+    questions:["Les développeurs utilisent-ils vraiment le design system ?","Comment gardez-vous l'identité de chaque enseigne ?","Où en est l'accessibilité des sites des enseignes ?"]}
+};
+const COACH_DEFAULT = { objKeys:null, objReply:"",
+  questions:["Quelle est votre priorité numéro un cette année ?","Qu'est-ce qui fonctionne bien aujourd'hui, et que voudriez-vous améliorer ?","Qui d'autre est impliqué dans ce type de décision ?"]};
+function coachFor(co){ return COACH[co.id] || (co.base && COACH[co.base]) || COACH_DEFAULT; }
+
+/* Règles générales. type : obj (objection), topic (sujet), open (ouverture). Plusieurs formulations pour ne pas se répéter. */
 const HELP_RULES = [
-  // Objections
-  {cat:"Objection : trop d'ESN", re:/\besn\b|ssii|sollicit|appellent tous|toutes les semaines|tous les jours on m.?appelle|rendez-vous avec toutes/,
-   say:co=>`Normal. Notre différence : 96 experts à Lille, et ${co.proof}.`},
-  {cat:"Question : c'est pour quoi ?", re:/c.?est pour quoi|c.?est a quel sujet|de quoi s.?agit|pourquoi vous m.?appel|vous voulez quoi|concretement/,
-   say:co=>`« C'est au sujet de ${co.hook}. Comment l'abordez-vous ? »`},
-  {cat:"Question : qui est Smile ?", re:/c.?est quoi smile|qui etes|vous faites quoi|smile c.?est|connais pas smile/,
-   say:()=>"Smile : 2 000 experts tech en Europe, leader de l'open source, dont 96 à Lille."},
-  {cat:"Question : votre différence ?", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile/,
-   say:co=>`Open source, projet ou régie au choix, et ${co.proof}.`},
-  {cat:"Objection : pas le temps", re:/pas le temps|deux minutes|une minute|presse|en reunion|je cours|occupe|deborde/,
-   say:()=>"Je fais court : quel est le meilleur moment pour 30 minutes cette semaine ?"},
-  {cat:"Objection : envoyez un mail", re:/mail|ecrivez|envoyez(-moi)? (une|de la) doc|plaquette/,
-   say:()=>"Avec plaisir. Pour qu'il soit utile : quelle est votre priorité du moment ?"},
-  {cat:"Objection : déjà un prestataire", re:/prestataire|deja quelqu|deja une agence|deja un integrateur|deja une esn|short-list|referenc|on travaille deja/,
-   say:()=>"Chez Somfy, on a repris le prestataire en place sans couper le business : NPS 8/10."},
-  {cat:"Objection : on fait en interne", re:/en interne|nous-memes|equipe(s)? interne|nos equipes|equipes du groupe/,
-   say:()=>"On renforce vos équipes en régie, nos experts travaillent avec vous, sur site ou à distance."},
-  {cat:"Objection : mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe/,
-   say:()=>"Je comprends. Chez Somfy, reprise sécurisée de 16 sites, et une satisfaction de 8/10."},
-  {cat:"Objection : appels d'offres", re:/appel(s)? d.?offre|marche(s)? public|accord-cadre|service achats|passer par les achats/,
-   say:()=>"Bien sûr. Échangeons en amont : Alter Way a vu son marché ameli.fr renouvelé pour 4 ans."},
-  {cat:"Objection : budget", re:/budget|pas les moyens|trop cher|cout|couter/,
-   say:()=>"Projet ou régie, c'est modulable : on avance à votre rythme, cette année ou la suivante."},
-  {cat:"Objection : pas de besoin", re:/pas de besoin|pas de projet|pas pour le moment|pas d.?actualite|rien de prevu/,
-   say:()=>"Pas de souci : 30 minutes sur votre roadmap, pour anticiper la suite."},
-  {cat:"Objection : pas intéressé", re:/pas interesse|ca ne m.?interesse pas/,
-   say:()=>"Qu'est-ce qui ne vous intéresse pas : travailler avec une ESN, ou le sujet en ce moment ?"},
-  {cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui|voyez avec|mon collegue|pas mon perimetre/,
-   say:()=>"Qui serait la bonne personne ? Je peux l'appeler de votre part ?"},
-  // Sujets : expertise à placer
-  {cat:"Expertise : applications métiers", re:/metier|atelier|\bsav\b|\berp\b|odoo|\bcrm\b|ressaisie|outil(s)? interne/,
-   say:()=>"Applications métiers : Odoo partenaire Gold, 600 utilisateurs chez CRMA."},
-  {cat:"Expertise : maintenance", re:/maintenance|\btma\b|vieill|ancien|legacy|dette technique|obsolete/,
-   say:()=>"Maintenance applicative : Airbus nous fait confiance depuis plus de 10 ans."},
-  {cat:"Expertise : mobile", re:/mobile|smartphone|appli(cation)? (mobile|client)|\bstore\b|telechargement/,
-   say:()=>"Mobile : appli STIB refondue, 1,8 million de téléchargements, notée 4,1/5."},
-  {cat:"Expertise : renfort d'équipe", re:/recrut|manque de (profil|monde|ressource)|sous-effectif|pas assez de monde|renfort|charge/,
-   say:()=>"Régie : on renforce votre équipe avec nos experts, en quelques profils ciblés."},
-  {cat:"Expertise : data et IA", re:/\bdata\b|donnee|\bia\b|intelligence artificielle|generative|recommandation|machine learning/,
-   say:()=>"Data et IA : chez Biogaran, de l'acculturation en CODIR jusqu'au POC d'IA générative."},
-  {cat:"Expertise : cloud", re:/cloud|heberg|migration|datacenter|serveur|infra|\baws\b|azure/,
-   say:()=>"Cloud : migration d'Eram vers Google Cloud, infogérance 24/7 d'ameli.fr."},
-  {cat:"Expertise : cybersécurité", re:/securit|cyber|piratage|attaque|rgpd/,
-   say:()=>"Sécurité : Alter Way, audits, tests d'intrusion, RSSI à la demande."},
-  {cat:"Expertise : UX et design", re:/\bux\b|ergonom|parcours|design|accessib|experience utilisateur|tests utilisateurs/,
-   say:()=>"UX : UX Republic, l'entité design du groupe ; design system de 7 marques chez Pierre Fabre."},
-  {cat:"Expertise : fidélité", re:/fidelit|carte de fidelite|programme client/,
-   say:()=>"Fidélité : appli My Visa, 1re de l'App Store finance, 90 % d'engagement."},
-  {cat:"Expertise : marketplace", re:/marketplace|vendeur/,
-   say:()=>"Marketplace : celle d'Accor, construite en 6 mois, déploiement visé dans 90 pays."},
-  {cat:"Expertise : données produit", re:/fiche(s)? produit|catalogue|\bpim\b|referentiel/,
-   say:()=>"Données produit : PIM Akeneo du Groupe Atlantic, prix du meilleur projet B2B 2020."},
-  {cat:"Expertise : omnicanal", re:/stock|magasin|omnicanal|drive|retrait|livraison/,
-   say:()=>"Omnicanal : stocks en temps réel et commande en magasin chez Cultura, depuis 10 ans."},
-  {cat:"Expertise : performance e-commerce", re:/e-commerce|site|tunnel|conversion|black friday|trafic|ralenti|lent|plante/,
-   say:()=>"E-commerce : 17 ans d'expérience ; chez Accor, une heure de panne coûterait des millions."},
-  {cat:"Expertise : IoT", re:/iot|objet(s)? connecte|capteur|compteur/,
-   say:()=>"IoT : 20 000 compteurs connectés chez GRDF, objets connectés chez Decathlon."},
-  // Ouverture : moment de proposer le rendez-vous
-  {cat:"Ouverture : propose le rendez-vous", re:/interessant|pourquoi pas|ca peut (m.?)?interess|dites-m.?en plus|je vous ecoute|ca me parle|effectivement|c.?est vrai/,
-   say:()=>"C'est le moment : « 30 minutes pour en parler, plutôt mardi 10 h ou jeudi 14 h ? »"}
+  {type:"obj", cat:"Objection : trop d'ESN", re:/\besn\b|ssii|sollicit|appellent tous|toutes les semaines|rendez-vous avec toutes|tout le monde m.?appelle/,
+   say:co=>[`Normal. Notre différence : 96 experts à Lille, et ${co.proof}.`, `Je comprends. 30 minutes, et si ce n'est pas utile, je ne vous relance pas.`]},
+  {type:"obj", cat:"Question : c'est pour quoi ?", re:/c.?est pour quoi|a quel sujet|de quoi s.?agit|pourquoi vous m.?appel|vous voulez quoi|concretement/,
+   say:co=>[`« C'est au sujet de ${co.hook}. Comment l'abordez-vous ? »`]},
+  {type:"obj", cat:"Question : qui est Smile ?", re:/c.?est quoi smile|qui etes|vous faites quoi|smile c.?est|connais pas/,
+   say:()=>["Smile : 2 000 experts tech en Europe, leader de l'open source, dont 96 à Lille."]},
+  {type:"obj", cat:"Question : votre différence ?", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile/,
+   say:co=>[`Open source, projet ou régie au choix, et ${co.proof}.`]},
+  {type:"obj", cat:"Objection : pas le temps", re:/pas le temps|deux minutes|une minute|je suis presse|en reunion|je cours|deborde|pas maintenant/,
+   say:()=>["Je fais court : quel est le meilleur moment pour 30 minutes cette semaine ?","Une seule question, et je vous laisse : quel créneau pour en reparler ?"]},
+  {type:"obj", cat:"Objection : envoyez un mail", re:/(envoyez|envoie|ecrivez)(-moi)? (un )?(mail|e-mail|courriel)|par mail|une plaquette|de la doc/,
+   say:()=>["Avec plaisir. Pour qu'il soit utile : quelle est votre priorité du moment ?","Bien sûr. Et je vous rappelle jeudi pour en parler 5 minutes ?"]},
+  {type:"obj", cat:"Objection : déjà un prestataire", re:/prestataire|deja quelqu|deja une agence|deja une esn|on travaille deja|on a deja (un|une|des)/,
+   say:()=>["Chez Somfy, on a repris le prestataire en place sans couper le business : NPS 8/10.","La plupart de nos clients ont déjà une ESN : on vient en complément, sur un sujet pointu."]},
+  {type:"obj", cat:"Objection : on fait en interne", re:/en interne|nous-memes|equipe(s)? interne/,
+   say:()=>["On renforce vos équipes en régie : vos équipes gardent la main."]},
+  {type:"obj", cat:"Objection : mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe/,
+   say:()=>["Je comprends. Commençons petit, sur un périmètre test, pour faire nos preuves."]},
+  {type:"obj", cat:"Objection : appels d'offres", re:/appel(s)? d.?offre|marche(s)? public|accord-cadre|service achats/,
+   say:()=>["Bien sûr. Un échange en amont vous aide à préparer le cahier des charges."]},
+  {type:"obj", cat:"Objection : budget", re:/budget|pas les moyens|trop cher|ca coute/,
+   say:()=>["Projet ou régie, c'est modulable : on avance à votre rythme, cette année ou la suivante."]},
+  {type:"obj", cat:"Objection : pas de besoin", re:/pas de besoin|pas de projet|pas pour le moment|pas d.?actualite|rien de prevu|pas prioritaire/,
+   say:()=>["Pas de souci : 30 minutes sur votre roadmap, pour anticiper la suite.","Je comprends. Qu'est-ce qui est prioritaire pour vous cette année ?"]},
+  {type:"obj", cat:"Objection : pas intéressé", re:/pas interesse|ca ne m.?interesse pas/,
+   say:()=>["Qu'est-ce qui ne vous intéresse pas : les ESN en général, ou le sujet en ce moment ?"]},
+  {type:"obj", cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui|voyez avec|mon collegue|pas mon perimetre/,
+   say:()=>["Qui serait la bonne personne ? Je peux l'appeler de votre part ?"]},
+  {type:"topic", cat:"Expertise : applications métiers", re:/metier|atelier|\bsav\b|\berp\b|odoo|\bcrm\b|ressaisie|outil(s)? interne/,
+   say:()=>["Applications métiers : Odoo partenaire Gold, 600 utilisateurs chez CRMA."]},
+  {type:"topic", cat:"Expertise : maintenance", re:/maintenance|\btma\b|vieill|ancien|legacy|dette technique|obsolete|plus de (dix|quinze|10|15) ans/,
+   say:()=>["Maintenance applicative : Airbus nous fait confiance depuis plus de 10 ans."]},
+  {type:"topic", cat:"Expertise : mobile", re:/mobile|smartphone|appli(cation)? (mobile|client)|\bstore\b|telechargement|hors connexion/,
+   say:()=>["Mobile : appli STIB refondue, 1,8 million de téléchargements, notée 4,1/5."]},
+  {type:"topic", cat:"Expertise : renfort d'équipe", re:/recrut|manque de (profil|monde|ressource)|sous-effectif|pas assez de monde|renfort|on est charge/,
+   say:()=>["Régie : on renforce votre équipe avec quelques experts ciblés."]},
+  {type:"topic", cat:"Expertise : data et IA", re:/\bdata\b|donnee|\bia\b|intelligence artificielle|generative|recommandation|machine learning/,
+   say:()=>["Data et IA : chez Biogaran, de l'acculturation en CODIR jusqu'au POC d'IA générative.","Data : Data Factory de 10 personnes chez Somfy."]},
+  {type:"topic", cat:"Expertise : cloud", re:/cloud|heberg|migration|datacenter|serveur|infra|\baws\b|azure/,
+   say:()=>["Cloud : migration d'Eram vers Google Cloud, infogérance 24/7 d'ameli.fr."]},
+  {type:"topic", cat:"Expertise : cybersécurité", re:/securit|cyber|piratage|attaque|rgpd/,
+   say:()=>["Sécurité : Alter Way, audits, tests d'intrusion, RSSI à la demande."]},
+  {type:"topic", cat:"Expertise : UX et design", re:/\bux\b|ergonom|parcours|design|accessib|experience utilisateur|tests? utilisateur/,
+   say:()=>["UX : UX Republic, l'entité design du groupe.","Design system de 7 marques chez Pierre Fabre."]},
+  {type:"topic", cat:"Expertise : fidélité", re:/fidelit|carte de fidelite|programme client/,
+   say:()=>["Fidélité : appli My Visa, 1re de l'App Store finance, 90 % d'engagement."]},
+  {type:"topic", cat:"Expertise : marketplace", re:/marketplace|vendeur/,
+   say:()=>["Marketplace : celle d'Accor, construite en 6 mois, déploiement visé dans 90 pays."]},
+  {type:"topic", cat:"Expertise : données produit", re:/fiche(s)? produit|catalogue|\bpim\b|referentiel/,
+   say:()=>["Données produit : PIM Akeneo du Groupe Atlantic, primé en 2020."]},
+  {type:"topic", cat:"Expertise : omnicanal", re:/stock|magasin|omnicanal|drive|retrait|livraison/,
+   say:()=>["Omnicanal : stocks en temps réel et commande en magasin chez Cultura."]},
+  {type:"topic", cat:"Expertise : e-commerce", re:/e-commerce|site web|tunnel|conversion|black friday|trafic|ralenti|plante|soldes/,
+   say:()=>["E-commerce : 17 ans d'expérience, Cultura nous fait confiance depuis 10 ans."]},
+  {type:"topic", cat:"Expertise : IoT", re:/\biot\b|objet(s)? connecte|capteur|compteur/,
+   say:()=>["IoT : 20 000 compteurs connectés chez GRDF."]},
+  {type:"open", cat:"Ouverture", re:/interessant|pourquoi pas|ca peut (m.?)?interess|dites-m.?en plus|ca me parle|effectivement|c.?est vrai que|justement|en effet/, say:()=>[]}
 ];
+
+function lastMatch(n, re){ let idx=-1; const g=new RegExp(re.source, "g"); let m; while((m=g.exec(n))){ idx=m.index; if(g.lastIndex===m.index) g.lastIndex++; } return idx; }
+function pick(cat, list){ S.helpRot=S.helpRot||{}; const k=S.helpRot[cat]||0; return list[k % list.length]; }
+
 function computeTip(){
-  const s=S.scenario, co=companyById(s.companyId), line=lastProspectLine(), n=nrm(line);
+  const s=S.scenario, co=companyById(s.companyId), coach=coachFor(co);
+  const line=lastProspectLine(), n=nrm(line);
+  const jTurns=S.transcript.filter(t=>t.who==="junior").map(t=>nrm(t.text));
+  const pTurns=S.transcript.filter(t=>t.who==="prospect").length;
+  const lastJ=jTurns[jTurns.length-1]||"";
+  const proposedRdv=jTurns.some(t=>/rendez-vous|30 minutes|trente minutes|creneau|lundi|mardi|mercredi|jeudi|vendredi|agenda|invitation/.test(t));
+  const askedQuestion=/\?|comment|quel(le)?s?\b|est-ce que|pourquoi|combien|qu.?est-ce|avez-vous|etes-vous|vos /.test(lastJ);
   if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${S.junior?.first||"[prénom]"} de Smile. Je vous appelle à un mauvais moment ? »`, line};
-  for(const r of HELP_RULES) if(r.re.test(n)) return {cat:r.cat, say:r.say(co), line};
-  const turns=S.transcript.filter(t=>t.who==="prospect").length;
-  if(turns<=2) return {cat:"Raison de l'appel", say:`Parle de ${co.hook}, puis pose une question.`, line};
+
+  // 1. Rendez-vous accepté : conclure
+  if(proposedRdv && /ca marche|va pour|ok pour|d.?accord pour|parfait|je note|ca me va|c.?est bon pour moi|envoyez(-moi)? (l.?|une )?invitation/.test(n))
+    return {cat:"Conclusion", say:"Parfait : confirmez son e-mail, annoncez l'invitation, remerciez.", line};
+
+  // 2. Objection propre à ce prospect
+  if(coach.objKeys && coach.objKeys.test(n)) return {cat:"Son objection", say:coach.objReply, line};
+
+  // 3. Objection ou sujet : on retient ce qui a été dit EN DERNIER dans la réplique
+  let best=null;
+  for(const r of HELP_RULES){
+    const i=lastMatch(n, r.re); if(i<0) continue;
+    const w = i + (r.type==="obj" ? 1000 : 0);   // une objection passe avant un sujet
+    if(!best || w>best.w) best={r, w};
+  }
+  if(best && best.r.type!=="open") return {cat:best.r.cat, say:pick(best.r.cat, best.r.say(co)), line};
+
+  // 4. Signal d'ouverture
+  if(best && best.r.type==="open")
+    return proposedRdv ? {cat:"Ouverture", say:"Reformulez son besoin en une phrase, puis reconfirmez le créneau.", line}
+                       : {cat:"Ouverture : proposez le rendez-vous", say:"« 30 minutes pour en parler, plutôt mardi 10 h ou jeudi 14 h ? »", line};
+
+  // 5. Selon le moment de l'appel
+  if(pTurns<=1) return {cat:"Raison de l'appel", say:`Parlez de ${co.hook}, puis posez une question.`, line};
+  if(pTurns>=5 && !proposedRdv) return {cat:"Il est temps de conclure", say:"« 30 minutes pour approfondir, plutôt mardi ou jeudi ? »", line};
+  if(!askedQuestion || pTurns<=3){
+    const q=coach.questions[(S.helpQ||0) % coach.questions.length];
+    return {cat:"Question à poser", say:`« ${q} »`, line, q:true};
+  }
   return {cat:"Preuve à citer", say:`${co.proof.charAt(0).toUpperCase()+co.proof.slice(1)}.`, line};
 }
 function setHelpButton(){
@@ -1471,11 +1529,18 @@ function setHelpButton(){
 }
 function updateTip(){
   if(!S.helpAuto) return;
+  // Nouvelle réplique du prospect : la suggestion précédente a servi, on passe à la formulation ou question suivante
+  const pt=S.transcript.filter(x=>x.who==="prospect").length;
+  if(pt!==S.helpTurn){
+    if(S.helpLastTip){ S.helpRot=S.helpRot||{}; S.helpRot[S.helpLastTip.cat]=(S.helpRot[S.helpLastTip.cat]||0)+1; if(S.helpLastTip.q) S.helpQ=(S.helpQ||0)+1; }
+    S.helpTurn=pt; S.helpLastTip=null;
+  }
   const box=$("#helpBox"), t=computeTip();
   const key=t.cat+"|"+t.say;
   box.hidden=false;
   if(key===S.helpKey){ const l=box.querySelector(".hline"); if(l) l.textContent=t.line?`« ${t.line.length>90?t.line.slice(-90):t.line} »`:"Début d'appel"; return; }
   S.helpKey=key; S.helpUsed=(S.helpUsed||0)+1;
+  S.helpLastTip=t;
   box.innerHTML=`<p class="hhead"><span>${esc(t.cat)}</span><span class="hline">${t.line?`« ${esc(t.line.length>90?t.line.slice(-90):t.line)} »`:"Début d'appel"}</span></p><p class="say">${esc(t.say)}</p>`;
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
 }
@@ -1664,7 +1729,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
-  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false; S.helpAuto = S.scenario.aid==="souffleur"; S.helpKey=""; clearTimeout(S.helpTimer);
+  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false; S.helpAuto = S.scenario.aid==="souffleur"; S.helpKey=""; clearTimeout(S.helpTimer); S.helpRot={}; S.helpQ=0; S.helpTurn=0; S.helpLastTip=null;
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
   $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
