@@ -120,6 +120,8 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .help-box .hi:last-child{margin-bottom:0}
 .help-box .hi b{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;font-weight:600;margin-bottom:2px}
 .help-box .say{font-size:1.08rem;font-weight:500}
+.help-box p.ask{margin:10px 0 0;font-size:1rem;opacity:.9}
+.help-box p.ask b{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;margin-right:6px}
 .help-box p.say{font-size:1.25rem;line-height:1.35;margin:0;font-weight:500}
 .toggle.help{background:var(--orange)}
 .toggle.help[aria-pressed="true"]{background:var(--white);color:var(--orange);box-shadow:inset 0 0 0 2px var(--orange)}
@@ -700,7 +702,13 @@ Contexte que tu connais :
 ${co.context.map(l=>"- "+l).join("\n")}
 - ${co.decision}
 - Actualité récente de ton entreprise : ${co.actu}.
-- Comme beaucoup de décideurs, tu reçois chaque semaine plusieurs appels d'ESN qui se ressemblent tous ; tu en es lassé${e}. Ce qui peut te faire changer d'avis : un commercial qui connaît ta situation, qui va droit au but et qui t'apporte quelque chose de concret.`;
+- Comme beaucoup de décideurs, tu reçois chaque semaine plusieurs appels d'ESN qui se ressemblent tous ; tu en es lassé${e}.
+
+C'EST UN VRAI APPEL À FROID :
+- Tu ne sais pas pourquoi on t'appelle et tu ne parles pas spontanément de tes projets ni de ton actualité. Ton contexte ci-dessus, tu ne le révèles que par petites touches, et seulement si le commercial te pose de bonnes questions ouvertes.
+- Avant tout, tu veux savoir à qui tu as affaire. Tu poses des questions sur Smile, une à la fois, au fil de l'appel, par exemple : « Smile, c'est quoi exactement ? », « Vous êtes combien ? », « Vous avez des équipes à Lille ? », « Vous avez fait quoi chez des entreprises comme nous ? », « Vous travaillez avec qui dans la région ? », « Vous faites du projet ou de la régie ? », « Vous êtes forts sur quoi ? », « Qu'est-ce que vous avez de plus que les autres ? ». Pose au moins deux ou trois de ces questions pendant l'appel.
+- Si la réponse est vague ou ressemble à une plaquette, tu demandes un exemple concret ou tu décroches un peu. Si elle est précise (une vraie référence, un chiffre, une entité du groupe) et suivie d'une question sur toi, tu deviens plus réceptif.
+- Ce qui te fait accepter un rendez-vous : un commercial qui ne cherche pas à vendre, qui s'intéresse vraiment à ton équipe et à tes priorités, et qui propose un échange mutuel plutôt qu'une présentation.`;
 
   const levels = {
     n1:`Ta situation à cet instant : tu sors d'une réunion, plutôt de bonne humeur.
@@ -734,7 +742,7 @@ Comportement (niveau 3, appel réaliste) :
 - Tu peux le tester : « C'est quoi Smile, en une phrase ? ».
 - Dès la présentation, tu coupes : « C'est pour quoi exactement ? ».
 - Tes objections possibles : « Je ne peux pas faire de rendez-vous avec toutes les ESN qui m'appellent », « Pas de besoin pour le moment », « Je n'ai pas le temps », « ${co.objection} ».
-- Tu acceptes un rendez-vous seulement si le commercial fait référence à ton actualité ou à ta situation, pose au moins une question pertinente et propose un créneau précis. Une référence client vraiment proche de ton problème te convainc fortement.
+- Tu acceptes un rendez-vous seulement si le commercial ne cherche pas à te vendre quelque chose, répond précisément à tes questions sur Smile, te pose au moins une question pertinente sur ton équipe, et propose un échange court. Une référence client vraiment proche de ton problème te convainc fortement.
 - Sinon, au bout d'environ 3 minutes, tu conclus poliment : « Envoyez-moi un mail, je regarderai. Bonne journée. »`
   };
 
@@ -886,8 +894,15 @@ Réponses types aux objections :
 - « Pas de projet immédiat » : échanger sur la roadmap et anticiper les besoins futurs.
 - « Pas la bonne personne » : demander à être redirigé vers la bonne personne.
 - « Pas intéressé » : demander ce qui n'intéresse pas exactement (ne travaille pas avec des ESN, ou pas de sujet pour le moment ?).
-Objections les plus fréquentes sur le terrain, et ce qu'on attend :
-- « C'est pour quoi exactement ? » : répondre en une phrase claire liée à l'actualité du prospect (pas un catalogue d'offres), puis enchaîner sur une question.
+Réponses de référence de l'agence (style attendu : ne pas vendre, s'intéresser à l'équipe, toujours finir par une question ouverte) :
+- Sollicité par trop d'ESN : « Je comprends totalement. Je ne cherche pas à vous vendre quoi que ce soit : mon idée, c'est de comprendre comment vous travaillez, ce qui vous facilite la vie ou vous prend du temps, et voir si un jour on peut être un vrai appui. Vous avez déjà un ou deux partenaires avec qui ça se passe bien ? »
+- « Je ne peux pas faire de rendez-vous avec toutes les ESN qui m'appellent » : « Je comprends, et justement, je préfère qu'on prenne 30 minutes une fois, plutôt que de vous rappeler trois fois sans savoir comment vous travaillez. Le jour où il y a un vrai sujet, on sait déjà comment avancer, et je ne vous embête plus entre-temps. Ça vous irait qu'on fasse ça une fois, tranquillement ? »
+- « C'est pour quoi exactement ? » : « L'idée est d'apprendre à connaître votre équipe et vos enjeux, pas de vous vendre quoi que ce soit, pour être prêts le jour où vous aurez besoin d'un renfort ou d'une expertise. Comment votre équipe est-elle structurée aujourd'hui ? »
+- Prospect pressé : ne pas forcer, proposer un moment plus posé d'une vingtaine de minutes et laisser le choix : « Vous préférez un court échange en visio ou sur site ? »
+- « Pas de besoin pour le moment » : « Ce n'est justement pas lié à un besoin immédiat. J'aime rencontrer les équipes à froid, sans pression de projet. Quels sont les grands sujets qui vous mobilisent en ce moment ? » Pas de justification défensive.
+- Prospect ouvert : proposer le rendez-vous comme un échange mutuel (30 minutes en visio pour se présenter mutuellement, partager comment Smile accompagne des équipes similaires et comprendre ses priorités), puis une question ouverte : « Quels créneaux vous conviendraient la semaine prochaine ? »
+- Mini pitch si on le demande : Smile en une phrase (environ 2 000 passionnés de tech, les cinq domaines, les entités du groupe), puis ramener aussitôt la conversation sur le prospect.
+Autres objections fréquentes, et ce qu'on attend :
 - « Je suis sollicité par trop d'ESN » / « Je ne peux pas faire de rendez-vous avec toutes les ESN qui m'appellent » : reconnaître que c'est légitime, se différencier concrètement (présence locale à Lille, référence proche de son problème, entité spécialisée du groupe, projet ou régie selon son besoin), proposer un échange court en promettant de ne pas insister si ce n'est pas pertinent.
 - Prospect trop pressé : ne pas dérouler le pitch ; aller à l'essentiel en une phrase, ou demander le meilleur moment pour rappeler.
 - « Pas de besoin pour le moment » : proposer d'échanger sur la roadmap pour anticiper, ou évoquer un renfort en régie si son équipe est chargée.`;
@@ -895,12 +910,12 @@ Objections les plus fréquentes sur le terrain, et ce qu'on attend :
 const GRIDS = {
   appel:[
     ["accroche","Accroche et permission","Se présente clairement (prénom, Smile) et demande si c'est un bon moment."],
-    ["raison","Raison de l'appel","Cite un fait récent et précis sur le prospect, pas une généralité."],
-    ["valeur","Proposition de valeur","Un problème, un résultat, une preuve (référence Smile exacte et pertinente)."],
+    ["raison","Raison de l'appel","Explique simplement pourquoi il appelle (faire connaissance, comprendre l'équipe et ses enjeux) sans chercher à vendre ; citer une actualité du prospect est un plus."],
+    ["valeur","Réponses sur Smile","Répond aux questions du prospect sur Smile de façon courte et précise (chiffres, références, entités exacts), puis ramène la conversation sur lui."],
     ["decouverte","Questions de découverte","Pose des questions ouvertes et rebondit sur les réponses."],
     ["ecoute","Écoute","Laisse parler le prospect (cible : 60 % de temps de parole pour lui), ne coupe pas, reformule."],
     ["objections","Traitement des objections","Accueille l'objection, rassure, relance par une question, sans forcer."],
-    ["rdv","Proposition de rendez-vous","Propose un échange de 30 minutes lié au besoin exprimé, avec deux créneaux précis."],
+    ["rdv","Proposition de rendez-vous","Propose un échange de 30 minutes présenté comme mutuel (comprendre ses priorités, partager comment Smile accompagne des équipes similaires), avec une question ouverte sur les créneaux ou deux créneaux précis."],
     ["conclusion","Conclusion","Confirme le rendez-vous et l'e-mail, remercie, ou obtient une prochaine étape claire."]
   ],
   barrage:[
@@ -1281,18 +1296,19 @@ const MEMO_STEPS = [
   ["Raison de l'appel","« J'ai vu que [actualité]. Félicitations. » Un fait précis, pas une généralité."],
   ["Proposition de valeur","Un problème, un résultat, une preuve : « Nous accompagnons des [type d'entreprise] qui [problème]. Chez [client], nous avons [résultat]. »"],
   ["Découverte","« Comment gérez-vous aujourd'hui [sujet] ? » « Qu'aimeriez-vous améliorer ? » « Qui d'autre est impliqué ? »"],
-  ["Rendez-vous","« Je vous propose 30 minutes pour voir si on peut vous aider sur [besoin]. Plutôt [créneau 1] ou [créneau 2] ? »"],
+  ["Rendez-vous","« 30 minutes en visio pour se présenter mutuellement : vos priorités, et comment on accompagne des équipes comme la vôtre. Quels créneaux vous conviendraient ? »"],
   ["Conclusion","« Parfait, je vous envoie l'invitation à [e-mail]. Merci, bonne journée. »"]
 ];
 const MEMO_PITCH = "Smile, c'est environ 2 000 passionnés de tech en Europe. On accompagne nos clients en projet ou en régie sur le web et le mobile, le cloud et la cybersécurité, l'e-commerce, la data et l'IA, l'IoT et l'embarqué. Le groupe compte aussi des entités spécialisées : UX Republic (UX), Neopixl (mobile), Alter Way (cybersécurité), Synotis (data), Creativestyle (e-commerce open source).";
 const MEMO_OBJ = [
-  ["C'est pour quoi exactement ?","Une phrase, liée à son actualité, puis une question. Pas le catalogue des offres."],
-  ["Trop d'ESN m'appellent","« Je comprends, vous devez en avoir beaucoup. » Puis une différence concrète : agence à Lille, référence proche de son sujet, projet ou régie selon son besoin. « 30 minutes, et si ce n'est pas pertinent je ne vous relance pas. »"],
-  ["Trop pressé","Pas de pitch : l'essentiel en une phrase, ou « Quel est le meilleur moment pour vous rappeler ? »"],
-  ["Pas de besoin pour le moment","Échanger sur la roadmap pour anticiper, ou proposer un renfort en régie si l'équipe est chargée."],
+  ["Sollicité par trop d'ESN","« Je comprends totalement. Je ne cherche pas à vous vendre quoi que ce soit : juste comprendre comment vous travaillez. Vous avez déjà un ou deux partenaires avec qui ça se passe bien ? »"],
+  ["Pas de RDV avec toutes les ESN","« Justement : 30 minutes une fois, plutôt que de vous rappeler trois fois. Le jour où il y a un vrai sujet, on sait comment avancer. Ça vous irait, tranquillement ? »"],
+  ["C'est pour quoi exactement ?","« Apprendre à connaître votre équipe et vos enjeux, pas vous vendre quoi que ce soit. Comment votre équipe est-elle structurée aujourd'hui ? »"],
+  ["Pressé","« Je comprends. Prenons plutôt une vingtaine de minutes plus posées : visio ou sur site, vous préférez ? »"],
+  ["Pas de besoin","« Ce n'est pas lié à un besoin immédiat : j'aime rencontrer les équipes à froid. Quels sujets vous mobilisent en ce moment ? »"],
+  ["Prospect ouvert","« 30 minutes en visio pour se présenter mutuellement. Quels créneaux vous conviendraient la semaine prochaine ? »"],
   ["Pas de budget","Solutions modulaires, à son rythme. Le rendez-vous sert à faire connaissance et explorer ses priorités, cette année ou la suivante."],
   ["Déjà un prestataire","La plupart de nos clients travaillent avec d'autres sociétés. Smile vient en complément, avec une expertise pointue. Preuve : Somfy."],
-  ["Pas le temps","C'est justement quand on est chargé qu'on peut faire gagner du temps. 30 minutes pour évaluer."],
   ["Pas la bonne personne","« Pourriez-vous me rediriger vers la bonne personne ? »"],
   ["Pas intéressé","« Qu'est-ce qui ne vous intéresse pas exactement : travailler avec une ESN, ou pas de sujet en ce moment ? »"]
 ];
@@ -1418,65 +1434,91 @@ const COACH_DEFAULT = { objKeys:null, objReply:"",
   questions:["Quelle est votre priorité numéro un cette année ?","Qu'est-ce qui fonctionne bien aujourd'hui, et que voudriez-vous améliorer ?","Qui d'autre est impliqué dans ce type de décision ?"]};
 function coachFor(co){ return COACH[co.id] || (co.base && COACH[co.base]) || COACH_DEFAULT; }
 
-/* Règles générales. type : obj (objection), topic (sujet), open (ouverture). Plusieurs formulations pour ne pas se répéter. */
+/* Règles générales, rédigées à partir des réponses de terrain de l'agence.
+   type : obj (objection ou question à traiter en priorité), topic (sujet évoqué), open (ouverture).
+   say : la phrase à dire (plusieurs formulations), ask : la relance, toujours une question ouverte. */
+const RDV_SAY = "« Prenons 30 minutes en visio pour se présenter mutuellement : vos priorités, et comment on accompagne des équipes comme la vôtre. »";
+const RDV_ASK = "« Quels créneaux vous conviendraient la semaine prochaine ? »";
 const HELP_RULES = [
-  {type:"obj", cat:"Objection : trop d'ESN", re:/\besn\b|ssii|sollicit|appellent tous|toutes les semaines|rendez-vous avec toutes|tout le monde m.?appelle/,
-   say:co=>[`Normal. Notre différence : 96 experts à Lille, et ${co.proof}.`, `Je comprends. 30 minutes, et si ce n'est pas utile, je ne vous relance pas.`]},
-  {type:"obj", cat:"Question : c'est pour quoi ?", re:/c.?est pour quoi|a quel sujet|de quoi s.?agit|pourquoi vous m.?appel|vous voulez quoi|concretement/,
-   say:co=>[`« C'est au sujet de ${co.hook}. Comment l'abordez-vous ? »`]},
-  {type:"obj", cat:"Question : qui est Smile ?", re:/c.?est quoi smile|qui etes|vous faites quoi|smile c.?est|connais pas/,
-   say:()=>["Smile : 2 000 experts tech en Europe, leader de l'open source, dont 96 à Lille."]},
-  {type:"obj", cat:"Question : votre différence ?", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile/,
-   say:co=>[`Open source, projet ou régie au choix, et ${co.proof}.`]},
-  {type:"obj", cat:"Objection : pas le temps", re:/pas le temps|deux minutes|une minute|je suis presse|en reunion|je cours|deborde|pas maintenant/,
-   say:()=>["Je fais court : quel est le meilleur moment pour 30 minutes cette semaine ?","Une seule question, et je vous laisse : quel créneau pour en reparler ?"]},
-  {type:"obj", cat:"Objection : envoyez un mail", re:/(envoyez|envoie|ecrivez)(-moi)? (un )?(mail|e-mail|courriel)|par mail|une plaquette|de la doc/,
-   say:()=>["Avec plaisir. Pour qu'il soit utile : quelle est votre priorité du moment ?","Bien sûr. Et je vous rappelle jeudi pour en parler 5 minutes ?"]},
-  {type:"obj", cat:"Objection : déjà un prestataire", re:/prestataire|deja quelqu|deja une agence|deja une esn|on travaille deja|on a deja (un|une|des)/,
-   say:()=>["Chez Somfy, on a repris le prestataire en place sans couper le business : NPS 8/10.","La plupart de nos clients ont déjà une ESN : on vient en complément, sur un sujet pointu."]},
-  {type:"obj", cat:"Objection : on fait en interne", re:/en interne|nous-memes|equipe(s)? interne/,
-   say:()=>["On renforce vos équipes en régie : vos équipes gardent la main."]},
-  {type:"obj", cat:"Objection : mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe/,
-   say:()=>["Je comprends. Commençons petit, sur un périmètre test, pour faire nos preuves."]},
-  {type:"obj", cat:"Objection : appels d'offres", re:/appel(s)? d.?offre|marche(s)? public|accord-cadre|service achats/,
-   say:()=>["Bien sûr. Un échange en amont vous aide à préparer le cahier des charges."]},
-  {type:"obj", cat:"Objection : budget", re:/budget|pas les moyens|trop cher|ca coute/,
-   say:()=>["Projet ou régie, c'est modulable : on avance à votre rythme, cette année ou la suivante."]},
-  {type:"obj", cat:"Objection : pas de besoin", re:/pas de besoin|pas de projet|pas pour le moment|pas d.?actualite|rien de prevu|pas prioritaire/,
-   say:()=>["Pas de souci : 30 minutes sur votre roadmap, pour anticiper la suite.","Je comprends. Qu'est-ce qui est prioritaire pour vous cette année ?"]},
-  {type:"obj", cat:"Objection : pas intéressé", re:/pas interesse|ca ne m.?interesse pas/,
-   say:()=>["Qu'est-ce qui ne vous intéresse pas : les ESN en général, ou le sujet en ce moment ?"]},
-  {type:"obj", cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui|voyez avec|mon collegue|pas mon perimetre/,
-   say:()=>["Qui serait la bonne personne ? Je peux l'appeler de votre part ?"]},
-  {type:"topic", cat:"Expertise : applications métiers", re:/metier|atelier|\bsav\b|\berp\b|odoo|\bcrm\b|ressaisie|outil(s)? interne/,
-   say:()=>["Applications métiers : Odoo partenaire Gold, 600 utilisateurs chez CRMA."]},
-  {type:"topic", cat:"Expertise : maintenance", re:/maintenance|\btma\b|vieill|ancien|legacy|dette technique|obsolete|plus de (dix|quinze|10|15) ans/,
-   say:()=>["Maintenance applicative : Airbus nous fait confiance depuis plus de 10 ans."]},
-  {type:"topic", cat:"Expertise : mobile", re:/mobile|smartphone|appli(cation)? (mobile|client)|\bstore\b|telechargement|hors connexion/,
-   say:()=>["Mobile : appli STIB refondue, 1,8 million de téléchargements, notée 4,1/5."]},
-  {type:"topic", cat:"Expertise : renfort d'équipe", re:/recrut|manque de (profil|monde|ressource)|sous-effectif|pas assez de monde|renfort|on est charge/,
-   say:()=>["Régie : on renforce votre équipe avec quelques experts ciblés."]},
-  {type:"topic", cat:"Expertise : data et IA", re:/\bdata\b|donnee|\bia\b|intelligence artificielle|generative|recommandation|machine learning/,
-   say:()=>["Data et IA : chez Biogaran, de l'acculturation en CODIR jusqu'au POC d'IA générative.","Data : Data Factory de 10 personnes chez Somfy."]},
-  {type:"topic", cat:"Expertise : cloud", re:/cloud|heberg|migration|datacenter|serveur|infra|\baws\b|azure/,
-   say:()=>["Cloud : migration d'Eram vers Google Cloud, infogérance 24/7 d'ameli.fr."]},
-  {type:"topic", cat:"Expertise : cybersécurité", re:/securit|cyber|piratage|attaque|rgpd/,
-   say:()=>["Sécurité : Alter Way, audits, tests d'intrusion, RSSI à la demande."]},
-  {type:"topic", cat:"Expertise : UX et design", re:/\bux\b|ergonom|parcours|design|accessib|experience utilisateur|tests? utilisateur/,
-   say:()=>["UX : UX Republic, l'entité design du groupe.","Design system de 7 marques chez Pierre Fabre."]},
-  {type:"topic", cat:"Expertise : fidélité", re:/fidelit|carte de fidelite|programme client/,
-   say:()=>["Fidélité : appli My Visa, 1re de l'App Store finance, 90 % d'engagement."]},
-  {type:"topic", cat:"Expertise : marketplace", re:/marketplace|vendeur/,
-   say:()=>["Marketplace : celle d'Accor, construite en 6 mois, déploiement visé dans 90 pays."]},
-  {type:"topic", cat:"Expertise : données produit", re:/fiche(s)? produit|catalogue|\bpim\b|referentiel/,
-   say:()=>["Données produit : PIM Akeneo du Groupe Atlantic, primé en 2020."]},
-  {type:"topic", cat:"Expertise : omnicanal", re:/stock|magasin|omnicanal|drive|retrait|livraison/,
-   say:()=>["Omnicanal : stocks en temps réel et commande en magasin chez Cultura."]},
-  {type:"topic", cat:"Expertise : e-commerce", re:/e-commerce|site web|tunnel|conversion|black friday|trafic|ralenti|plante|soldes/,
-   say:()=>["E-commerce : 17 ans d'expérience, Cultura nous fait confiance depuis 10 ans."]},
-  {type:"topic", cat:"Expertise : IoT", re:/\biot\b|objet(s)? connecte|capteur|compteur/,
-   say:()=>["IoT : 20 000 compteurs connectés chez GRDF."]},
-  {type:"open", cat:"Ouverture", re:/interessant|pourquoi pas|ca peut (m.?)?interess|dites-m.?en plus|ca me parle|effectivement|c.?est vrai que|justement|en effet/, say:()=>[]}
+  // Objections du terrain (réponses de l'agence)
+  {type:"obj", prio:600, cat:"Objection : pas de rendez-vous avec toutes les ESN", re:/rendez-vous avec toutes|recevoir toutes les esn|voir toutes les esn|toutes les esn qui m.?appellent/,
+   say:()=>["« Je comprends. Justement : 30 minutes une fois, plutôt que de vous rappeler trois fois sans savoir comment vous travaillez. »","« Comme ça, le jour où il y a un vrai sujet, on sait déjà comment avancer, et je ne vous embête plus entre-temps. »"],
+   ask:()=>"« Ça vous irait qu'on fasse ça une fois, tranquillement ? »"},
+  {type:"obj", cat:"Objection : sollicité par trop d'ESN", re:/\besn\b|ssii|sollicit|appellent tous|toutes les semaines|tout le monde m.?appelle|tout le monde me dit/,
+   say:()=>["« Je comprends totalement. Je ne cherche pas à vous vendre quoi que ce soit : juste comprendre comment vous travaillez. »","« Mon idée : voir ce qui vous facilite la vie ou vous prend du temps, et si un jour on peut être un vrai appui. »"],
+   ask:()=>"« Vous avez déjà un ou deux partenaires avec qui ça se passe bien ? »"},
+  {type:"obj", cat:"Question : c'est pour quoi exactement ?", re:/c.?est pour quoi|a quel sujet|de quoi s.?agit|pourquoi vous m.?appel|vous voulez quoi|concretement|c.?est commercial/,
+   say:()=>["« L'idée, c'est d'apprendre à connaître votre équipe et vos enjeux, pas de vous vendre quoi que ce soit. »","« Comprendre vos sujets, e-commerce, web, cloud ou data, pour être prêts le jour où vous aurez besoin d'un renfort. »"],
+   ask:()=>"« Comment votre équipe est-elle structurée aujourd'hui ? »"},
+  {type:"obj", cat:"Prospect pressé", re:/pas le temps|deux minutes|une minute|presse|en reunion|je cours|deborde|pas maintenant|faites vite|pas le moment/,
+   say:()=>["« Je comprends tout à fait. Je vous propose plutôt un moment plus posé, une vingtaine de minutes. »"],
+   ask:()=>"« Vous préférez un court échange en visio ou sur site ? »"},
+  {type:"obj", cat:"Objection : pas de besoin", re:/pas de besoin|pas de projet|pas pour le moment|pas d.?actualite|rien de prevu|pas prioritaire|tout va bien/,
+   say:()=>["« Je comprends. Ce n'est justement pas lié à un besoin immédiat : j'aime rencontrer les équipes à froid, sans pression de projet. »"],
+   ask:()=>"« Quels sont les grands sujets qui vous mobilisent en ce moment ? »"},
+  // Questions du prospect sur Smile
+  {type:"obj", cat:"Question : c'est quoi Smile ?", re:/c.?est quoi smile|smile,? c.?est quoi|smile,? c.?est|c.?est quoi exactement|qui etes|connais pas|vous faites quoi|vous etes qui|specialis|forts sur quoi|votre metier/,
+   say:()=>["« Smile, c'est environ 2 000 passionnés de tech en Europe : web et mobile, cloud, e-commerce, data et IA, IoT. »"],
+   ask:()=>"« Mais surtout, quels sujets vous animent aujourd'hui ? »"},
+  {type:"obj", cat:"Question : vos références", re:/references?|vous avez fait quoi|qu.?est-ce que vous avez fait|deja travaille|deja fait|exemple concret|vos clients|avec qui vous travaillez|comme nous/,
+   say:co=>[`« À Lille : Kiabi, Auchan, Adeo, Decathlon, Oney… Et par exemple, ${co.proof}. »`],
+   ask:()=>"« Et chez vous, ce serait plutôt quel type de sujet ? »"},
+  {type:"obj", cat:"Question : présence à Lille", re:/region|a lille|hauts-de-france|dans le nord|vous etes ou|bureaux/,
+   say:()=>["« 96 experts à Lille, depuis 15 ans, avec plus de 30 clients dans la région. »"],
+   ask:()=>"« Vous travaillez plutôt avec des partenaires locaux ? »"},
+  {type:"obj", cat:"Question : votre taille", re:/vous etes combien|combien de personnes|taille|gros|petite agence/,
+   say:()=>["« Environ 2 000 personnes en Europe, dont 96 à Lille. »"],
+   ask:()=>"« Et votre équipe, elle compte combien de personnes ? »"},
+  {type:"obj", cat:"Question : projet ou régie ?", re:/regie|forfait|projet ou|assistance technique|vous vendez quoi|mode de fonctionnement/,
+   say:()=>["« Les deux : en projet au forfait, ou en régie pour renforcer vos équipes. »"],
+   ask:()=>"« Aujourd'hui, vous fonctionnez plutôt comment avec vos partenaires ? »"},
+  {type:"obj", cat:"Question : les entités du groupe", re:/entite|filiale|groupe smile|ux republic|alter ?way|neopixl|synotis/,
+   say:()=>["« UX Republic pour l'UX, Neopixl pour le mobile, Alter Way pour la cybersécurité, Synotis pour la data, Creativestyle pour l'e-commerce. »"],
+   ask:()=>"« Lequel de ces sujets vous parle le plus ? »"},
+  {type:"obj", cat:"Question : votre différence", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile|de plus que les autres/,
+   say:co=>[`« Leader de l'open source, projet ou régie au choix, une équipe à Lille, et par exemple ${co.proof}. »`],
+   ask:()=>"« Qu'est-ce qui compte le plus pour vous chez un partenaire ? »"},
+  // Autres objections
+  {type:"obj", cat:"Objection : envoyez un mail", re:/(envoyez|envoie|ecrivez)(-moi)? (un )?(mail|e-mail|courriel)|par mail|une plaquette|de la doc|par ecrit/,
+   say:()=>["« Avec plaisir. Pour qu'il vous soit vraiment utile, j'ai besoin de comprendre vos sujets. »"],
+   ask:()=>"« Qu'est-ce qui vous mobilise le plus en ce moment ? »"},
+  {type:"obj", cat:"Objection : déjà un prestataire", re:/prestataire|deja quelqu|deja une agence|deja une esn|on travaille deja|on a deja (un|une|des)|contrat-cadre|referenc/,
+   say:()=>["« Très bien. La plupart de nos clients travaillent déjà avec d'autres ESN : on vient en complément, sur un sujet pointu. »"],
+   ask:()=>"« Qu'est-ce qui fonctionne bien avec eux, et qu'aimeriez-vous améliorer ? »"},
+  {type:"obj", cat:"Objection : on fait en interne", re:/en interne|nous-memes|equipe(s)? interne|internalis/,
+   say:()=>["« C'est une force. On intervient souvent en renfort de ces équipes, en régie, quand la charge monte. »"],
+   ask:()=>"« Comment gérez-vous les pics de charge aujourd'hui ? »"},
+  {type:"obj", cat:"Objection : mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe|juniors|delais/,
+   say:()=>["« Je comprends. C'est justement pour ça que je préfère d'abord comprendre comment vous travaillez. »"],
+   ask:()=>"« Qu'est-ce qui n'avait pas fonctionné ? »"},
+  {type:"obj", cat:"Objection : appels d'offres", re:/appel(s)? d.?offre|marche(s)? public|accord-cadre|service achats|les achats/,
+   say:()=>["« Bien sûr. Un échange en amont nous permet surtout de bien comprendre vos enjeux. »"],
+   ask:()=>"« Quels sujets arrivent chez vous dans les prochains mois ? »"},
+  {type:"obj", cat:"Objection : budget", re:/budget|pas les moyens|trop cher|ca coute|\btjm\b|vos tarifs|combien ca coute/,
+   say:()=>["« Je comprends. Projet ou régie, on s'adapte, et l'échange ne vous engage à rien. »"],
+   ask:()=>"« Quelles sont vos priorités pour l'année prochaine ? »"},
+  {type:"obj", cat:"Objection : pas intéressé", re:/pas interesse|ca ne m.?interesse pas|je ne vois pas l.?interet|pas le rapport/,
+   say:()=>["« Je comprends. Je ne cherche pas à vous vendre quelque chose aujourd'hui. »"],
+   ask:()=>"« Qu'est-ce qui ne vous parle pas : travailler avec une ESN, ou le sujet en ce moment ? »"},
+  {type:"obj", cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui|voyez avec|mon collegue|pas mon perimetre|au niveau du groupe/,
+   say:()=>["« Merci. Qui serait la bonne personne pour ces sujets ? »"],
+   ask:()=>"« Je peux l'appeler de votre part ? »"},
+  // Sujets évoqués : une expertise courte
+  {type:"topic", cat:"Expertise : applications métiers", re:/metier|atelier|\bsav\b|\berp\b|odoo|\bcrm\b|ressaisie|outil(s)? interne/, say:()=>["Applications métiers : Odoo partenaire Gold, 600 utilisateurs chez CRMA."], ask:()=>"« Qu'est-ce qui vous freine le plus sur ces outils ? »"},
+  {type:"topic", cat:"Expertise : maintenance", re:/maintenance|\btma\b|vieill|ancien|legacy|dette technique|obsolete|plus de (dix|quinze|10|15) ans/, say:()=>["Maintenance : Airbus nous confie la sienne depuis plus de 10 ans."], ask:()=>"« Votre équipe a encore du temps pour les nouveaux projets ? »"},
+  {type:"topic", cat:"Expertise : mobile", re:/mobile|smartphone|appli(cation)? (mobile|client)|\bstore\b|telechargement|hors connexion/, say:()=>["Mobile : appli STIB refondue, 1,8 million de téléchargements, notée 4,1/5."], ask:()=>"« Qu'est-ce que vos utilisateurs reprochent à l'appli ? »"},
+  {type:"topic", cat:"Expertise : renfort d'équipe", re:/recrut|manque de (profil|monde|ressource)|sous-effectif|pas assez de monde|renfort|on est charge/, say:()=>["Régie : on renforce votre équipe avec quelques experts ciblés."], ask:()=>"« Quels profils vous manquent le plus ? »"},
+  {type:"topic", cat:"Expertise : data et IA", re:/\bdata\b|donnee|\bia\b|intelligence artificielle|generative|recommandation|machine learning/, say:()=>["Data et IA : Biogaran, de l'acculturation en CODIR jusqu'au POC d'IA générative.","Data : Data Factory de 10 personnes chez Somfy."], ask:()=>"« Où en sont vos projets data aujourd'hui ? »"},
+  {type:"topic", cat:"Expertise : cloud", re:/cloud|heberg|migration|datacenter|serveur|infra|\baws\b|azure/, say:()=>["Cloud : migration d'Eram vers Google Cloud, infogérance 24/7 d'ameli.fr."], ask:()=>"« Vous en êtes où sur le cloud ? »"},
+  {type:"topic", cat:"Expertise : cybersécurité", re:/securit|cyber|piratage|attaque|rgpd/, say:()=>["Sécurité : Alter Way, audits, tests d'intrusion, RSSI à la demande."], ask:()=>"« Comment la sécurité est-elle gérée chez vous ? »"},
+  {type:"topic", cat:"Expertise : UX et design", re:/\bux\b|ergonom|parcours|design|accessib|experience utilisateur|tests? utilisateur/, say:()=>["UX : UX Republic, l'entité design du groupe.","Design system de 7 marques chez Pierre Fabre."], ask:()=>"« Comment testez-vous vos parcours aujourd'hui ? »"},
+  {type:"topic", cat:"Expertise : fidélité", re:/fidelit|carte de fidelite|programme client/, say:()=>["Fidélité : appli My Visa, 1re de l'App Store finance, 90 % d'engagement."], ask:()=>"« Qu'attendez-vous de votre programme de fidélité ? »"},
+  {type:"topic", cat:"Expertise : marketplace", re:/marketplace|vendeur/, say:()=>["Marketplace : celle d'Accor, construite en 6 mois."], ask:()=>"« Qu'est-ce qui coince avec les vendeurs ? »"},
+  {type:"topic", cat:"Expertise : données produit", re:/fiche(s)? produit|catalogue|\bpim\b|referentiel/, say:()=>["Données produit : PIM Akeneo du Groupe Atlantic, primé en 2020."], ask:()=>"« Comment gérez-vous vos fiches produits ? »"},
+  {type:"topic", cat:"Expertise : omnicanal", re:/stock|magasin|omnicanal|drive|retrait|livraison/, say:()=>["Omnicanal : stocks en temps réel et commande en magasin chez Cultura."], ask:()=>"« Comment se passe le lien entre magasins et site ? »"},
+  {type:"topic", cat:"Expertise : e-commerce", re:/e-commerce|site web|tunnel|conversion|black friday|trafic|ralenti|plante|soldes/, say:()=>["E-commerce : 17 ans d'expérience, Cultura nous fait confiance depuis 10 ans."], ask:()=>"« Qu'est-ce qui vous prend le plus de temps sur le site ? »"},
+  {type:"topic", cat:"Expertise : IoT", re:/\biot\b|objet(s)? connecte|capteur|compteur/, say:()=>["IoT : 20 000 compteurs connectés chez GRDF."], ask:()=>"« Quels objets voulez-vous connecter ? »"},
+  {type:"open", cat:"Ouverture", re:/interessant|pourquoi pas|ca peut (m.?)?interess|dites-m.?en plus|ca me parle|effectivement|c.?est vrai que|justement|en effet|parfait|ok d.?accord/, say:()=>[], ask:()=>""}
 ];
 
 function lastMatch(n, re){ let idx=-1; const g=new RegExp(re.source, "g"); let m; while((m=g.exec(n))){ idx=m.index; if(g.lastIndex===m.index) g.lastIndex++; } return idx; }
@@ -1490,37 +1532,41 @@ function computeTip(){
   const lastJ=jTurns[jTurns.length-1]||"";
   const proposedRdv=jTurns.some(t=>/rendez-vous|30 minutes|trente minutes|creneau|lundi|mardi|mercredi|jeudi|vendredi|agenda|invitation/.test(t));
   const askedQuestion=/\?|comment|quel(le)?s?\b|est-ce que|pourquoi|combien|qu.?est-ce|avez-vous|etes-vous|vos /.test(lastJ);
-  if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${S.junior?.first||"[prénom]"} de Smile. Je vous appelle à un mauvais moment ? »`, line};
+  if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${S.junior?.first||"[prénom]"} de Smile. Je vous appelle à un mauvais moment ? »`, ask:"", line};
 
   // 1. Rendez-vous accepté : conclure
   if(proposedRdv && /ca marche|va pour|ok pour|d.?accord pour|parfait|je note|ca me va|c.?est bon pour moi|envoyez(-moi)? (l.?|une )?invitation/.test(n))
-    return {cat:"Conclusion", say:"Parfait : confirmez son e-mail, annoncez l'invitation, remerciez.", line};
+    return {cat:"Conclusion", say:"« Parfait, je vous envoie l'invitation. C'est bien votre adresse habituelle ? »", ask:"Remerciez, sans en rajouter.", line};
 
   // 2. Objection propre à ce prospect
-  if(coach.objKeys && coach.objKeys.test(n)) return {cat:"Son objection", say:coach.objReply, line};
+  if(coach.objKeys && coach.objKeys.test(n)) return {cat:"Son objection", say:`« ${coach.objReply} »`, ask:`« ${coach.questions[0]} »`, line};
 
   // 3. Objection ou sujet : on retient ce qui a été dit EN DERNIER dans la réplique
   let best=null;
   for(const r of HELP_RULES){
     const i=lastMatch(n, r.re); if(i<0) continue;
-    const w = i + (r.type==="obj" ? 1000 : 0);   // une objection passe avant un sujet
+    const w = i + (r.type==="obj" ? 1000 : 0) + (r.prio||0);   // une objection passe avant un sujet
     if(!best || w>best.w) best={r, w};
   }
-  if(best && best.r.type!=="open") return {cat:best.r.cat, say:pick(best.r.cat, best.r.say(co)), line};
+  // Le prospect s'ouvre en milieu d'appel : c'est le moment de proposer le rendez-vous, même s'il évoque un sujet
+  const openSig = HELP_RULES.find(r=>r.type==="open").re.test(n);
+  if(openSig && !proposedRdv && pTurns>=3 && (!best || best.r.type!=="obj"))
+    return {cat:"Ouverture : proposez le rendez-vous", say:RDV_SAY, ask:RDV_ASK, line};
+  if(best && best.r.type!=="open") return {cat:best.r.cat, say:pick(best.r.cat, best.r.say(co)), ask:best.r.ask(co), line};
 
   // 4. Signal d'ouverture
   if(best && best.r.type==="open")
-    return proposedRdv ? {cat:"Ouverture", say:"Reformulez son besoin en une phrase, puis reconfirmez le créneau.", line}
-                       : {cat:"Ouverture : proposez le rendez-vous", say:"« 30 minutes pour en parler, plutôt mardi 10 h ou jeudi 14 h ? »", line};
+    return proposedRdv ? {cat:"Ouverture", say:"Reformulez son besoin en une phrase.", ask:RDV_ASK, line}
+                       : {cat:"Ouverture : proposez le rendez-vous", say:RDV_SAY, ask:RDV_ASK, line};
 
   // 5. Selon le moment de l'appel
-  if(pTurns<=1) return {cat:"Raison de l'appel", say:`Parlez de ${co.hook}, puis posez une question.`, line};
-  if(pTurns>=5 && !proposedRdv) return {cat:"Il est temps de conclure", say:"« 30 minutes pour approfondir, plutôt mardi ou jeudi ? »", line};
+  if(pTurns<=1) return {cat:"Raison de l'appel", say:"« L'idée : apprendre à connaître votre équipe et vos enjeux, pas vous vendre quoi que ce soit. »", ask:"« Comment votre équipe est-elle structurée aujourd'hui ? »", line};
+  if(pTurns>=5 && !proposedRdv) return {cat:"Il est temps de proposer le rendez-vous", say:RDV_SAY, ask:RDV_ASK, line};
   if(!askedQuestion || pTurns<=3){
     const q=coach.questions[(S.helpQ||0) % coach.questions.length];
-    return {cat:"Question à poser", say:`« ${q} »`, line, q:true};
+    return {cat:"Question à poser", say:`« ${q} »`, ask:"", line, q:true};
   }
-  return {cat:"Preuve à citer", say:`${co.proof.charAt(0).toUpperCase()+co.proof.slice(1)}.`, line};
+  return {cat:"Preuve à citer", say:`${co.proof.charAt(0).toUpperCase()+co.proof.slice(1)}.`, ask:"« Et chez vous, comment ça se passe ? »", line};
 }
 function setHelpButton(){
   const on=!!S.helpAuto;
@@ -1541,7 +1587,7 @@ function updateTip(){
   if(key===S.helpKey){ const l=box.querySelector(".hline"); if(l) l.textContent=t.line?`« ${t.line.length>90?t.line.slice(-90):t.line} »`:"Début d'appel"; return; }
   S.helpKey=key; S.helpUsed=(S.helpUsed||0)+1;
   S.helpLastTip=t;
-  box.innerHTML=`<p class="hhead"><span>${esc(t.cat)}</span><span class="hline">${t.line?`« ${esc(t.line.length>90?t.line.slice(-90):t.line)} »`:"Début d'appel"}</span></p><p class="say">${esc(t.say)}</p>`;
+  box.innerHTML=`<p class="hhead"><span>${esc(t.cat)}</span><span class="hline">${t.line?`« ${esc(t.line.length>90?t.line.slice(-90):t.line)} »`:"Début d'appel"}</span></p><p class="say">${esc(t.say)}</p>${t.ask?`<p class="ask"><b>Puis</b> ${esc(t.ask)}</p>`:""}`;
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
 }
 function tipSoon(){ clearTimeout(S.helpTimer); S.helpTimer=setTimeout(updateTip, 250); }
