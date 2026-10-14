@@ -54,6 +54,15 @@ def pick_data_dir() -> Path:
 
 DATA_DIR = pick_data_dir()
 SESSIONS = DATA_DIR / "sessions.jsonl"
+META = DATA_DIR / "meta.json"          # date de la dernière remise à zéro
+ARCHIVES = DATA_DIR / "archives"       # copies des données avant chaque remise à zéro
+
+
+def read_meta() -> dict:
+    try:
+        return json.loads(META.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 lock = threading.Lock()
 scheduler = None
 
@@ -67,9 +76,14 @@ if DATASET_REPO and HF_TOKEN:
             print(f"Résultats restaurés depuis {DATASET_REPO}")
         except Exception as e:
             print(f"Pas de sauvegarde à restaurer ({e.__class__.__name__})")
+    if not META.exists():
+        try:
+            shutil.copy(hf_hub_download(DATASET_REPO, "meta.json", repo_type="dataset", token=HF_TOKEN), META)
+        except Exception:
+            pass
     scheduler = CommitScheduler(
         repo_id=DATASET_REPO, repo_type="dataset", folder_path=DATA_DIR,
-        allow_patterns=["sessions.jsonl"], every=2, token=HF_TOKEN, private=True,
+        allow_patterns=["sessions.jsonl", "meta.json", "archives/*.jsonl"], every=2, token=HF_TOKEN, private=True,
     )
     lock = scheduler.lock
 
@@ -130,6 +144,30 @@ class GitHubBackup:
                 print(f"Sauvegarde GitHub : échec ({e})")
                 return
 
+    def put_file(self, name: str, data: bytes, message: str):
+        """Envoie un fichier quelconque (meta, archive) dans le dépôt de sauvegarde."""
+        url = f"{GITHUB_API}/repos/{GITHUB_REPO}/contents/{name}"
+        try:
+            g = httpx.get(url, headers=self.headers, timeout=30)
+            body = {"message": message, "content": base64.b64encode(data).decode()}
+            if g.status_code == 200:
+                body["sha"] = g.json().get("sha")
+            r = httpx.put(url, headers=self.headers, json=body, timeout=60)
+            if r.status_code not in (200, 201):
+                print(f"Sauvegarde GitHub ({name}) : échec {r.status_code} {r.text[:200]}")
+        except Exception as e:
+            print(f"Sauvegarde GitHub ({name}) : échec ({e})")
+
+    def restore_meta(self):
+        if META.exists():
+            return
+        try:
+            r = httpx.get(f"{GITHUB_API}/repos/{GITHUB_REPO}/contents/meta.json", headers=self.headers, timeout=30)
+            if r.status_code == 200 and r.json().get("content"):
+                META.write_bytes(base64.b64decode(r.json()["content"]))
+        except Exception:
+            pass
+
     def loop(self):
         while True:
             time.sleep(120)
@@ -140,6 +178,7 @@ github_backup = None
 if GITHUB_TOKEN and GITHUB_REPO and scheduler is None:
     github_backup = GitHubBackup()
     github_backup.restore()
+    github_backup.restore_meta()
     threading.Thread(target=github_backup.loop, daemon=True).start()
 
 BACKUP_ON = scheduler is not None or github_backup is not None or str(DATA_DIR) == "/data"
@@ -212,6 +251,7 @@ def config():
         "serverKey": bool(GEMINI_KEY),
         "managerReady": bool(MANAGER_PASSWORD),
         "backup": BACKUP_ON,
+        "resetAt": read_meta().get("resetAt"),
     }
 
 
@@ -235,7 +275,34 @@ def list_sessions(request: Request):
         return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré dans le Space."}, status_code=503)
     if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
         return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
-    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON}
+    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON, "resetAt": read_meta().get("resetAt")}
+
+
+@app.post("/api/reset")
+def reset_sessions(request: Request):
+    """Remise à zéro des résultats (onglet Manager). Les données sont archivées avant d'être effacées."""
+    if not MANAGER_PASSWORD:
+        return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré."}, status_code=503)
+    if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
+        return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
+    stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
+    reset_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    archived = 0
+    archive_name = f"archives/sessions-{stamp}.jsonl"
+    with lock:
+        old = SESSIONS.read_bytes() if SESSIONS.exists() else b""
+        archived = len([l for l in old.decode("utf-8", errors="ignore").splitlines() if l.strip()])
+        if archived:
+            ARCHIVES.mkdir(parents=True, exist_ok=True)
+            (DATA_DIR / archive_name).write_bytes(old)
+        SESSIONS.write_text("\n", encoding="utf-8")
+        META.write_text(json.dumps({"resetAt": reset_at}), encoding="utf-8")
+    if github_backup is not None:
+        if archived:
+            github_backup.put_file(archive_name, old, f"Archive avant remise à zéro {stamp}")
+        github_backup.push(force=True)
+        github_backup.put_file("meta.json", META.read_bytes(), f"Remise à zéro {stamp}")
+    return {"ok": True, "archived": archived, "resetAt": reset_at}
 
 
 # ---------- Relais vers Gemini (la clé reste sur le serveur) ----------
