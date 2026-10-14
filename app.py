@@ -263,10 +263,41 @@ async def save_session(request: Request):
         return JSONResponse({"ok": False, "error": "format"}, status_code=400)
     if not rec.get("id") or not rec.get("junior"):
         return JSONResponse({"ok": False, "error": "incomplet"}, status_code=400)
+    if not after_reset(rec) or rec["id"] in known_ids():
+        return {"ok": True, "skipped": True}
     with lock:
         with SESSIONS.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     return {"ok": True}
+
+
+def known_ids() -> set:
+    return {r.get("id") for r in read_sessions()}
+
+
+def after_reset(rec: dict) -> bool:
+    """Ignore les appels antérieurs à la dernière remise à zéro."""
+    reset_at = read_meta().get("resetAt")
+    return not reset_at or (rec.get("date") or "") >= reset_at
+
+
+@app.post("/api/sessions/sync")
+async def sync_sessions(request: Request):
+    """Les juniors renvoient tout leur historique local : le serveur ajoute les appels qu'il n'a pas encore.
+    Ainsi, aucun appel n'est perdu, même après un redémarrage du serveur ou une coupure réseau."""
+    try:
+        body = await request.json()
+        recs = [clean(r) for r in (body.get("sessions") or [])[:500] if isinstance(r, dict)]
+    except Exception:
+        return JSONResponse({"ok": False, "error": "format"}, status_code=400)
+    ids = known_ids()
+    new = [r for r in recs if r.get("id") and r.get("junior") and r["id"] not in ids and after_reset(r)]
+    if new:
+        with lock:
+            with SESSIONS.open("a", encoding="utf-8") as f:
+                for r in new:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    return {"ok": True, "added": len(new)}
 
 
 @app.get("/api/sessions")
