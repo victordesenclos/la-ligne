@@ -1122,6 +1122,7 @@ function renderChrome(){
       try{ saveHistory(keep(history())); safeSet("laligne.outbox", JSON.stringify(keep(outbox()))); }catch(e){}
       safeSet("laligne.resetAt", cfg.resetAt);
     }
+    if(cfg) setTimeout(()=>syncAll(), 800);
     if(cfg && cfg.serverKey){
       S.server = true; $("#keyBlock").hidden = true; renderChrome();
       connect("serveur", true);
@@ -1691,11 +1692,24 @@ async function flushOutbox(){
   safeSet("laligne.outbox", JSON.stringify(left));
   return left.length===0;
 }
+/* Synchronisation : renvoie tout l'historique local au serveur, qui ajoute ce qui lui manque.
+   Rattrape les appels faits hors connexion, avant la mise en place de la sauvegarde, ou perdus lors d'un redémarrage. */
+async function syncAll(){
+  if(!sharing()) return null;
+  try{
+    const r=await fetch("api/sessions/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessions:history()})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok && d.ok){ safeSet("laligne.outbox","[]"); safeSet("laligne.lastSync", new Date().toISOString()); return d.added; }
+  }catch(e){}
+  return null;
+}
 async function recordSession(rec){
   const h=history(); h.push(rec); saveHistory(h);
   if(!sharing()) return null;
   const box=outbox(); box.push(rec); safeSet("laligne.outbox", JSON.stringify(box));
-  return flushOutbox();
+  const ok = await flushOutbox();
+  syncAll();
+  return ok;
 }
 /* =========================================================
    AUDIO
