@@ -120,6 +120,7 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .help-box .hi:last-child{margin-bottom:0}
 .help-box .hi b{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;font-weight:600;margin-bottom:2px}
 .help-box .say{font-size:1.08rem;font-weight:500}
+.help-box p.say{font-size:1.25rem;line-height:1.35;margin:0;font-weight:500}
 .toggle.help{background:var(--orange)}
 .toggle.help[aria-pressed="true"]{background:var(--white);color:var(--orange);box-shadow:inset 0 0 0 2px var(--orange)}
 .help-box .hhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.8rem;opacity:.75;margin:0 0 10px;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:8px}
@@ -330,7 +331,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
         <div class="callstate" id="callState" aria-live="polite">Connexion…</div>
         <div class="controls">
           <button class="btn hang" id="hangBtn" type="button">Raccrocher</button>
-          <button class="btn toggle" id="memoToggle" type="button" aria-pressed="false">Aide-mémoire</button>
+          <button class="btn toggle" id="memoToggle" type="button" aria-pressed="false">Mémo Smile</button>
           <button class="btn toggle" id="liveToggle" type="button" aria-pressed="false">Afficher la transcription</button>
           <button class="btn toggle help" id="helpBtn" type="button">Souffleur IA</button>
         </div>
@@ -513,7 +514,7 @@ const PORTFOLIOS = {
 
 const COMPANIES = [
   {
-    id:"decathlon", name:"Decathlon", owner:"Thibaut",
+    id:"decathlon", hook:"votre programme seconde vie en ligne", proof:"on travaille déjà avec Decathlon sur les objets connectés", name:"Decathlon", owner:"Thibaut",
     desc:"distributeur d'articles de sport, siège à Villeneuve-d'Ascq",
     contact:{first:"Julien", last:"Vasseur", role:"Head of Digital Product e-commerce France", gender:"M", voice:"Puck"},
     assistant:{first:"Margaux", last:"Petit", gender:"F", voice:"Despina"},
@@ -531,7 +532,7 @@ const COMPANIES = [
     refs:"Decathlon (plateforme d'objets connectés, relation existante), Cultura (omnicanal et marketplace depuis 10 ans), Somfy (performance et dette technique d'une plateforme e-commerce)."
   },
   {
-    id:"auchan", name:"Auchan", owner:"Thibaut",
+    id:"auchan", hook:"la refonte de votre appli fidélité", proof:"Biogaran nous a confié son projet d'IA générative", name:"Auchan", owner:"Thibaut",
     desc:"groupe de distribution alimentaire, Auchan Retail France, siège à Croix",
     contact:{first:"Sandrine", last:"Lemaire", role:"Directrice data et CRM", gender:"F", voice:"Kore"},
     assistant:{first:"Paul", last:"Morel", gender:"M", voice:"Achird"},
@@ -549,7 +550,7 @@ const COMPANIES = [
     refs:"Biogaran (IA générative, du test à la mise en production), Somfy (Data Factory de 10 personnes), Groupe Atlantic (référentiel produit unique)."
   },
   {
-    id:"sncf", name:"SNCF", owner:"Thibaut",
+    id:"sncf", hook:"la modernisation des outils des agents", proof:"on a refondu l'appli de la STIB, 1,8 million de téléchargements", name:"SNCF", owner:"Thibaut",
     desc:"SNCF Voyageurs, activité TER Hauts-de-France, à Lille",
     contact:{first:"Karim", last:"Benhamou", role:"Responsable du pôle applications métiers TER Hauts-de-France", gender:"M", voice:"Charon"},
     assistant:{first:"Nadia", last:"Lefort", gender:"F", voice:"Sulafat"},
@@ -567,7 +568,7 @@ const COMPANIES = [
     refs:"STIB (application mobile des transports bruxellois, 1,8 million de téléchargements), ameli.fr (30 millions de visites par mois, marché public renouvelé), CRMA (application métier Odoo pour 600 utilisateurs), GRDF (plateforme métier à grande échelle, 20 000 compteurs)."
   },
   {
-    id:"adeo", name:"Adeo", owner:"Valentine",
+    id:"adeo", hook:"la plateforme commune à vos enseignes", proof:"150 sites sur un socle commun chez Pierre Fabre", name:"Adeo", owner:"Valentine",
     desc:"groupe d'enseignes de bricolage (Leroy Merlin, Weldom, Bricoman…), siège à Ronchin",
     contact:{first:"Hélène", last:"Dufresne", role:"Directrice des plateformes digitales groupe", gender:"F", voice:"Leda"},
     assistant:{first:"Thomas", last:"Lebrun", gender:"M", voice:"Iapetus"},
@@ -585,7 +586,7 @@ const COMPANIES = [
     refs:"Pierre Fabre (150 sites de marques sur un socle commun, 60 % d'économies), Somfy (14 sites sur un modèle commun), Groupe Atlantic (référentiel produit unique)."
   },
   {
-    id:"leroymerlin", name:"Leroy Merlin", owner:"Valentine",
+    id:"leroymerlin", hook:"votre assistant de conseil par IA", proof:"une Data Factory de 10 personnes chez Somfy", name:"Leroy Merlin", owner:"Valentine",
     desc:"enseigne de bricolage du groupe Adeo, siège à Lezennes",
     contact:{first:"Maxime", last:"Carpentier", role:"Head of Data/IA, Leroy Merlin France", gender:"M", voice:"Orus"},
     assistant:{first:"Camille", last:"Faure", gender:"F", voice:"Zephyr"},
@@ -603,7 +604,7 @@ const COMPANIES = [
     refs:"Biogaran (IA générative, du pilote à la mise en production), Somfy (Data Factory de 10 personnes), Groupe Atlantic (qualité et gouvernance des données produit). Entité du groupe : Synotis, spécialiste de la data."
   },
   {
-    id:"boulanger", name:"Boulanger", owner:"Valentine",
+    id:"boulanger", hook:"votre nouveau service de réparation", proof:"600 utilisateurs sur Odoo chez CRMA", name:"Boulanger", owner:"Valentine",
     desc:"distributeur d'électroménager et de multimédia, siège à Lesquin",
     contact:{first:"Émilie", last:"Ravel", role:"Responsable applications métier", gender:"F", voice:"Aoede"},
     assistant:{first:"Antoine", last:"Roux", gender:"M", voice:"Fenrir"},
@@ -621,7 +622,7 @@ const COMPANIES = [
     refs:"CRMA (application métier Odoo pour 600 utilisateurs), Suez (application de suivi des flux métier sur Symfony), Airbus (maintenance applicative depuis plus de 10 ans)."
   },
   {
-    id:"decathlon-ux", name:"Decathlon", track:"UX", owner:"Elisa",
+    id:"decathlon-ux", hook:"la refonte de votre appli", proof:"l'appli My Visa, 90 % d'engagement", name:"Decathlon", track:"UX", owner:"Elisa",
     desc:"distributeur d'articles de sport, siège à Villeneuve-d'Ascq",
     contact:{first:"Léa", last:"Fontaine", role:"Head of UX Design e-commerce", gender:"F", voice:"Callirrhoe"},
     assistant:{first:"Hugo", last:"Marchal", gender:"M", voice:"Umbriel"},
@@ -639,7 +640,7 @@ const COMPANIES = [
     refs:"UX Republic (entité UX du groupe : design, recherche utilisateur, CRO), My Visa (application mobile, 90 % d'engagement, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile, notée 4,1/5), Ministère de l'Éducation nationale (Système de design de l'État et accessibilité)."
   },
   {
-    id:"auchan-ux", name:"Auchan", track:"UX", owner:"Elisa",
+    id:"auchan-ux", hook:"la refonte de votre appli fidélité", proof:"UX Republic, l'entité UX du groupe", name:"Auchan", track:"UX", owner:"Elisa",
     desc:"groupe de distribution alimentaire, Auchan Retail France, siège à Croix",
     contact:{first:"Nicolas", last:"Garnier", role:"Directeur de l'expérience client digitale", gender:"M", voice:"Algenib"},
     assistant:{first:"Inès", last:"Barbier", gender:"F", voice:"Autonoe"},
@@ -657,7 +658,7 @@ const COMPANIES = [
     refs:"UX Republic (recherche utilisateur, UX et CRO), My Visa (applications et portail client, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile)."
   },
   {
-    id:"adeo-ux", name:"Adeo", track:"UX", owner:"Elisa",
+    id:"adeo-ux", hook:"le design system commun aux enseignes", proof:"un design system de 7 marques chez Pierre Fabre", name:"Adeo", track:"UX", owner:"Elisa",
     desc:"groupe d'enseignes de bricolage (Leroy Merlin, Weldom, Bricoman…), siège à Ronchin",
     contact:{first:"Sophie", last:"Delattre", role:"Lead Design System groupe", gender:"F", voice:"Erinome"},
     assistant:{first:"Julien", last:"Masset", gender:"M", voice:"Algieba"},
@@ -677,9 +678,9 @@ const COMPANIES = [
 ];
 
 const MODES = [
-  {id:"n1", group:"level", num:"1", kind:"appel", title:"Prospect bienveillant", sub:"Avec le souffleur IA en direct et l'aide-mémoire", aid:"souffleur"},
-  {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Avec l'aide-mémoire Smile, sans souffleur", aid:"memo"},
-  {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Sans aucune aide, tout se joue en 3 minutes", aid:"none"},
+  {id:"n1", group:"level", num:"1", kind:"appel", title:"Prospect bienveillant", sub:"Avec le souffleur IA en direct", aid:"souffleur"},
+  {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Avec le mémo Smile", aid:"memo"},
+  {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Sans aucune aide", aid:"none"},
   {id:"barrage", group:"drill", num:"A", kind:"barrage", title:"Passer le barrage", sub:"L'assistant filtre les appels", aid:"memo"},
   {id:"messagerie", group:"drill", num:"B", kind:"messagerie", title:"Laisser un message", sub:"30 secondes sur répondeur", aid:"memo"}
 ];
@@ -793,6 +794,7 @@ function registerCustom(){
     const F=c.gender==="F";
     COMPANIES.push({
       id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"",
+      hook:(c.actu||"").replace(/[.;].*$/,"").slice(0,70), proof:(COMPANIES.find(x=>x.id===c.base)||{}).proof||"des références comme Somfy ou Cultura",
       desc:c.desc||"entreprise",
       contact:{first:c.first, last:c.last, role:c.role, gender:c.gender, voice:F?"Kore":"Charon"},
       assistant:{first:F?"Thomas":"Claire", last:"Durand", gender:F?"M":"F", voice:F?"Orus":"Leda"},
@@ -1350,7 +1352,7 @@ function renderPrep(){
     </aside>
     <section class="card">
       ${axe?`<div class="axe-remind"><b>Ton axe de travail :</b> ${esc(axe)}</div>`:""}
-      <p class="aid-note">${s.aid==="souffleur"?"Pendant l'appel : souffleur IA en direct (bouton orange) et aide-mémoire Smile.":s.aid==="memo"?"Pendant l'appel : aide-mémoire Smile uniquement.":"Pendant l'appel : aucune aide. Prépare-toi bien."}</p>
+      <p class="aid-note">${s.aid==="souffleur"?"Niveau 1 : pendant l'appel, le souffleur IA t'affiche en direct une phrase courte à dire.":s.aid==="memo"?"Niveau 2 : pendant l'appel, tu as uniquement le mémo Smile.":"Niveau 3 : aucune aide pendant l'appel. Prépare-toi bien."}</p>
       <h2 style="margin-bottom:14px">Ta préparation</h2>
       <div class="prepq">
         <div class="field"><label for="pA">Quelle est mon accroche ?</label><textarea id="pA" placeholder="${isMsg?"Le fait récent que je cite dans mon message":"Le fait récent que je vais citer"}">${esc(prep.accroche)}</textarea></div>
@@ -1371,114 +1373,116 @@ function renderPrep(){
 }
 function prepareCallScreen(){
   const aid = S.scenario.aid || "memo";
-  $("#memoSide").innerHTML = `<h3>Aide-mémoire</h3>${memoHtml()}`;
-  $("#memoToggle").hidden = aid==="none";
+  $("#memoSide").innerHTML = `<h3>Mémo Smile</h3>${memoHtml()}`;
+  // Niveau 1 : souffleur seul. Niveau 2 et exercices : mémo seul. Niveau 3 : aucune aide.
+  $("#memoToggle").hidden = aid!=="memo";
   $("#helpBtn").hidden = aid!=="souffleur";
-  $("#helpBox").hidden = true; $("#helpBox").innerHTML=""; $("#helpBox").dataset.ready=""; S.helpAuto=false; setHelpButton();
-  const open = aid!=="none" && safeGet("laligne.memoOpen")==="1";
+  $("#liveToggle").hidden = true; $("#liveText").hidden = true;
+  $("#helpBox").hidden = true; $("#helpBox").innerHTML=""; S.helpKey="";
+  S.helpAuto = aid==="souffleur"; setHelpButton(); if(S.helpAuto) updateTip();
+  const open = aid==="memo" && safeGet("laligne.memoOpen")!=="0";
   $("#memoSide").hidden=!open; $("#callWrap").classList.toggle("memo-open",open);
   $("#memoToggle").setAttribute("aria-pressed",String(open));
   $("#timer").classList.remove("warn");
 }
-/* Souffleur IA (niveau 1) : propose en direct quoi dire, un use case et une référence */
-const HELP_SYSTEM = `Tu es le souffleur d'un commercial junior de Smile pendant un appel de prospection à froid, en direct. Il lit ta suggestion pendant qu'il parle : sois très court, concret et utilisable immédiatement. Tutoie-le.
-Appuie-toi uniquement sur les informations Smile ci-dessous ; n'invente aucun client, chiffre ou offre.
-
-${SMILE_FICHE}
-
-Rappels de la trame : objectif = décrocher un rendez-vous de 30 minutes, pas vendre. Questions ouvertes, écouter plus que parler. Face à « trop d'ESN » : reconnaître, se différencier concrètement, proposer un échange court. Face à « c'est pour quoi exactement ? » : une phrase liée à son actualité puis une question.
-
-Réponds uniquement avec un objet JSON :
-{"a_dire": "la phrase à dire maintenant, deux phrases au maximum, ton naturel à l'oral",
- "use_case": "un cas d'usage concret que Smile pourrait apporter à ce prospect, en une phrase",
- "reference": "une référence ou une entité Smile à citer, avec le résultat, en une phrase",
- "question": "la prochaine question ouverte à poser"}`;
-
-function fastModels(){
-  const all=[...$("#textModel").options].map(o=>o.value);
-  return [...all.filter(m=>/lite/i.test(m)), ...all.filter(m=>!/lite/i.test(m))].slice(0,4);
-}
-/* Le souffleur suit l'appel en direct : une fois activé, il se met à jour après chaque réplique du prospect
-   (au plus toutes les 12 secondes, pour ménager le quota Gemini). */
-const HELP_MIN_GAP = 12000;
+/* Souffleur (niveau 1) : instantané et gratuit, calculé directement dans le navigateur.
+   Il lit la dernière réplique du prospect pendant qu'elle est prononcée et affiche une phrase courte à dire. */
+function nrm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’']/g,"'"); }
 function lastProspectLine(){
   for(let k=S.transcript.length-1;k>=0;k--) if(S.transcript[k].who==="prospect" && S.transcript[k].text.trim()) return S.transcript[k].text.trim();
   return "";
 }
+function shortRef(co){ const r=(co.refs||"").split("), ")[0]; return r.endsWith(")")?r:r+")"; }
+const HELP_RULES = [
+  // Objections
+  {cat:"Objection : trop d'ESN", re:/\besn\b|ssii|sollicit|appellent tous|toutes les semaines|tous les jours on m.?appelle|rendez-vous avec toutes/,
+   say:co=>`Normal. Notre différence : 96 experts à Lille, et ${co.proof}.`},
+  {cat:"Question : c'est pour quoi ?", re:/c.?est pour quoi|c.?est a quel sujet|de quoi s.?agit|pourquoi vous m.?appel|vous voulez quoi|concretement/,
+   say:co=>`« C'est au sujet de ${co.hook}. Comment l'abordez-vous ? »`},
+  {cat:"Question : qui est Smile ?", re:/c.?est quoi smile|qui etes|vous faites quoi|smile c.?est|connais pas smile/,
+   say:()=>"Smile : 2 000 experts tech en Europe, leader de l'open source, dont 96 à Lille."},
+  {cat:"Question : votre différence ?", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile/,
+   say:co=>`Open source, projet ou régie au choix, et ${co.proof}.`},
+  {cat:"Objection : pas le temps", re:/pas le temps|deux minutes|une minute|presse|en reunion|je cours|occupe|deborde/,
+   say:()=>"Je fais court : quel est le meilleur moment pour 30 minutes cette semaine ?"},
+  {cat:"Objection : envoyez un mail", re:/mail|ecrivez|envoyez(-moi)? (une|de la) doc|plaquette/,
+   say:()=>"Avec plaisir. Pour qu'il soit utile : quelle est votre priorité du moment ?"},
+  {cat:"Objection : déjà un prestataire", re:/prestataire|deja quelqu|deja une agence|deja un integrateur|deja une esn|short-list|referenc|on travaille deja/,
+   say:()=>"Chez Somfy, on a repris le prestataire en place sans couper le business : NPS 8/10."},
+  {cat:"Objection : on fait en interne", re:/en interne|nous-memes|equipe(s)? interne|nos equipes|equipes du groupe/,
+   say:()=>"On renforce vos équipes en régie, nos experts travaillent avec vous, sur site ou à distance."},
+  {cat:"Objection : mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe/,
+   say:()=>"Je comprends. Chez Somfy, reprise sécurisée de 16 sites, et une satisfaction de 8/10."},
+  {cat:"Objection : appels d'offres", re:/appel(s)? d.?offre|marche(s)? public|accord-cadre|service achats|passer par les achats/,
+   say:()=>"Bien sûr. Échangeons en amont : Alter Way a vu son marché ameli.fr renouvelé pour 4 ans."},
+  {cat:"Objection : budget", re:/budget|pas les moyens|trop cher|cout|couter/,
+   say:()=>"Projet ou régie, c'est modulable : on avance à votre rythme, cette année ou la suivante."},
+  {cat:"Objection : pas de besoin", re:/pas de besoin|pas de projet|pas pour le moment|pas d.?actualite|rien de prevu/,
+   say:()=>"Pas de souci : 30 minutes sur votre roadmap, pour anticiper la suite."},
+  {cat:"Objection : pas intéressé", re:/pas interesse|ca ne m.?interesse pas/,
+   say:()=>"Qu'est-ce qui ne vous intéresse pas : travailler avec une ESN, ou le sujet en ce moment ?"},
+  {cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui|voyez avec|mon collegue|pas mon perimetre/,
+   say:()=>"Qui serait la bonne personne ? Je peux l'appeler de votre part ?"},
+  // Sujets : expertise à placer
+  {cat:"Expertise : applications métiers", re:/metier|atelier|\bsav\b|\berp\b|odoo|\bcrm\b|ressaisie|outil(s)? interne/,
+   say:()=>"Applications métiers : Odoo partenaire Gold, 600 utilisateurs chez CRMA."},
+  {cat:"Expertise : maintenance", re:/maintenance|\btma\b|vieill|ancien|legacy|dette technique|obsolete/,
+   say:()=>"Maintenance applicative : Airbus nous fait confiance depuis plus de 10 ans."},
+  {cat:"Expertise : mobile", re:/mobile|smartphone|appli(cation)? (mobile|client)|\bstore\b|telechargement/,
+   say:()=>"Mobile : appli STIB refondue, 1,8 million de téléchargements, notée 4,1/5."},
+  {cat:"Expertise : renfort d'équipe", re:/recrut|manque de (profil|monde|ressource)|sous-effectif|pas assez de monde|renfort|charge/,
+   say:()=>"Régie : on renforce votre équipe avec nos experts, en quelques profils ciblés."},
+  {cat:"Expertise : data et IA", re:/\bdata\b|donnee|\bia\b|intelligence artificielle|generative|recommandation|machine learning/,
+   say:()=>"Data et IA : chez Biogaran, de l'acculturation en CODIR jusqu'au POC d'IA générative."},
+  {cat:"Expertise : cloud", re:/cloud|heberg|migration|datacenter|serveur|infra|\baws\b|azure/,
+   say:()=>"Cloud : migration d'Eram vers Google Cloud, infogérance 24/7 d'ameli.fr."},
+  {cat:"Expertise : cybersécurité", re:/securit|cyber|piratage|attaque|rgpd/,
+   say:()=>"Sécurité : Alter Way, audits, tests d'intrusion, RSSI à la demande."},
+  {cat:"Expertise : UX et design", re:/\bux\b|ergonom|parcours|design|accessib|experience utilisateur|tests utilisateurs/,
+   say:()=>"UX : UX Republic, l'entité design du groupe ; design system de 7 marques chez Pierre Fabre."},
+  {cat:"Expertise : fidélité", re:/fidelit|carte de fidelite|programme client/,
+   say:()=>"Fidélité : appli My Visa, 1re de l'App Store finance, 90 % d'engagement."},
+  {cat:"Expertise : marketplace", re:/marketplace|vendeur/,
+   say:()=>"Marketplace : celle d'Accor, construite en 6 mois, déploiement visé dans 90 pays."},
+  {cat:"Expertise : données produit", re:/fiche(s)? produit|catalogue|\bpim\b|referentiel/,
+   say:()=>"Données produit : PIM Akeneo du Groupe Atlantic, prix du meilleur projet B2B 2020."},
+  {cat:"Expertise : omnicanal", re:/stock|magasin|omnicanal|drive|retrait|livraison/,
+   say:()=>"Omnicanal : stocks en temps réel et commande en magasin chez Cultura, depuis 10 ans."},
+  {cat:"Expertise : performance e-commerce", re:/e-commerce|site|tunnel|conversion|black friday|trafic|ralenti|lent|plante/,
+   say:()=>"E-commerce : 17 ans d'expérience ; chez Accor, une heure de panne coûterait des millions."},
+  {cat:"Expertise : IoT", re:/iot|objet(s)? connecte|capteur|compteur/,
+   say:()=>"IoT : 20 000 compteurs connectés chez GRDF, objets connectés chez Decathlon."},
+  // Ouverture : moment de proposer le rendez-vous
+  {cat:"Ouverture : propose le rendez-vous", re:/interessant|pourquoi pas|ca peut (m.?)?interess|dites-m.?en plus|je vous ecoute|ca me parle|effectivement|c.?est vrai/,
+   say:()=>"C'est le moment : « 30 minutes pour en parler, plutôt mardi 10 h ou jeudi 14 h ? »"}
+];
+function computeTip(){
+  const s=S.scenario, co=companyById(s.companyId), line=lastProspectLine(), n=nrm(line);
+  if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${S.junior?.first||"[prénom]"} de Smile. Je vous appelle à un mauvais moment ? »`, line};
+  for(const r of HELP_RULES) if(r.re.test(n)) return {cat:r.cat, say:r.say(co), line};
+  const turns=S.transcript.filter(t=>t.who==="prospect").length;
+  if(turns<=2) return {cat:"Raison de l'appel", say:`Parle de ${co.hook}, puis pose une question.`, line};
+  return {cat:"Preuve à citer", say:`${co.proof.charAt(0).toUpperCase()+co.proof.slice(1)}.`, line};
+}
 function setHelpButton(){
   const on=!!S.helpAuto;
   $("#helpBtn").setAttribute("aria-pressed", String(on));
-  $("#helpBtn").textContent = on ? "Souffleur IA : activé" : "Souffleur IA";
+  $("#helpBtn").textContent = on ? "Souffleur IA : activé" : "Souffleur IA : en pause";
 }
-function scheduleHelp(delay){
-  if(!S.helpAuto || !S.callActive) return;
-  clearTimeout(S.helpTimer);
-  const wait = Math.max(delay||0, (S.helpLast||0) + HELP_MIN_GAP - Date.now());
-  S.helpTimer = setTimeout(()=>askHelp(), Math.max(0, wait));
-}
-async function askHelp(){
-  if(S.helpBusy){ S.helpPending=true; return; }
-  const box=$("#helpBox"), s=S.scenario;
-  const line = lastProspectLine();
-  // Rien de nouveau depuis la dernière suggestion : inutile de redemander
-  if(S.helpForLine!==undefined && line===S.helpForLine && S.helpForCount===S.transcript.length && box.dataset.ready==="1") return;
-  S.helpBusy=true; S.helpPending=false; S.helpLast=Date.now(); S.helpUsed=(S.helpUsed||0)+1;
-  const seq = (S.helpSeq=(S.helpSeq||0)+1);
+function updateTip(){
+  if(!S.helpAuto) return;
+  const box=$("#helpBox"), t=computeTip();
+  const key=t.cat+"|"+t.say;
   box.hidden=false;
-  if(box.dataset.ready==="1"){ const st=box.querySelector(".hstatus"); if(st) st.textContent="Mise à jour…"; }
-  else box.innerHTML=`<p class="hi">Le souffleur écoute l'appel…</p>`;
-  const recent=S.transcript.slice(-14).map(t=>`${t.who==="junior"?"COMMERCIAL":"PROSPECT"} : ${t.text.trim()}`).join("\n") || "(l'appel commence, rien n'a encore été dit)";
-  const payload = `ENTREPRISE APPELÉE : ${s.companyName}
-INTERLOCUTEUR : ${JSON.stringify(s.contact)}
-RELATION CONNUE AVEC SMILE : ${s.relation}
-RÉFÉRENCES LES PLUS PERTINENTES : ${s.bestRefs}
-
-TRANSCRIPTION RÉCENTE (la dernière réplique est en bas) :
-${recent}
-
-Réagis précisément à la DERNIÈRE réplique du prospect. Que doit dire le commercial maintenant ?`;
-  const body={ systemInstruction:{parts:[{text:HELP_SYSTEM}]}, contents:[{role:"user",parts:[{text:payload}]}],
-    generationConfig:{temperature:0.7, responseMimeType:"application/json"} };
-  let d=null, err="";
-  for(const model of fastModels()){
-    try{
-      const r = S.viaServer
-        ? await fetch("api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model, payload:body})})
-        : await fetch(`${API}/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const j=await r.json().catch(()=>({}));
-      if(r.ok){
-        const txt=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("").replace(/```json|```/g,"").trim();
-        d=JSON.parse(txt); break;
-      }
-      err=j?.error?.message||`Erreur ${r.status}`;
-    }catch(e){ err=e.message; }
-  }
-  S.helpBusy=false;
-  if(seq!==S.helpSeq || !S.callActive && S.startedAt===0) return;
-  if(!d){
-    const st=box.querySelector(".hstatus");
-    const msg=`Le souffleur n'a pas pu répondre (${/quota|exceeded/i.test(err)?"quota Gemini atteint, nouvel essai dans un instant":err}).`;
-    if(st) st.textContent=msg; else box.innerHTML=`<p class="hi">${esc(msg)}</p>`;
-    if(S.helpAuto) scheduleHelp(HELP_MIN_GAP);
-    return;
-  }
-  S.helpForLine=line; S.helpForCount=S.transcript.length;
-  const t=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-  box.dataset.ready="1";
-  box.innerHTML = `
-    <p class="hhead"><span>${line?`En réponse à : « ${esc(line.length>110?line.slice(0,110)+"…":line)} »`:"Début d'appel"}</span><span class="hstatus">${S.helpAuto?"Suit l'appel en direct":"Suggestion"} · ${t}</span></p>
-    <p class="hi"><b>À dire maintenant</b><span class="say">« ${esc(d.a_dire||"")} »</span></p>
-    ${d.use_case?`<p class="hi"><b>Use case à proposer</b>${esc(d.use_case)}</p>`:""}
-    ${d.reference?`<p class="hi"><b>Référence à citer</b>${esc(d.reference)}</p>`:""}
-    ${d.question?`<p class="hi"><b>Question suivante</b>${esc(d.question)}</p>`:""}`;
+  if(key===S.helpKey){ const l=box.querySelector(".hline"); if(l) l.textContent=t.line?`« ${t.line.length>90?t.line.slice(-90):t.line} »`:"Début d'appel"; return; }
+  S.helpKey=key; S.helpUsed=(S.helpUsed||0)+1;
+  box.innerHTML=`<p class="hhead"><span>${esc(t.cat)}</span><span class="hline">${t.line?`« ${esc(t.line.length>90?t.line.slice(-90):t.line)} »`:"Début d'appel"}</span></p><p class="say">${esc(t.say)}</p>`;
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
-  if(S.helpPending) scheduleHelp(0);
 }
+function tipSoon(){ clearTimeout(S.helpTimer); S.helpTimer=setTimeout(updateTip, 250); }
 $("#helpBtn").onclick = ()=>{
-  S.helpAuto = !S.helpAuto;
-  setHelpButton();
-  if(S.helpAuto){ S.helpLast=0; askHelp(); }
-  else { clearTimeout(S.helpTimer); const st=$("#helpBox").querySelector(".hstatus"); if(st) st.textContent="En pause"; }
+  S.helpAuto=!S.helpAuto; setHelpButton();
+  if(S.helpAuto){ S.helpKey=""; updateTip(); } else { $("#helpBox").hidden=true; }
 };
 
 $("#memoToggle").onclick=()=>{
@@ -1660,7 +1664,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
-  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false; S.helpAuto=false; S.helpPending=false; S.helpLast=0; S.helpSeq=0; S.helpForLine=undefined; clearTimeout(S.helpTimer);
+  S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false; S.helpAuto = S.scenario.aid==="souffleur"; S.helpKey=""; clearTimeout(S.helpTimer);
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
   $("#initials").textContent = s.kind==="messagerie" ? "…" : speaker().split(" ").slice(0,2).map(w=>w[0]).join("");
@@ -1757,10 +1761,10 @@ async function handleServer(msg){
   if(sc){
     if(sc.interrupted) stopPlayback();
     if(sc.turnComplete || sc.interrupted) A.turnStarted = false;
-    if(sc.turnComplete && S.helpAuto && S.transcript.length && S.transcript[S.transcript.length-1].who==="prospect") scheduleHelp(700);
+
     for(const p of (sc.modelTurn?.parts||[])){ if(p.inlineData?.data) playChunk(p.inlineData.data); }
     if(sc.inputTranscription?.text) addT("junior", sc.inputTranscription.text);
-    if(sc.outputTranscription?.text) addT("prospect", sc.outputTranscription.text);
+    if(sc.outputTranscription?.text){ addT("prospect", sc.outputTranscription.text); if(S.helpAuto) tipSoon(); }
   }
 }
 function addT(who, text){
@@ -2129,7 +2133,7 @@ async function runDebrief(){
 OBJECTIF DE L'EXERCICE : ${s.goal}
 
 COMPTE : ${s.companyName}
-AIDES DISPONIBLES PENDANT L'APPEL : ${s.aid==="souffleur"?"souffleur IA et aide-mémoire":s.aid==="memo"?"aide-mémoire":"aucune"}${s.aid==="souffleur"?` (souffleur utilisé ${S.helpUsed||0} fois)`:""}
+AIDES DISPONIBLES PENDANT L'APPEL : ${s.aid==="souffleur"?`souffleur IA (${S.helpUsed||0} suggestions affichées)`:s.aid==="memo"?"mémo Smile":"aucune"}
 FICHE PROSPECT REMISE AU COMMERCIAL : ${JSON.stringify(s.contact)}
 RELATION CONNUE AVEC SMILE : ${s.relation}
 RÉFÉRENCES SMILE LES PLUS PERTINENTES POUR CE COMPTE : ${s.bestRefs}
