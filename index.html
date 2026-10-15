@@ -408,7 +408,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
 <dialog id="dlgCustom">
   <form class="dlg" method="dialog" id="customForm">
     <h2 id="customTitle">Personnaliser un prospect réel</h2>
-    <p class="hint">Entraîne-toi sur une vraie personne avec les informations que tu as trouvées. Ces informations restent sur cet ordinateur : seul le nom de l'entreprise apparaît dans le suivi du manager. Utilise uniquement des informations professionnelles publiques (LinkedIn, presse, site de l'entreprise).</p>
+    <p class="hint">Crée ton propre prospect : une vraie personne que tu vas appeler, avec les informations que tu as trouvées, ou un profil inventé pour t'entraîner. Ces informations restent sur cet ordinateur : seul le nom de l'entreprise apparaît dans le suivi du manager. Utilise uniquement des informations professionnelles publiques (LinkedIn, presse, site de l'entreprise).</p>
     <div class="row">
       <div class="field"><label for="cuCompany">Entreprise</label><input id="cuCompany" required></div>
       <div class="field"><label for="cuDesc">Activité de l'entreprise</label><input id="cuDesc" placeholder="Ex. : distributeur d'articles de sport"></div>
@@ -802,7 +802,7 @@ Ensuite, tu ne dis plus rien du tout, quoi qu'on te dise. Tu restes silencieux. 
   return {
     id:m.id, key:`${co.id}-${m.id}`, aid:m.aid, custom:!!co.custom, group:m.group, num:m.num, kind:m.kind, title:m.title, sub:m.sub, goal,
     voice, gender, speaker:speakerName, speakerRole,
-    companyId:co.id, companyName: co.custom ? `${co.name} (prospect réel)` : co.track ? `${co.name} (${co.track})` : co.name, relation:co.relation, bestRefs:co.refs,
+    companyId:co.id, companyName: co.custom ? `${co.name} (prospect perso)` : co.track ? `${co.name} (${co.track})` : co.name, relation:co.relation, bestRefs:co.refs,
     contact:{nom:contactNom, entreprise:`${co.name} (${co.desc})`, role:c.role, derniere:"Aucun échange", actu:co.actu, besoin:co.besoin},
     prompt
   };
@@ -819,7 +819,7 @@ function registerCustom(){
     const F=c.gender==="F";
     COMPANIES.push({
       id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"",
-      hook:(c.actu||"").replace(/[.;].*$/,"").slice(0,70), proof:(COMPANIES.find(x=>x.id===c.base)||{}).proof||"des références comme Somfy ou Cultura",
+      hook:(c.actu||"").replace(/[.;].*$/,"").slice(0,70), proof:(c.base && (COMPANIES.find(x=>x.id===c.base)||{}).proof) || "des références comme Cultura, Accor ou la STIB",
       desc:c.desc||"entreprise",
       contact:{first:c.first, last:c.last, role:c.role, gender:c.gender, voice:F?"Kore":"Charon"},
       assistant:{first:F?"Thomas":"Claire", last:"Durand", gender:F?"M":"F", voice:F?"Orus":"Leda"},
@@ -1208,13 +1208,13 @@ function companyCard(co, mine){
   const sel = co.id===S.company;
   const n = history().filter(h=>h.companyId===co.id).length;
   const card = `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
-    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track ${co.custom?"real":""}">${esc(co.custom?"Prospect réel":co.track)}</span>`:""}</span>
+    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track ${co.custom?"real":""}">${esc(co.custom?"Mon prospect":co.track)}</span>`:""}</span>
     <span class="co-who">${esc(co.contact.first+" "+co.contact.last)}, ${esc(co.contact.role)}</span>
     <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine||co.custom?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
   </button>`;
   const actions = co.custom
     ? `<div class="co-actions"><button type="button" class="co-btn co-edit" data-id="${co.id}">Modifier</button><button type="button" class="co-btn danger co-del" data-id="${co.id}" aria-label="Supprimer ${esc(co.contact.first)}">Supprimer</button></div>`
-    : `<div class="co-actions"><button type="button" class="co-btn co-perso" data-base="${co.id}">+ PERSONNALISER</button></div>`;
+    : "";
   return `<div class="co-wrap">${card}${actions}</div>`;
 }
 function renderHome(){
@@ -1240,7 +1240,7 @@ function renderHome(){
       <h1>${title}</h1>
       ${subtitle?`<p class="sub">${subtitle}</p>`:""}
       <div class="go">
-        <button class="btn orange big" id="goRec" type="button">${esc(co.name)}${co.custom?" (prospect réel)":co.track?" "+esc(co.track):""} : ${esc(rec.title.toLowerCase())}</button>
+        <button class="btn orange big" id="goRec" type="button">${esc(co.name)}${co.custom?" (mon prospect)":co.track?" "+esc(co.track):""} : ${esc(rec.title.toLowerCase())}</button>
         ${!S.connected?`<button class="link" style="color:#fff" type="button" id="openSet">Connecter Gemini d'abord</button>`:""}
       </div>
     </div>
@@ -1252,11 +1252,12 @@ function renderHome(){
     </div>
   </section>
 
-  <div class="sec-title"><h2>1. Choisis ton compte</h2><p>Chaque compte a son interlocuteur, son contexte et ses objections.</p></div>
+  <div class="sec-title"><div><h2>1. Choisis ton compte</h2><p style="margin-top:2px">Chaque compte a son interlocuteur, son contexte et ses objections.</p></div>
+    <button type="button" class="btn small" id="createReal">+ Créer mon propre prospect</button></div>
   ${mine.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}</div>
     <details class="more-co" ${mineIds.includes(S.company)||company().custom?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
     : `<div class="companies">${base.map(c=>companyCard(c,false)).join("")}</div>`}
-  ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects réels</h2><p>Ajoutés avec « Personnaliser ». Ils restent sur cet ordinateur.</p></div>
+  ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects</h2><p>Créés par toi. Ils restent sur cet ordinateur.</p></div>
     <div class="companies">${reals.map(c=>companyCard(c,true)).join("")}</div>` : ""}
 
   <div class="sec-title" style="margin-top:30px"><h2>2. Choisis la difficulté</h2><p>Un niveau est validé avec ${PASS_COUNT} appels à ${PASS_SCORE} ou plus, tous comptes confondus.</p></div>
@@ -1278,7 +1279,7 @@ function renderHome(){
   const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
   document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
   document.querySelectorAll(".company").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
-  document.querySelectorAll(".co-perso").forEach(b=>b.onclick=()=>openCustom(b.dataset.base, null));
+  $("#createReal").onclick=()=>openCustom(null, null);
   document.querySelectorAll(".co-edit").forEach(b=>b.onclick=()=>openCustom(null, b.dataset.id));
   document.querySelectorAll(".co-del").forEach(b=>b.onclick=()=>{
     const c=customList().find(x=>x.id===b.dataset.id); if(!c) return;
@@ -1292,22 +1293,22 @@ let customEditing=null;
 function openCustom(baseId, customId){
   const f=id=>$("#"+id);
   const c = customId ? customList().find(x=>x.id===customId) : null;
-  const b = companyById(c ? c.base : baseId);
+  const b = c && c.base ? COMPANIES.find(x=>x.id===c.base && !x.custom) : (baseId ? COMPANIES.find(x=>x.id===baseId) : null);
   customEditing = c ? c.id : null;
-  $("#customTitle").textContent = c ? `Modifier ${c.first} ${c.last}` : `Personnaliser un prospect réel chez ${b.name}`;
-  f("cuCompany").value = c ? c.company : b.name;
-  f("cuDesc").value = c ? (c.desc||"") : b.desc;
+  $("#customTitle").textContent = c ? `Modifier ${c.first} ${c.last}` : "Créer un prospect de A à Z";
+  f("cuCompany").value = c ? c.company : (b ? b.name : "");
+  f("cuDesc").value = c ? (c.desc||"") : (b ? b.desc : "");
   f("cuFirst").value = c ? c.first : ""; f("cuLast").value = c ? c.last : "";
   f("cuGender").value = c ? c.gender : "F";
   f("cuRole").value = c ? c.role : "";
   f("cuActu").value = c ? c.actu : "";
   f("cuContext").value = c ? (c.context||"") : "";
   f("cuBesoin").value = c ? (c.besoin||"") : "";
-  f("cuObjection").value = c ? (c.objection||"") : b.objection;
+  f("cuObjection").value = c ? (c.objection||"") : (b ? b.objection : "");
   f("cuDecision").value = c ? (c.decision||"") : "";
-  f("cuRelation").value = c ? (c.relation||"") : b.relation;
-  f("cuRefs").value = c ? (c.refs||"") : b.refs;
-  f("cuCompany").dataset.base = c ? c.base : b.id;
+  f("cuRelation").value = c ? (c.relation||"") : (b ? b.relation : "");
+  f("cuRefs").value = c ? (c.refs||"") : (b ? b.refs : "");
+  f("cuCompany").dataset.base = c ? (c.base||"") : (b ? b.id : "");
   openDlg("#dlgCustom");
 }
 $("#customCancel").onclick = ()=>$("#dlgCustom").close();
@@ -1320,7 +1321,7 @@ $("#customForm").addEventListener("submit", e=>{
     decision:f("cuDecision"), relation:f("cuRelation"), refs:f("cuRefs") };
   const list=customList().filter(x=>x.id!==rec.id); list.push(rec); saveCustomList(list);
   registerCustom(); setCompany(rec.id); renderHome();
-  toast(`${rec.first} ${rec.last} est prêt${rec.gender==="F"?"e":""} pour l'entraînement.`);
+  toast(`Prospect enregistré : ${rec.first} ${rec.last}, ${rec.company}.`);
 });
 function goHome(){ showView("home"); renderHome(); }
 
