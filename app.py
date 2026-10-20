@@ -88,61 +88,114 @@ if DATASET_REPO and HF_TOKEN:
     lock = scheduler.lock
 
 # ---------- Sauvegarde dans un dépôt GitHub privé ----------
+def after_reset(rec: dict) -> bool:
+    """Ignore les appels antérieurs à la dernière remise à zéro."""
+    reset_at = read_meta().get("resetAt")
+    return not reset_at or (rec.get("date") or "") >= reset_at
+
+
+def parse_lines(data: bytes) -> list:
+    out = []
+    for line in data.decode("utf-8", errors="ignore").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except Exception:
+            continue
+    return out
+
+
 class GitHubBackup:
-    """Copie sessions.jsonl dans un dépôt GitHub privé toutes les 2 minutes et à l'arrêt du service."""
+    """Sauvegarde sessions.jsonl dans un dépôt GitHub privé.
+    - Au démarrage : FUSIONNE la sauvegarde avec les données locales (rien n'est écrasé).
+    - Après chaque appel reçu, toutes les 2 minutes et à l'arrêt : fusionne puis envoie.
+      La fusion garantit qu'une restauration ratée au démarrage ne peut jamais effacer la sauvegarde."""
     def __init__(self):
         self.url = f"{GITHUB_API}/repos/{GITHUB_REPO}/contents/sessions.jsonl"
         self.headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json",
                         "X-GitHub-Api-Version": "2022-11-28"}
         self.sha = None
         self.pushed_size = -1
+        self.push_lock = threading.Lock()
+        self.status = {"mode": "GitHub", "repo": GITHUB_REPO, "lastOk": None, "lastError": None,
+                       "lastErrorAt": None, "restored": None}
+
+    def _error(self, msg):
+        print(f"Sauvegarde GitHub : {msg}")
+        self.status["lastError"] = msg[:300]
+        self.status["lastErrorAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    def fetch_remote(self):
+        """Renvoie (données, sha, ok). ok=False si GitHub n'a pas pu être lu (dans ce cas on n'envoie rien)."""
+        r = httpx.get(self.url, headers=self.headers, timeout=30)
+        if r.status_code == 404:
+            return b"", None, True
+        if r.status_code != 200:
+            raise RuntimeError(f"lecture impossible ({r.status_code}) : {r.text[:150]}")
+        d = r.json()
+        content = base64.b64decode(d.get("content", "")) if d.get("content") else b""
+        if not content and d.get("download_url"):
+            content = httpx.get(d["download_url"], headers=self.headers, timeout=60).content
+        return content, d.get("sha"), True
+
+    def merge_remote(self, remote: bytes) -> int:
+        """Ajoute localement les appels présents sur GitHub mais absents d'ici. Renvoie le nombre ajouté."""
+        with lock:
+            local = SESSIONS.read_bytes() if SESSIONS.exists() else b""
+            ids = {r.get("id") for r in parse_lines(local)}
+            missing = [r for r in parse_lines(remote) if r.get("id") and r.get("id") not in ids and after_reset(r)]
+            if missing:
+                with SESSIONS.open("a", encoding="utf-8") as f:
+                    for r in missing:
+                        f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        return len(missing)
 
     def restore(self):
         try:
-            r = httpx.get(self.url, headers=self.headers, timeout=30)
-            if r.status_code == 404:
-                print("Sauvegarde GitHub : aucun fichier pour l'instant, il sera créé au premier appel.")
-                return
-            r.raise_for_status()
-            d = r.json()
-            self.sha = d.get("sha")
-            content = base64.b64decode(d.get("content", "")) if d.get("content") else b""
-            if not content and d.get("download_url"):
-                content = httpx.get(d["download_url"], headers=self.headers, timeout=60).content
-            if not SESSIONS.exists() or SESSIONS.stat().st_size == 0:
-                SESSIONS.write_bytes(content)
-            self.pushed_size = SESSIONS.stat().st_size
-            print(f"Résultats restaurés depuis GitHub ({GITHUB_REPO})")
+            remote, self.sha, _ = self.fetch_remote()
+            added = self.merge_remote(remote)
+            self.status["restored"] = added
+            print(f"Résultats restaurés depuis GitHub ({GITHUB_REPO}) : {added} appel(s)")
         except Exception as e:
-            print(f"Sauvegarde GitHub : restauration impossible ({e})")
+            self._error(f"restauration impossible au démarrage ({e})")
 
-    def push(self, force=False):
-        if not SESSIONS.exists():
-            return
-        with lock:
-            data = SESSIONS.read_bytes()
-        if not force and len(data) == self.pushed_size:
-            return
-        for attempt in range(2):
-            body = {"message": f"Sauvegarde La Ligne {time.strftime('%Y-%m-%d %H:%M')}",
-                    "content": base64.b64encode(data).decode()}
-            if self.sha:
-                body["sha"] = self.sha
-            try:
-                r = httpx.put(self.url, headers=self.headers, json=body, timeout=60)
-                if r.status_code in (200, 201):
-                    self.sha = r.json()["content"]["sha"]
-                    self.pushed_size = len(data)
+    def push(self, force=False, overwrite=False):
+        with self.push_lock:
+            for attempt in range(2):
+                try:
+                    if overwrite:
+                        g = httpx.get(self.url, headers=self.headers, timeout=30)
+                        self.sha = g.json().get("sha") if g.status_code == 200 else None
+                        added = 0
+                    else:
+                        remote, self.sha, _ = self.fetch_remote()
+                        added = self.merge_remote(remote)
+                    with lock:
+                        data = SESSIONS.read_bytes() if SESSIONS.exists() else b"\n"
+                    if not force and not overwrite and not added and len(data) == self.pushed_size:
+                        return
+                    body = {"message": f"Sauvegarde La Ligne {time.strftime('%Y-%m-%d %H:%M')}",
+                            "content": base64.b64encode(data or b"\n").decode()}
+                    if self.sha:
+                        body["sha"] = self.sha
+                    r = httpx.put(self.url, headers=self.headers, json=body, timeout=60)
+                    if r.status_code in (200, 201):
+                        self.sha = r.json()["content"]["sha"]
+                        self.pushed_size = len(data)
+                        self.status["lastOk"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                        self.status["lastError"] = None
+                        return
+                    if r.status_code in (409, 422) and attempt == 0:
+                        continue
+                    self._error(f"envoi refusé ({r.status_code}) : {r.text[:150]}")
                     return
-                if r.status_code in (409, 422) and attempt == 0:
-                    g = httpx.get(self.url, headers=self.headers, timeout=30)
-                    self.sha = g.json().get("sha") if g.status_code == 200 else None
-                    continue
-                print(f"Sauvegarde GitHub : échec {r.status_code} {r.text[:200]}")
-                return
-            except Exception as e:
-                print(f"Sauvegarde GitHub : échec ({e})")
-                return
+                except Exception as e:
+                    if attempt == 0:
+                        continue
+                    self._error(f"envoi impossible ({e})")
+                    return
 
     def put_file(self, name: str, data: bytes, message: str):
         """Envoie un fichier quelconque (meta, archive) dans le dépôt de sauvegarde."""
@@ -182,6 +235,27 @@ if GITHUB_TOKEN and GITHUB_REPO and scheduler is None:
     threading.Thread(target=github_backup.loop, daemon=True).start()
 
 BACKUP_ON = scheduler is not None or github_backup is not None or str(DATA_DIR) == "/data"
+
+
+def trigger_backup():
+    """Sauvegarde tout de suite après un nouvel appel, sans attendre la sauvegarde périodique."""
+    if github_backup is not None:
+        threading.Thread(target=github_backup.push, daemon=True).start()
+    elif scheduler is not None:
+        try:
+            scheduler.trigger()
+        except Exception:
+            pass
+
+
+def backup_status() -> dict:
+    if github_backup is not None:
+        return github_backup.status
+    if scheduler is not None:
+        return {"mode": "Hugging Face", "repo": DATASET_REPO, "lastOk": None, "lastError": None}
+    if str(DATA_DIR) == "/data":
+        return {"mode": "Disque persistant", "lastOk": None, "lastError": None}
+    return {"mode": None}
 
 FIELDS = {
     "id": str, "date": str, "junior": str, "scenarioId": str, "scenarioTitle": str, "kind": str,
@@ -268,17 +342,12 @@ async def save_session(request: Request):
     with lock:
         with SESSIONS.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    trigger_backup()
     return {"ok": True}
 
 
 def known_ids() -> set:
     return {r.get("id") for r in read_sessions()}
-
-
-def after_reset(rec: dict) -> bool:
-    """Ignore les appels antérieurs à la dernière remise à zéro."""
-    reset_at = read_meta().get("resetAt")
-    return not reset_at or (rec.get("date") or "") >= reset_at
 
 
 @app.post("/api/sessions/sync")
@@ -297,6 +366,7 @@ async def sync_sessions(request: Request):
             with SESSIONS.open("a", encoding="utf-8") as f:
                 for r in new:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        trigger_backup()
     return {"ok": True, "added": len(new)}
 
 
@@ -306,7 +376,8 @@ def list_sessions(request: Request):
         return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré dans le Space."}, status_code=503)
     if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
         return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
-    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON, "resetAt": read_meta().get("resetAt")}
+    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON, "backupStatus": backup_status(),
+            "resetAt": read_meta().get("resetAt")}
 
 
 @app.post("/api/reset")
@@ -331,7 +402,7 @@ def reset_sessions(request: Request):
     if github_backup is not None:
         if archived:
             github_backup.put_file(archive_name, old, f"Archive avant remise à zéro {stamp}")
-        github_backup.push(force=True)
+        github_backup.push(overwrite=True)
         github_backup.put_file("meta.json", META.read_bytes(), f"Remise à zéro {stamp}")
     return {"ok": True, "archived": archived, "resetAt": reset_at}
 
