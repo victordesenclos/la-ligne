@@ -2028,7 +2028,15 @@ const scoreColor = v => v==null ? "var(--none)" : v>=PASS_SCORE ? "var(--ok)" : 
 function ago(d){ const n=Math.floor((Date.now()-d)/DAY); return n<=0?"aujourd'hui":n===1?"hier":`il y a ${n} jours`; }
 function weekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x.getTime(); }
 
-let ALL=[], DEMO=false, BACKUP=true;
+let ALL=[], DEMO=false, BACKUP=true, BSTATUS=null;
+function backupBar(){
+  if(DEMO) return "";
+  const b=BSTATUS||{};
+  const hm=t=>t?new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  if(!b.mode) return `<div class="demo" style="background:var(--ko-soft);color:var(--ko)"><b>Sauvegarde inactive.</b> Les résultats sont perdus à chaque redémarrage du serveur (au moins une fois par jour sur Render gratuit). Ajoute GITHUB_TOKEN et GITHUB_REPO dans Environment sur Render.</div>`;
+  if(b.lastError && (!b.lastOk || b.lastErrorAt > b.lastOk)) return `<div class="demo" style="background:var(--ko-soft);color:var(--ko)"><b>La sauvegarde ${esc(b.mode)} échoue</b> (${esc(hm(b.lastErrorAt))}) : ${esc(b.lastError)}</div>`;
+  return `<p style="margin:14px 0 0;font-size:.86rem;color:var(--ok)">Sauvegarde ${esc(b.mode)} active${b.lastOk?`, dernière sauvegarde le ${esc(hm(b.lastOk))}`:""}${b.restored!=null?` · ${b.restored} appel${b.restored>1?"s":""} restauré${b.restored>1?"s":""} au dernier démarrage du serveur`:""}.</p>`;
+}
 function sessionGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
 function sessionSet(k,v){ try{ v===null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v); }catch(e){} }
 
@@ -2042,7 +2050,7 @@ async function load(){
   const r=await fetch("api/sessions",{headers:{"x-manager-password":pw||""},cache:"no-store"});
   let d=null; try{ d=await r.json(); }catch(e){}
   if(!r.ok || !d || !d.ok) throw new Error(d&&d.error ? d.error : "L'espace manager n'est disponible que sur le Space Hugging Face.");
-  BACKUP = !!d.backup;
+  BACKUP = !!d.backup; BSTATUS = d.backupStatus || null;
   ALL=d.sessions.map(s=>({...s, t:new Date(s.date).getTime()})).filter(s=>!isNaN(s.t)).sort((a,b)=>a.t-b.t);
 }
 function demoData(){
@@ -2206,7 +2214,7 @@ function render(){
   const levelTag=l=>`<span class="tag l${l}">${l===0?"Niveau 1 en cours":l===3?"3 niveaux validés":`Niveau ${l} validé`}</span>`;
 
   $("#mApp").innerHTML=`
-  ${!DEMO && !BACKUP?`<div class="demo">Attention : la sauvegarde des résultats n'est pas configurée (variables GITHUB_TOKEN et GITHUB_REPO sur Render). Les données seront perdues au prochain redémarrage.</div>`:""}
+  ${backupBar()}
   ${DEMO?`<div class="demo">Données de démonstration : cinq juniors fictifs sur six semaines. Les vraies données apparaissent ici dès que les juniors font leurs appels.</div>`:""}
   <div class="kpis">
     <div class="kpi"><div class="v">${inP.length}</div><div class="l">appels d'entraînement</div>${delta(inP.length,prevP.length)}</div>
