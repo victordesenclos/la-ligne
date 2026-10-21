@@ -1430,7 +1430,7 @@ function renderPrep(){
   </div>`;
   $("#backHome").onclick=()=>{ readPrep(); goHome(); };
   ["#pA","#pB","#pC"].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
-  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ prepareCallScreen(); startCall(); };
+  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ if(S.starting) return; cb.disabled=true; prepareCallScreen(); startCall(); };
   const os=$("#openSet2"); if(os) os.onclick=()=>openDlg("#dlgSettings");
 }
 function prepareCallScreen(){
@@ -1857,8 +1857,11 @@ const A = { micStream:null, micCtx:null, micNode:null, inRate:48000, pending:new
             playCtx:null, playOut:null, analyser:null, nextTime:0, sources:new Set(), micLevel:0, sending:false, raf:0 };
 
 async function startMic(){
-  A.micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
   A.micCtx = new AudioContext();
+  A.micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  if(A.micCtx.state!=="running"){ try{ await A.micCtx.resume(); }catch(e){} }
+  const track = A.micStream.getAudioTracks()[0];
+  if(track) track.onended = () => { if(S.callActive) callError("Le micro s'est coupé pendant l'appel. Vérifie qu'aucune autre application ne l'utilise, puis réessaie."); };
   A.inRate = A.micCtx.sampleRate;
   const url = URL.createObjectURL(new Blob([WORKLET_SRC],{type:"application/javascript"}));
   await A.micCtx.audioWorklet.addModule(url);
@@ -1873,6 +1876,7 @@ function onMicChunk(f32){
   A.micLevel = Math.max(Math.sqrt(sum/f32.length), A.micLevel*0.85);
   if(Math.sqrt(sum/f32.length)>0.02) A.lastSpeechAt = performance.now();
   if(!A.sending) return;
+  A.micChunks = (A.micChunks||0) + 1;
   const out = resample(f32);
   A.queue.push(out); A.queued += out.length;
   if(A.queued >= 640){ // 40 ms à 16 kHz : envoi plus fréquent, réponse plus rapide
@@ -1908,6 +1912,7 @@ function toB64(bytes){
 }
 function startPlayback(){
   A.playCtx = new AudioContext({sampleRate:24000});
+  if(A.playCtx.state!=="running") A.playCtx.resume().catch(()=>{});
   A.playOut = A.playCtx.createGain();
   A.analyser = A.playCtx.createAnalyser(); A.analyser.fftSize=512;
   A.playOut.connect(A.analyser);
@@ -1983,7 +1988,8 @@ function teardownAudio(){
   A.sending=false;
   cancelAnimationFrame(A.raf);
   stopPlayback();
-  if(A.micStream) A.micStream.getTracks().forEach(t=>t.stop());
+  if(A.micNode){ try{ A.micNode.port.onmessage=null; A.micNode.disconnect(); }catch(e){} }
+  if(A.micStream) A.micStream.getTracks().forEach(t=>{ t.onended=null; t.stop(); });
   try{ A.noise && A.noise.stop(); }catch(e){} A.noise=null;
   try{ A.micCtx && A.micCtx.close(); }catch(e){}
   try{ A.playCtx && A.playCtx.close(); }catch(e){}
@@ -1994,7 +2000,24 @@ function teardownAudio(){
 /* =========================================================
    APPEL
    ========================================================= */
+/* Ferme proprement une ligne : plus aucun message de l'ancienne session ne peut agir sur la suivante */
+function dropSocket(ws){
+  if(!ws) return;
+  ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+  try{ if(ws.readyState<=1) ws.close(1000); }catch(e){}
+}
+function resetCallState(){
+  if(S.ws){ const old=S.ws; S.ws=null; dropSocket(old); }
+  clearTimeout(S.answerTimer); clearInterval(S.timerId); clearTimeout(S.maxTimer); clearTimeout(S.helpTimer);
+  S.callActive=false; S.startedAt=0; S.setupDone=false;
+  teardownAudio();
+  A.sources=new Set(); A.micLevel=0; A.nextTime=0; A.lastSpeechAt=0; A.turnStarted=false; A.micChunks=0;
+}
 async function startCall(){
+  if(S.starting) return;
+  S.starting = true;
+  S.callId = (S.callId||0) + 1;
+  resetCallState();
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
@@ -2011,8 +2034,9 @@ async function startCall(){
     await startMic();
   }catch(e){
     callError("Le micro n'est pas accessible. Autorise le micro pour cette page (icône à gauche de l'adresse), puis réessaie.");
-    teardownAudio(); return;
+    teardownAudio(); S.starting=false; return;
   }
+  S.starting = false;
   animate();
   let startLevel = 0;
   try{
@@ -2096,9 +2120,12 @@ function openLine(level){
   wireLine(ws, level, null);
 }
 function wireLine(ws, level, onEarlyFail){
-  ws.onopen = () => ws.send(JSON.stringify({setup:buildSetup(level)}));
+  const callId = S.callId;
+  ws.onopen = () => { if(S.ws===ws) ws.send(JSON.stringify({setup:buildSetup(level)})); };
   ws.onmessage = async ev => {
+    if(S.ws!==ws || S.callId!==callId) return;
     let msg; try{ msg = JSON.parse(typeof ev.data==="string" ? ev.data : await ev.data.text()); }catch(e){ return; }
+    if(S.ws!==ws || S.callId!==callId) return;
     handleServer(msg);
   };
   ws.onclose = ev => {
@@ -2125,7 +2152,7 @@ function noAnswerFallback(){
   if(!next){ callError("Le prospect ne répond pas. Vérifie le modèle vocal dans les réglages, puis réessaie."); return; }
   S.liveTried.push(next); S.liveModelOverride = next;
   clearInterval(S.timerId); clearTimeout(S.maxTimer);
-  const ws = S.ws; S.ws = null; try{ ws && ws.close(1000); }catch(e){}
+  const ws = S.ws; S.ws = null; dropSocket(ws);
   S.callActive = false; S.startedAt = 0; A.sending = false; S.transcript = [];
   try{ sessionStorage.removeItem("laligne.directOk"); }catch(e){}
   $("#callState").textContent = "Reconnexion avec un autre modèle…";
@@ -2138,8 +2165,9 @@ async function handleServer(msg){
     if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v4", S.liveModelOverride); }
     if(S.lineMode==="direct"){ try{ sessionStorage.setItem("laligne.directOk", JSON.stringify({model:$("#liveModel").value, ver:S.directVer||0, level:S.lineLevel})); }catch(e){} }
     $("#callState").textContent="Ça sonne…";
+    const ringWs = S.ws, ringCall = S.callId;
     await ringTone();
-    if(!S.ws || S.ws.readyState!==1) return;
+    if(!S.ws || S.ws!==ringWs || S.callId!==ringCall || S.ws.readyState!==1) return;
     S.callActive=true; S.startedAt=Date.now();
     S.timerId=setInterval(()=>{ const e=Date.now()-S.startedAt; $("#timer").textContent=fmt(e); $("#timer").classList.toggle("warn", e>(S.scenario.kind==="messagerie"?30000:300000)); },500);
     S.maxTimer=setTimeout(()=>hangUp(), MAX_CALL_MS);
@@ -2192,7 +2220,8 @@ function finishCall(manual){
   clearInterval(S.timerId); clearTimeout(S.maxTimer);
   S.lastDuration = S.startedAt ? Date.now()-S.startedAt : 0;
   const ws=S.ws; S.ws=null;
-  if(ws && ws.readyState<=1){ ws.onclose=null; try{ ws.close(1000); }catch(e){} }
+  dropSocket(ws);
+  S.starting = false;
   teardownAudio();
   const said = S.transcript.some(t=>t.who==="junior" && t.text.trim().length>3);
   if(!said){
