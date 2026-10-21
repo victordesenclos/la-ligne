@@ -2057,7 +2057,7 @@ function buildSetup(level){
   }
   if(level===0){
     if(v && v < 3) setup.enableAffectiveDialog = true;   // option propre aux modèles 2.x « native audio »
-    if(s.kind==="messagerie") setup.proactivity = { proactiveAudio: true };  // le répondeur doit savoir se taire
+    if(s.kind==="messagerie" && v && v < 3) setup.proactivity = { proactiveAudio: true };  // le répondeur doit savoir se taire (2.x uniquement)
   }
   return setup;
 }
@@ -2118,6 +2118,20 @@ function wireLine(ws, level, onEarlyFail){
     }
   };
 }
+function noAnswerFallback(){
+  const cur = S.liveModelOverride || $("#liveModel").value;
+  S.liveTried = S.liveTried || []; if(!S.liveTried.includes(cur)) S.liveTried.push(cur);
+  const next = [...$("#liveModel").options].map(o=>o.value).find(v=>!S.liveTried.includes(v) && !/extended|thinking/i.test(v));
+  if(!next){ callError("Le prospect ne répond pas. Vérifie le modèle vocal dans les réglages, puis réessaie."); return; }
+  S.liveTried.push(next); S.liveModelOverride = next;
+  clearInterval(S.timerId); clearTimeout(S.maxTimer);
+  const ws = S.ws; S.ws = null; try{ ws && ws.close(1000); }catch(e){}
+  S.callActive = false; S.startedAt = 0; A.sending = false; S.transcript = [];
+  try{ sessionStorage.removeItem("laligne.directOk"); }catch(e){}
+  $("#callState").textContent = "Reconnexion avec un autre modèle…";
+  S.directVer = 0;
+  openLine(0);
+}
 async function handleServer(msg){
   if(msg.setupComplete){
     S.setupDone = true;
@@ -2132,11 +2146,18 @@ async function handleServer(msg){
     const kickoff = S.lineMode==="direct"
       ? `[Consignes de jeu, à ne jamais lire à voix haute : ${S.scenario.prompt}]\n\n[Ton téléphone sonne. Tu décroches.]`
       : "[Ton téléphone sonne. Tu décroches.]";
-    S.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:kickoff}]}],turnComplete:true}}));
+    // Modèles 3.x : le texte s'envoie par realtimeInput (clientContent n'est plus accepté en cours de session)
+    const curModel = S.liveModelOverride || $("#liveModel").value;
+    if(modelVersion(curModel) >= 3) S.ws.send(JSON.stringify({realtimeInput:{text:kickoff}}));
+    else S.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:kickoff}]}],turnComplete:true}}));
+    // Filet de sécurité : si le prospect ne décroche pas en 8 secondes, on passe automatiquement à un autre modèle vocal
+    S.gotAnswer = false; clearTimeout(S.answerTimer);
+    S.answerTimer = setTimeout(()=>{ if(S.callActive && !S.gotAnswer) noAnswerFallback(); }, 8000);
     A.sending=true;
     return;
   }
   const sc = msg.serverContent;
+  if(sc && (sc.modelTurn || sc.outputTranscription)) S.gotAnswer = true;
   if(sc){
     if(sc.interrupted) stopPlayback();
     if(sc.turnComplete || sc.interrupted) A.turnStarted = false;
@@ -2164,6 +2185,7 @@ $("#liveToggle").onclick = () => {
 
 function hangUp(){ finishCall(true); }
 function finishCall(manual){
+  clearTimeout(S.answerTimer);
   S.helpAuto=false; clearTimeout(S.helpTimer);
   const wasActive = S.callActive || manual;
   S.callActive=false;
