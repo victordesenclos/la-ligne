@@ -641,13 +641,13 @@ const COMPANIES = [
     refs:"CRMA (application métier Odoo pour 600 utilisateurs), Suez (application de suivi des flux métier sur Symfony), Airbus (maintenance applicative depuis plus de 10 ans)."
   },
   {
-    id:"decathlon-ux", hook:"la refonte de votre appli", proof:"l'appli My Visa, 90 % d'engagement", name:"Decathlon", track:"UX", owner:"Elisa",
+    id:"decathlon-ux", hook:"la refonte de votre appli", proof:"la recherche utilisateur de Deezer à grande échelle", name:"Decathlon", track:"UX", owner:"Elisa",
     desc:"distributeur d'articles de sport, siège à Villeneuve-d'Ascq",
     contact:{first:"Léa", last:"Fontaine", role:"Head of UX Design e-commerce", gender:"F", voice:"Callirrhoe"},
     assistant:{first:"Hugo", last:"Marchal", gender:"M", voice:"Umbriel"},
     actu:"Refonte annoncée de l'application mobile Decathlon",
     besoin:"Parcours mobiles, conversion du tunnel d'achat, accessibilité, design system",
-    relation:"Smile Lille accompagne déjà une autre équipe de Decathlon (plateforme d'objets connectés). Léa ne connaît pas Smile ni UX Republic.",
+    relation:"Smile Lille accompagne déjà une autre équipe de Decathlon (objets connectés). Léa ne connaît pas UX-Republic.",
     context:[
       "La nouvelle application doit sortir dans 9 mois ; les tests montrent que le tunnel d'achat mobile perd beaucoup de clients.",
       "Ton équipe design est petite (4 designers) et débordée ; la recherche utilisateur est souvent sautée faute de temps.",
@@ -656,16 +656,16 @@ const COMPANIES = [
     ],
     objection:"On a une équipe design en interne",
     decision:"Le directeur produit digital valide les budgets prestataires.",
-    refs:"UX Republic (entité UX du groupe : design, recherche utilisateur, CRO), My Visa (application mobile, 90 % d'engagement, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile, notée 4,1/5), Ministère de l'Éducation nationale (Système de design de l'État et accessibilité)."
+    refs:"Leroy Merlin, Boulanger, ManoMano et Cdiscount en retail ; Deezer (recherche utilisateur à grande échelle) ; tests utilisateurs, audit ergonomique et accessibilité."
   },
   {
-    id:"auchan-ux", hook:"la refonte de votre appli fidélité", proof:"UX Republic, l'entité UX du groupe", name:"Auchan", track:"UX", owner:"Elisa",
+    id:"auchan-ux", hook:"la refonte de votre appli fidélité", proof:"Carrefour, Franprix et La Redoute en retail", name:"Auchan", track:"UX", owner:"Elisa",
     desc:"groupe de distribution alimentaire, Auchan Retail France, siège à Croix",
     contact:{first:"Nicolas", last:"Garnier", role:"Directeur de l'expérience client digitale", gender:"M", voice:"Algenib"},
     assistant:{first:"Inès", last:"Barbier", gender:"F", voice:"Autonoe"},
     actu:"Refonte annoncée du programme de fidélité et de l'application client",
     besoin:"Parcours de la future application fidélité, recherche utilisateur, conversion du drive",
-    relation:"Auchan fait partie des clients de l'agence Smile de Lille, mais pas sur l'UX.",
+    relation:"Auchan est client de l'agence Smile de Lille, mais n'a jamais travaillé avec UX-Republic.",
     context:[
       "L'application actuelle est mal notée sur les stores ; les avis parlent d'un parcours fidélité incompréhensible.",
       "Le parcours de commande drive a un fort taux d'abandon au moment du choix du créneau.",
@@ -674,16 +674,16 @@ const COMPANIES = [
     ],
     objection:"L'UX, on la fait faire par l'agence qui développe l'appli",
     decision:"Sandrine Lemaire, directrice data et CRM, est associée à tout ce qui touche à la fidélité.",
-    refs:"UX Republic (recherche utilisateur, UX et CRO), My Visa (applications et portail client, première de l'App Store en finance), STIB (refonte ergonomique d'une application mobile)."
+    refs:"Carrefour, Franprix et La Redoute en retail ; CRO priorisé avec la méthode RICE ; Givaudan (MVP testé avec les utilisateurs) ; labo de test et entretiens."
   },
   {
-    id:"adeo-ux", hook:"le design system commun aux enseignes", proof:"un design system de 7 marques chez Pierre Fabre", name:"Adeo", track:"UX", owner:"Elisa",
+    id:"adeo-ux", hook:"le design system commun aux enseignes", proof:"Adeo et Leroy Merlin font déjà partie de nos clients", name:"Adeo", track:"UX", owner:"Elisa",
     desc:"groupe d'enseignes de bricolage (Leroy Merlin, Weldom, Bricoman…), siège à Ronchin",
     contact:{first:"Sophie", last:"Delattre", role:"Lead Design System groupe", gender:"F", voice:"Erinome"},
     assistant:{first:"Julien", last:"Masset", gender:"M", voice:"Algieba"},
     actu:"Mutualisation annoncée de la plateforme e-commerce entre les enseignes du groupe",
     besoin:"Design system commun aux enseignes, accessibilité, cohérence des parcours",
-    relation:"Adeo fait partie des clients de l'agence Smile de Lille ; Sophie n'a jamais travaillé avec UX Republic.",
+    relation:"Adeo et Leroy Merlin font partie des clients de UX-Republic ; Sophie n'a pas encore travaillé directement avec l'équipe de Lille.",
     context:[
       "La mutualisation de la plateforme impose un design system commun, mais chaque enseigne veut garder son identité visuelle.",
       "Le design system actuel est à moitié documenté et peu utilisé par les équipes de développement.",
@@ -692,7 +692,7 @@ const COMPANIES = [
     ],
     objection:"On a déjà une short-list d'agences pour le design",
     decision:"Hélène Dufresne, directrice des plateformes digitales groupe, porte le programme.",
-    refs:"Pierre Fabre (design system commun à 7 marques, 150 sites), Ministère de l'Éducation nationale (Système de design de l'État, accessibilité), UX Republic (entité design et UX du groupe)."
+    refs:"Adeo et Leroy Merlin (clients UX-Republic) ; Air Liquide (kit UX pour déployer les méthodes) ; design system « AI ready » ; UX Factory pour renforcer l'équipe."
   }
 ];
 
@@ -710,9 +710,10 @@ function companyById(id){ return COMPANIES.find(c=>c.id===id) || COMPANIES[0]; }
 
 function buildScenario(companyId, modeId){
   const co = companyById(companyId), m = MODES.find(x=>x.id===modeId) || MODES[0];
+  const UXB = co.track==="UX" || (co.custom && normName(co.owner)==="elisa");
   const c = co.contact, F = c.gender==="F", e = F ? "e" : "";
   const full = `${c.first} ${c.last}`;
-  const base = `Tu joues ${full}, ${c.role} chez ${co.name} (${co.desc}). Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale.
+  const base = `Tu joues ${full}, ${c.role} chez ${co.name} (${co.desc}). ${UXB ? "Tu reçois un appel de prospection d'une commerciale de UX-Republic, cabinet spécialiste de l'expérience utilisateur (UX), marque du groupe Smile." : "Tu reçois un appel de prospection d'un commercial de Smile, une entreprise de services numériques spécialisée dans l'open source et la transformation digitale."}
 ${co.custom ? "Ce scénario s'appuie sur des informations réelles collectées par le commercial sur cette personne. Reste fidèle à ces informations, n'invente pas de faits marquants supplémentaires, et comble les manques de façon réaliste et sobre." : "Ce scénario est un entraînement : le contexte ci-dessous est fictif, inspiré de l'entreprise."}
 
 Contexte que tu connais :
@@ -723,7 +724,7 @@ ${co.context.map(l=>"- "+l).join("\n")}
 
 C'EST UN VRAI APPEL À FROID :
 - Tu ne sais pas pourquoi on t'appelle et tu ne parles pas spontanément de tes projets ni de ton actualité. Ton contexte ci-dessus, tu ne le révèles que par petites touches, et seulement si le commercial te pose de bonnes questions ouvertes.
-- Avant tout, tu veux savoir à qui tu as affaire. Tu poses des questions sur Smile, une à la fois, au fil de l'appel, par exemple : « C'est commercial ? », « Comment vous avez eu mon numéro ? », « Vous êtes une ESN ? », « Smile, c'est quoi exactement ? », « Vous êtes basés où ? », « Vous êtes combien ? », « Vous avez des équipes à Lille ? », « Vous avez fait quoi chez des entreprises comme nous ? », « Vous travaillez avec qui dans la région ? », « Vous faites du projet ou de la régie ? », « Vous êtes forts sur quoi ? », « Qu'est-ce que vous avez de plus que les autres ? ». Pose au moins deux ou trois de ces questions pendant l'appel.
+- Avant tout, tu veux savoir à qui tu as affaire. Tu poses des questions sur ${UXB ? "UX-Republic" : "Smile"}, une à la fois, au fil de l'appel, par exemple : « C'est commercial ? », « Comment vous avez eu mon numéro ? », ${UXB ? "« Vous êtes une agence de design ? », « C'est lié à Smile ? », « UX-Republic, c'est quoi exactement ? », « Vous avez fait quoi dans le retail ? », « Vous faites de la recherche utilisateur ? »," : "« Vous êtes une ESN ? », « Smile, c'est quoi exactement ? »,"} « Vous êtes basés où ? », « Vous êtes combien ? », « Vous avez des équipes à Lille ? », « Vous avez fait quoi chez des entreprises comme nous ? », « Vous travaillez avec qui dans la région ? », « Vous faites du projet ou de la régie ? », « Vous êtes forts sur quoi ? », « Qu'est-ce que vous avez de plus que les autres ? ». Pose au moins deux ou trois de ces questions pendant l'appel.
 - Si la réponse est vague ou ressemble à une plaquette, tu demandes un exemple concret ou tu décroches un peu. Si elle est précise (une vraie référence, un chiffre, une entité du groupe) et suivie d'une question sur toi, tu deviens plus réceptif.
 - Ce qui te fait accepter un rendez-vous : un commercial qui ne cherche pas à vendre, qui s'intéresse vraiment à ton équipe et à tes priorités, et qui propose un échange mutuel plutôt qu'une présentation.`;
 
@@ -775,7 +776,7 @@ Comportement (niveau 3, appel réaliste) :
     speakerName = `${a.first} ${a.last}`; speakerRole = aF ? "Assistante de direction" : "Assistant de direction";
     voice = a.voice; gender = a.gender; contactNom = `${full} (via le standard)`;
     goal = `Obtenir ${/^[AEIOUYÉÈÊÀÂÎÔaeiouyéèêàâîô]/.test(a.first)?"d'":"de "}${a.first} un moyen de joindre ${full} : un créneau de rappel, son e-mail ou un message transmis.`;
-    prompt = `Tu joues ${a.first} ${a.last}, assistant${ae} de direction chez ${co.name} (${co.desc}). Tu filtres les appels de ${full}, ${c.role}. Un commercial de Smile, une entreprise de services numériques, appelle pour ${F?"la":"le"} joindre.
+    prompt = `Tu joues ${a.first} ${a.last}, assistant${ae} de direction chez ${co.name} (${co.desc}). Tu filtres les appels de ${full}, ${c.role}. ${UXB ? "Une commerciale de UX-Republic, cabinet spécialiste de l'UX du groupe Smile," : "Un commercial de Smile, une entreprise de services numériques,"} appelle pour ${F?"la":"le"} joindre.
 Ce scénario est un entraînement : le contexte est fictif.
 
 Contexte que tu connais :
@@ -1365,8 +1366,20 @@ const MEMO_REFS_ALL = [
   ["IoT et embarqué","Decathlon (objets connectés), GRDF (20 000 compteurs), Stellantis (1 cockpit en 6 semaines), EPSI (-75 % de temps de traitement), Airbus (10 ans)"]
 ];
 const MEMO_REFS = "Somfy (reprise d'un prestataire, 14 sites), Cultura (omnicanal depuis 10 ans), Accor (marketplace B2B en 6 mois), Arkema (B2B en 2 mois), Eram et Oreca (migration cloud), Pierre Fabre (150 sites, 60 % d'économies), STIB (appli mobile transport, 1,8 M de téléchargements), ameli.fr (marché public renouvelé). À Lille : 96 experts, 15 ans de présence, Kiabi, Auchan, Adeo, Decathlon.";
+function memoHtmlUxr(sc){
+  return `<div class="memo-body">
+    ${sc.bestRefs?`<p style="margin:0 0 8px;background:var(--blue-soft);border-radius:10px;padding:8px 10px"><b>Pour ${esc(sc.companyName)} :</b> ${esc(sc.bestRefs)}</p>`:""}
+    <p style="margin:0 0 4px;font-weight:600">Le pitch UX-Republic</p><p style="margin:0 0 10px">${esc(UXR_PITCH)}</p>
+    <ol>${MEMO_STEPS.map(m=>`<li><b>${m[0]}</b> : ${esc(m[1].replace(/de Smile/g,"de UX-Republic"))}</li>`).join("")}</ol>
+    <p style="margin:6px 0 4px;font-weight:600">Objections</p>
+    ${MEMO_OBJ.map(o=>`<div class="obj"><b>${o[0]}</b>${esc(o[1])}</div>`).join("")}
+    <p style="margin:10px 0 4px;font-weight:600">Références et preuves UX-Republic</p>
+    ${UXR_REFS_ALL.map(r=>`<div class="obj"><b>${r[0]}</b>${esc(r[1])}</div>`).join("")}
+  </div>`;
+}
 function memoHtml(){
   const sc=S.scenario;
+  if(sc && brandOf(companyById(sc.companyId))==="uxr") return memoHtmlUxr(sc);
   return `<div class="memo-body">
     ${sc&&sc.bestRefs?`<p style="margin:0 0 8px;background:var(--blue-soft);border-radius:10px;padding:8px 10px"><b>Pour ${esc(sc.companyName)} :</b> ${esc(sc.bestRefs)}</p>`:""}
     <p style="margin:0 0 4px;font-weight:600">Le pitch Smile</p><p style="margin:0 0 6px">${esc(MEMO_PITCH_LILLE)}</p><p style="margin:0 0 10px;color:var(--mute)">${esc(MEMO_PITCH)}</p>
@@ -1432,7 +1445,9 @@ function renderPrep(){
 }
 function prepareCallScreen(){
   const aid = S.scenario.aid || "memo";
-  $("#memoSide").innerHTML = `<h3>Mémo Smile</h3>${memoHtml()}`;
+  const memoLabel = brandOf(companyById(S.scenario.companyId))==="uxr" ? "Mémo UX-Republic" : "Mémo Smile";
+  $("#memoSide").innerHTML = `<h3>${memoLabel}</h3>${memoHtml()}`;
+  $("#memoToggle").textContent = memoLabel;
   // Niveau 1 : souffleur seul. Niveau 2 et exercices : mémo seul. Niveau 3 : aucune aide.
   $("#memoToggle").hidden = aid!=="memo";
   $("#helpBtn").hidden = aid!=="souffleur";
@@ -1468,9 +1483,9 @@ const COACH = {
     questions:["Vos applications d'atelier sont-elles faciles à faire évoluer ?","Il y a beaucoup de ressaisies entre SAV, ateliers et magasins ?","Votre équipe a-t-elle encore du temps pour les nouveaux projets ?"]},
   "decathlon-ux":{ objKeys:/interne|equipe design|designers/, objReply:"On renforce vos designers, surtout en recherche utilisateur, là où le temps manque.",
     questions:["Combien de clients perdez-vous dans le tunnel d'achat mobile ?","Avez-vous le temps de faire de la recherche utilisateur ?","Où en est l'accessibilité de l'appli ?"]},
-  "auchan-ux":{ objKeys:/agence/, objReply:"L'agence développe ; UX Republic teste d'abord les parcours avec de vrais clients.",
+  "auchan-ux":{ objKeys:/agence/, objReply:"L'agence développe ; UX-Republic teste d'abord les parcours avec de vrais clients, avant le développement.",
     questions:["Que disent les avis sur le parcours fidélité ?","Où les clients abandonnent-ils dans le parcours drive ?","Testez-vous les parcours avec de vrais clients avant de développer ?"]},
-  "adeo-ux":{ objKeys:/short-?list|agences/, objReply:"Normal. Je peux vous montrer le design system Pierre Fabre : 7 marques, une base commune.",
+  "adeo-ux":{ objKeys:/short-?list|agences/, objReply:"Normal. On travaille déjà avec Adeo et Leroy Merlin : 30 minutes pour vous montrer notre approche du design system.",
     questions:["Les développeurs utilisent-ils vraiment le design system ?","Comment gardez-vous l'identité de chaque enseigne ?","Où en est l'accessibilité des sites des enseignes ?"]}
 };
 const COACH_DEFAULT = { objKeys:null, objReply:"",
@@ -1517,7 +1532,7 @@ const HELP_RULES = [
    ask:()=>"« Lequel de ces sujets vous parle le plus ? »"},
   {type:"obj", cat:"Vous travaillez avec qui ?", re:/avec qui vous travaillez|vous travaillez avec qui|vos clients|qui sont vos clients/,
    say:()=>["« On est référencés chez les grands acteurs de la région : Adeo, Decathlon, Kiabi, Auchan… »"], ask:()=>""},
-  {type:"obj", cat:"Vos références", re:/references?|vous avez fait quoi|qu.?est-ce que vous avez fait|exemple concret|deja fait|deja travaille|comme nous/,
+  {type:"obj", cat:"Vos références", re:/(des|vos|quelles|de|en|avez-vous des) references\b|references? clients?|vous avez fait quoi|qu.?est-ce que vous avez fait|exemple concret|deja fait|deja travaille|comme nous/,
    say:co=>["« L'appli My Visa, la data chez Eram, l'e-commerce de Cultura, la traçabilité chez Suez, l'IoT chez Decathlon. »", `« Par exemple : ${co.proof}. »`],
    ask:()=>"« Et chez vous, ce serait plutôt quel type de sujet ? »"},
   {type:"obj", cat:"Votre différence", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi smile|de plus que les autres/,
@@ -1551,7 +1566,7 @@ const HELP_RULES = [
    say:()=>["« Très bien. Est-ce que vous auriez le numéro de la DSI ? »"], ask:()=>""},
   {type:"obj", cat:"Pas la bonne personne", re:/pas la bonne personne|pas moi qui decide|pas mon perimetre|pas moi qui gere/,
    say:()=>["« Excusez-moi du dérangement : qui pourrait être la bonne personne chez vous ? »"], ask:()=>""},
-  {type:"obj", cat:"Passer par les achats", re:/achats|referenc|appel(s)? d.?offre|accord-cadre/,
+  {type:"obj", cat:"Passer par les achats", re:/achats|etre reference|references? chez|prestataires references|appel(s)? d.?offre|accord-cadre/,
    say:()=>["« Bien sûr. L'objectif est surtout de comprendre votre équipe et votre périmètre ; les achats viendront ensuite. »"], ask:()=>""},
   {type:"obj", cat:"Mauvaise expérience", re:/mauvaise experience|mefian|decu|ca s.?est mal passe/,
    say:()=>["« Je comprends. Raison de plus pour se rencontrer d'abord, sans engagement. »"], ask:()=>"« Qu'est-ce qui n'avait pas fonctionné ? »"},
@@ -1597,6 +1612,132 @@ const HELP_RULES = [
 function lastMatch(n, re){ let idx=-1; const g=new RegExp(re.source, "g"); let m; while((m=g.exec(n))){ idx=m.index; if(g.lastIndex===m.index) g.lastIndex++; } return idx; }
 function pick(cat, list){ S.helpRot=S.helpRot||{}; const k=S.helpRot[cat]||0; return list[k % list.length]; }
 
+/* =========================================================
+   UX-REPUBLIC : marque UX du groupe Smile (prospection d'Elisa)
+   Source : présentation corporate 2026 UX-Republic / Lille
+   ========================================================= */
+const UXR_FICHE = `CONNAISSANCES SUR UX-REPUBLIC (source : présentation corporate 2026 UX-Republic / Lille)
+
+IDENTITÉ
+UX-Republic, marque du groupe Smile, est le pionnier de l'UX en France : depuis 2013, premier cabinet spécialiste à placer l'expérience utilisateur et la data au cœur du digital, en France et en Europe. Devise : « Human First ». Positionnement « User & AI centric ».
+Conviction : aider les clients à reprendre le contrôle de leurs assets digitaux et faire de l'UX un avantage concurrentiel. Vision : des produits digitaux justes, performants, durables et profondément humains.
+Chiffres : 100 collaborateurs, 14 années d'expérience, 950 projets. Trois régions : Nord (agence de Lille, dirigée par Nicolas Lepelley, designer, 23 ans d'expérience, coach et lead UX), Île-de-France, Sud. Le groupe Smile, c'est 2 000 experts et une vingtaine de bureaux.
+Objectifs selon la cible : BtoC (maximiser la transformation, l'acquisition, la fidélisation) ; BtoB (productivité, réduire le temps de formation et les coûts de support) ; BtoE (réduire les erreurs, image innovante, bien-être des collaborateurs).
+
+MODES D'INTERVENTION
+Régie (renfort d'experts), forfait (projet clés en main), centre de services, et UX Factory : modèle hybride entre régie et projet, UX industrialisée inspirée des Digital Factories de Smile, accès à tous les profils UX, gouvernance avec KPIs, coûts mutualisés, engagement flexible, accès à la communauté (Design Club, UX Conf, UX Breakfast), un Brown Bag Lunch offert à la première souscription.
+
+OFFRES
+- Service Design : co-création pour innover (experience prototyping, business model canvas, user journey mapping, service blueprint) ; trouver le sens avant la forme et vérifier la viabilité du service.
+- Design Sprint : tester une idée en une semaine.
+- Content Design (nouveau) : chatbot, UX writing et ton de voix, design conversationnel, persona numérique, guidelines, formation des équipes, GEO.
+- UX Factory (nouveau).
+- Design System (« AI ready »).
+- Growth Hacking.
+
+UX PERFORMANCE (la data au service de l'UX)
+Data analytics (GA4, Piano, Piwik, Matomo), data UX (Contentsquare, Clarity, Hotjar), data SEO et GEO, data marché. La data ne bride pas l'expertise UX : elle oriente les décisions et la priorisation.
+SXO = SEO + UX + data : optimiser tout le parcours, du premier clic à la conversion.
+GEO (Generative Engine Optimization) : devenir « LA source de référence » pour les IA génératives ; le trafic venant des IA convertit 4,4 fois plus que le trafic organique ; 90 % des actions sont communes avec le SEO.
+CRO : observation (analytics, audit UX, benchmark), priorisation des hypothèses avec la méthode RICE (Reach, Impact, Confiance, Effort), optimisation par le test (roadmap CRO, wireframes, recommandations éditoriales).
+
+APPROCHE ET MÉTHODES
+Design thinking itératif, en cycles courts, augmenté par l'IA à chaque étape (outils IA intégrés, consultants formés, prototypage accéléré, prototypes IA en « vibe coding »).
+Rechercher : observations terrain, études, questionnaires et panels, focus groups, labo de test, entretiens individuels. Auditer : audit ergonomique, audit UX-commerce, audit analytique, audit de code. Concevoir : ateliers d'idéation, wireframes, prototype haute définition, charte, design system. Valider : Design Sprint, A/B testing, tests utilisateurs, guerilla testing. Mesurer : KPIs UX (SUS, CSAT), analyse data. Performer : SXO, GEO, CRO, stratégie de mesure.
+Métiers : UX strategist, coach, product designer UX/UI, user researcher, service designer, lead designer et DesignOps, product owner et BA, design system manager, spécialiste GEO-SXO-CRO, AI product builder.
+
+FORMATION ET COACHING
+24 formations au catalogue, plus de 12 formateurs certifiés, certification qualité pour les actions de formation, parcours sur mesure. Coaching C-level, lead ou head of design de transition, acculturation et conduite du changement. Formats : Brown Bag Lunch (1 à 2 h sur le temps du déjeuner), UX Camp (un expert disponible pour toutes les équipes, façon « genius bar »), UX Coaching d'équipe.
+Événements : conférences à Lille, Paris, Bordeaux, Genève et Bruxelles ; présents à VivaTech (juin 2026) et UX Reboot (mai 2026).
+
+RÉFÉRENCES
+Clients retail et e-commerce : Leroy Merlin, Adeo, Boulanger, Carrefour, Franprix, La Redoute, Cdiscount, ManoMano, Chanel. Aussi : SNCF, Société Générale. Interventions pour toutes les directions : digital, DSI, marketing, communication, innovation, RH.
+Retours d'expérience :
+- Deezer : recherche utilisateur à grande échelle lors de l'ajout de nouvelles fonctionnalités clés.
+- Givaudan : conception d'une application MVP pour les évaluateurs de fragrances.
+- SNCF : UX design et évangélisation au sein du Fab Design.
+- Air Liquide : kit UX pour déployer les méthodes en interne (conduite du changement).
+- Design Sprint pour tester de nouveaux services ; nouveau site d'un éditeur de jeux vidéo ; service de mise en relation entre artisans et particuliers ; logiciel de gestion de performance de vols.
+
+ORDRES DE GRANDEUR (exemples de propositions, à ne citer qu'en cas de question directe)
+TJM de 600 à 800 € HT selon le profil. Un Design Sprint complet (préparation, 5 jours de sprint, formalisation) représente environ 10 600 € HT, restitution offerte. En régie, seuls les jours consommés sont facturés.`;
+
+const UXR_PITCH = "UX-Republic, marque du groupe Smile : pionnier de l'UX en France depuis 2013. 100 experts de l'expérience utilisateur, 950 projets, une agence à Lille. Recherche utilisateur, design de service, design d'interfaces et design system, et la data au service de l'UX (SXO, GEO, CRO). En régie, au forfait ou en UX Factory.";
+const UXR_REFS_ALL = [
+  ["Retail et e-commerce","Leroy Merlin, Adeo, Boulanger, Carrefour, Franprix, La Redoute, Cdiscount, ManoMano, Chanel"],
+  ["Recherche utilisateur","Deezer : recherche à grande échelle lors de l'ajout de fonctionnalités clés"],
+  ["Innovation et MVP","Givaudan : application MVP pour les évaluateurs de fragrances"],
+  ["Acculturation","SNCF : évangélisation UX au sein du Fab Design ; Air Liquide : kit UX pour déployer les méthodes"],
+  ["Performance","GEO : le trafic venu des IA convertit 4,4 fois plus ; CRO priorisé avec la méthode RICE"],
+  ["Formation","24 formations, 12 formateurs certifiés, Brown Bag Lunch, UX Camp, coaching"]
+];
+
+// UX-Republic uniquement pour les 3 comptes UX d'Elisa et les prospects qu'elle crée elle-même ; Smile partout ailleurs
+function isUxrCompany(co){ return !!co && (co.track==="UX" || (co.custom && normName(co.owner)==="elisa")); }
+function brandOf(co){ return isUxrCompany(co || company()) ? "uxr" : "smile"; }
+function brandName(co){ return brandOf(co)==="uxr" ? "UX-Republic" : "Smile"; }
+
+/* Souffleur : réponses propres à UX-Republic (prioritaires quand Elisa appelle) */
+const UXR_RULES = [
+  {type:"obj", cat:"Qui appelle ?", re:/c.?est qui|vous etes qui|qui est a l.?appareil|qui etes-vous|c.?est de la part/,
+   say:()=>[`« ${JR()}, de UX-Republic, la marque UX du groupe Smile. »`], ask:()=>""},
+  {type:"obj", cat:"Quelle société ?", re:/quelle societe|quelle boite|de quelle entreprise|de chez qui/,
+   say:()=>["« UX-Republic, cabinet spécialiste de l'expérience utilisateur depuis 2013, au sein du groupe Smile. »"], ask:()=>""},
+  {type:"obj", prio:700, cat:"Vous êtes une ESN ?", re:/vous etes une esn|c.?est une esn|une agence|agence de design|agence web/,
+   say:()=>["« Plutôt un cabinet spécialiste de l'UX, avec la force du groupe Smile derrière, qui lui est une ESN. »"], ask:()=>"« Vous travaillez avec qui sur l'UX aujourd'hui ? »"},
+  {type:"obj", cat:"C'est quoi UX-Republic ?", re:/c.?est quoi ux|ux-?republic,? c.?est|c.?est quoi exactement|qui etes|connais pas|lien avec smile|c.?est smile/,
+   say:()=>["« Le pionnier de l'UX en France depuis 2013 : 100 experts de l'expérience utilisateur, au sein du groupe Smile et de ses 2 000 experts. »"],
+   ask:()=>"« Et chez vous, qui s'occupe de l'expérience utilisateur ? »"},
+  {type:"obj", cat:"Vous faites quoi ?", re:/vous faites quoi|votre metier|votre activite|vous proposez quoi|specialis|forts sur quoi|votre expertise/,
+   say:()=>["« Recherche utilisateur, design de service, design d'interfaces et design system, et la data au service de l'UX : SXO, GEO, CRO. »"],
+   ask:()=>"« Lequel de ces sujets vous parle le plus ? »"},
+  {type:"obj", cat:"Vous êtes combien ?", re:/vous etes combien|combien de personnes|combien de collaborateurs|quelle taille/,
+   say:()=>["« 100 experts UX, et tout le groupe Smile derrière : 2 000 experts en Europe. »"], ask:()=>""},
+  {type:"obj", cat:"Vous êtes basés où ?", re:/vous etes ou|bases ou|basee? ou|vos bureaux|ou etes-vous|vous etes a lille/,
+   say:()=>["« À Lille, avec notre agence Région Nord, et aussi à Paris et dans le Sud. »"], ask:()=>"« On pourrait se voir autour d'un café, vous êtes sur Lille ? »"},
+  {type:"obj", cat:"Forfait ou régie ?", re:/regie|forfait|projet ou|assistance technique|comment vous travaillez/,
+   say:()=>["« En régie, au forfait, ou en UX Factory : un modèle hybride, flexible selon vos besoins. »"], ask:()=>"« Vous fonctionnez comment avec vos partenaires aujourd'hui ? »"},
+  {type:"obj", cat:"Vous travaillez avec qui ?", re:/avec qui vous travaillez|vous travaillez avec qui|vos clients|qui sont vos clients|dans le retail/,
+   say:()=>["« En retail : Leroy Merlin, Adeo, Boulanger, Carrefour, La Redoute, ManoMano… »"], ask:()=>""},
+  {type:"obj", cat:"Vos références", re:/(des|vos|quelles|de|en|avez-vous des) references\b|references? clients?|vous avez fait quoi|qu.?est-ce que vous avez fait|exemple concret|deja fait|deja travaille|comme nous/,
+   say:co=>[`« Par exemple : ${co.proof}. »`,"« La recherche utilisateur de Deezer, l'évangélisation UX à la SNCF, un kit UX pour Air Liquide. »"],
+   ask:()=>"« Et chez vous, ce serait plutôt quel type de sujet ? »"},
+  {type:"obj", cat:"Votre différence", re:/differen|qu.?est-ce qui vous distingue|pourquoi vous plutot|pourquoi ux|de plus que les autres/,
+   say:()=>["« 100 % UX depuis 2013, la data pour décider sur des faits, et la force du groupe Smile pour aller jusqu'au développement. »"], ask:()=>""},
+  {type:"obj", cat:"On a des designers en interne", re:/designers? en interne|equipe design|equipe ux|nos designers|on a deja des designers/,
+   say:()=>["« C'est une force. On les renforce souvent, en recherche utilisateur ou en design system, là où le temps manque. »"], ask:()=>"« Vos designers ont-ils le temps de faire de la recherche utilisateur ? »"},
+  {type:"obj", cat:"Budget", re:/budget|trop cher|vous etes chers|c.?est combien|\btjm\b|vos tarifs|ca coute/,
+   say:()=>["« Ça dépend du format : on peut commencer petit, par un audit ou un Design Sprint d'une semaine. »"], ask:()=>"« Qu'est-ce qui serait le plus utile pour vous à court terme ? »"},
+  // Sujets UX
+  {type:"topic", cat:"Expertise : recherche utilisateur", re:/recherche utilisateur|tests? utilisateurs?|entretien|panel|labo|avis client|on ne sait pas ce que veulent/,
+   say:()=>["Recherche : entretiens, labo de test, guerilla testing. Deezer nous l'a confiée à grande échelle."], ask:()=>"« Comment recueillez-vous l'avis de vos utilisateurs aujourd'hui ? »"},
+  {type:"topic", cat:"Expertise : conversion et CRO", re:/conversion|abandon|tunnel|panier|cro|a.?b test|taux de transfo/,
+   say:()=>["CRO : on observe, on priorise les hypothèses avec la méthode RICE, puis on teste."], ask:()=>"« Où perdez-vous le plus d'utilisateurs dans le parcours ? »"},
+  {type:"topic", cat:"Expertise : SEO, GEO et IA", re:/\bseo\b|referencement|\bgeo\b|chatgpt|moteurs? (generatif|ia)|google|trafic/,
+   say:()=>["GEO : le trafic venu des IA génératives convertit 4,4 fois plus que l'organique."], ask:()=>"« Vous suivez déjà votre visibilité dans les réponses des IA ? »"},
+  {type:"topic", cat:"Expertise : design system", re:/design system|composants|charte|coherence|identite visuelle/,
+   say:()=>["Design system « AI ready » : une base commune, chaque marque garde son identité."], ask:()=>"« Vos équipes de développement l'utilisent vraiment ? »"},
+  {type:"topic", cat:"Expertise : accessibilité", re:/accessib|rgaa|handicap/,
+   say:()=>["Accessibilité : audits ergonomiques et consultants certifiés en accessibilité."], ask:()=>"« Où en êtes-vous sur vos obligations d'accessibilité ? »"},
+  {type:"topic", cat:"Expertise : application mobile", re:/appli|mobile|smartphone|store|application/,
+   say:()=>["Mobile : audit UX, tests utilisateurs et prototype HD avant de développer."], ask:()=>"« Que reprochent vos utilisateurs à l'appli ? »"},
+  {type:"topic", cat:"Expertise : chatbot et IA", re:/chatbot|conversationnel|assistant|\bia\b|intelligence artificielle|vocal/,
+   say:()=>["Content Design : chatbot, design conversationnel et ton de voix de votre marque."], ask:()=>"« Vous avez des projets d'assistant ou de chatbot ? »"},
+  {type:"topic", cat:"Expertise : design de service", re:/nouveau service|parcours client|omnicanal|magasin|fidelit|experience client|service/,
+   say:()=>["Design de service : user journey mapping et service blueprint, le sens avant la forme."], ask:()=>"« Quel parcours client vous pose le plus de difficultés ? »"},
+  {type:"topic", cat:"Expertise : formation et acculturation", re:/former|formation|acculturation|monter en competence|sensibiliser|culture ux/,
+   say:()=>["Formation : 24 formations, 12 formateurs certifiés, et des Brown Bag Lunch d'une heure."], ask:()=>"« Vos équipes produit sont-elles sensibilisées à l'UX ? »"},
+  {type:"topic", cat:"Expertise : renfort UX", re:/recrut|manque de (profil|monde|ressource|designer)|sous-effectif|pas assez de monde|renfort|deborde/,
+   say:()=>["UX Factory : un modèle hybride régie et projet, avec accès à tous nos profils UX."], ask:()=>"« Quels profils UX vous manquent le plus ? »"},
+  {type:"topic", cat:"Expertise : data UX", re:/\bdata\b|donnee|analytics|mesure|kpi|contentsquare|hotjar|matomo/,
+   say:()=>["Data UX : Contentsquare, Clarity, Hotjar, pour décider sur des faits."], ask:()=>"« Comment mesurez-vous l'expérience de vos utilisateurs ? »"}
+];
+const SMILE_ONLY_CATS = new Set(["Qui appelle ?","Quelle société ?","Vous êtes une ESN ?","C'est quoi Smile ?","Je ne connais pas Smile","Vous faites quoi ?","Vous êtes combien ?","Vous êtes basés où ?","Forfait ou régie ?","Vous êtes spécialisés dans quoi ?","Vous travaillez avec qui ?","Vos références","Votre différence","Budget"]);
+function rulesFor(co){
+  if(brandOf(co)!=="uxr") return HELP_RULES;
+  return UXR_RULES.concat(HELP_RULES.filter(r=>(r.type==="obj" && !SMILE_ONLY_CATS.has(r.cat)) || r.type==="open"));
+}
+
 function computeTip(){
   const s=S.scenario, co=companyById(s.companyId), coach=coachFor(co);
   const line=lastProspectLine(), n=nrm(line);
@@ -1605,7 +1746,7 @@ function computeTip(){
   const lastJ=jTurns[jTurns.length-1]||"";
   const proposedRdv=jTurns.some(t=>/rendez-vous|30 minutes|trente minutes|creneau|lundi|mardi|mercredi|jeudi|vendredi|agenda|invitation/.test(t));
   const askedQuestion=/\?|comment|quel(le)?s?\b|est-ce que|pourquoi|combien|qu.?est-ce|avez-vous|etes-vous|vos /.test(lastJ);
-  if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${JR()} de Smile, vous allez bien ? »`, ask:"", line};
+  if(!line) return {cat:"Accroche", say:`« Bonjour ${co.contact.first}, ${JR()} de ${brandName(co)}, vous allez bien ? »`, ask:"", line};
 
   // 1. Rendez-vous accepté : conclure
   if(proposedRdv && /ca marche|va pour|ok pour|d.?accord pour|parfait|je note|ca me va|c.?est bon pour moi|envoyez(-moi)? (l.?|une )?invitation/.test(n))
@@ -1615,16 +1756,22 @@ function computeTip(){
   if(coach.objKeys && coach.objKeys.test(n)) return {cat:"Son objection", say:`« ${coach.objReply} »`, ask:`« ${coach.questions[0]} »`, line};
 
   // 3. Objection ou sujet : on retient ce qui a été dit EN DERNIER dans la réplique
-  let best=null;
-  for(const r of HELP_RULES){
+  let best=null, bestTopic=null;
+  const RULES = rulesFor(co);
+  for(const r of RULES){
     const i=lastMatch(n, r.re); if(i<0) continue;
     const w = i + (r.type==="obj" ? 1000 : 0) + (r.prio||0);   // une objection passe avant un sujet
     if(!best || w>best.w) best={r, w};
+    if(r.type==="topic" && (!bestTopic || i>bestTopic.w)) bestTopic={r, w:i};
   }
-  // Le prospect s'ouvre en milieu d'appel : c'est le moment de proposer le rendez-vous, même s'il évoque un sujet
-  const openSig = HELP_RULES.find(r=>r.type==="open").re.test(n);
-  if(openSig && !proposedRdv && pTurns>=3 && (!best || best.r.type!=="obj"))
+  // Question générale qui nomme un sujet précis (« vous faites quoi sur le SEO ? ») : on répond sur le sujet
+  if(best && bestTopic && ["Vous faites quoi ?","Vos références","Vous êtes spécialisés dans quoi ?"].includes(best.r.cat)) best=bestTopic;
+  // Le prospect s'ouvre en milieu d'appel : c'est le moment de proposer le rendez-vous
+  const openSig = RULES.find(r=>r.type==="open").re.test(n);
+  if(openSig && !proposedRdv && pTurns>=3 && (!best || best.r.type!=="obj")){
+    if(bestTopic) return {cat:bestTopic.r.cat+" + rendez-vous", say:pick(bestTopic.r.cat, bestTopic.r.say(co)), ask:"« 30 minutes en visio pour en parler ? Quels créneaux la semaine prochaine ? »", line};
     return {cat:"Ouverture : proposez le rendez-vous", say:RDV_SAY, ask:RDV_ASK, line};
+  }
   if(best && best.r.type!=="open") return {cat:best.r.cat, say:pick(best.r.cat, best.r.say(co)), ask:best.r.ask(co), line};
 
   // 4. Signal d'ouverture
@@ -2359,7 +2506,10 @@ async function runDebrief(){
   const payload = `TYPE D'EXERCICE : ${s.kind}
 OBJECTIF DE L'EXERCICE : ${s.goal}
 
-COMPTE : ${s.companyName}
+${brandOf(companyById(s.companyId))==="uxr" ? `MARQUE : le commercial prospecte au nom de UX-Republic, marque UX du groupe Smile. Évalue son pitch, ses chiffres et ses références avec la fiche ci-dessous (citer le groupe Smile est un plus, mais il doit d'abord présenter UX-Republic).
+${UXR_FICHE}
+
+` : ""}COMPTE : ${s.companyName}
 AIDES DISPONIBLES PENDANT L'APPEL : ${s.aid==="souffleur"?`souffleur IA (${S.helpUsed||0} suggestions affichées)`:s.aid==="memo"?"mémo Smile":"aucune"}
 FICHE PROSPECT REMISE AU COMMERCIAL : ${JSON.stringify(s.contact)}
 RELATION CONNUE AVEC SMILE : ${s.relation}
