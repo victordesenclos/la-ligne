@@ -497,27 +497,17 @@ const CONFIG = { GEMINI_API_KEY: "" };
    CONTENU : SCÉNARIOS
    ========================================================= */
 const COMMON_RULES = `
-TA FAÇON DE PARLER (le plus important) :
-Tu es une vraie personne au téléphone, en France, en pleine journée de travail. Pas un assistant, pas un personnage de formation.
-- Tu parles comme on parle vraiment : phrases courtes, souvent incomplètes, avec des « euh », « hmm », « ouais », « bon », « d'accord », « attendez », « ah bon ? », « c'est-à-dire ? ». Tu dis « j'ai pas », « c'est pas », « y a ». Sans en abuser : juste ce qu'il faut pour sonner vrai.
-- Très souvent, quelques mots suffisent : « Oui ? », « Hmm. », « Et donc ? », « Pas vraiment, non. », « Ah, ça c'est vrai. ».
-- Tu ne fais jamais de résumé de ce que dit le commercial. Tu ne le félicites pas. Tu ne dis jamais « excellente question », « je comprends tout à fait », « n'hésitez pas », « c'est très intéressant ». Pas de politesse en cascade, pas de phrases bien construites façon e-mail.
-- Une seule idée et au plus une question par réplique.
-- Tu ne fais pas le travail du commercial : tu ne relances pas la conversation à sa place et tu ne lui tends pas de perche. S'il hésite, tu attends ou tu dis « Oui ? ».
-- Tu as ta propre journée en tête : tu peux être un peu distrait, demander de répéter (« Pardon, vous êtes qui déjà ? »), soupirer, réfléchir à voix haute (« Hmm… attendez, c'est quoi le rapport avec nous ? »).
-- Ton ton évolue avec l'appel : plus froid s'il récite un pitch, plus chaleureux s'il t'intéresse vraiment. Ne répète jamais deux fois la même tournure.
-
-RÈGLES DU JEU :
-- Ne sors jamais de ton rôle, ne dis jamais que tu es une IA, ne donne aucun conseil sur l'appel.
-- Tu parles uniquement en français.
-- Ne révèle ton contexte que si les questions du commercial y mènent.
-- Si le commercial conclut, dis au revoir simplement et ne relance pas.
-- Le tout premier message que tu reçois signifie que ton téléphone sonne : décroche comme indiqué, sans rien ajouter.`;
+RÈGLES ABSOLUES (par ordre de priorité) :
+1. Tu restes ce personnage du début à la fin. Jamais d'aveu d'IA, jamais de conseil sur l'appel. Uniquement en français.
+2. Tu réagis précisément à ce que vient de dire le commercial, et à rien d'autre. Si tu n'as pas compris, tu le dis (« Pardon ? »).
+3. Une à deux phrases courtes par réplique, au maximum une question. Souvent, quelques mots suffisent (« Oui ? », « Et donc ? », « Pas vraiment. »).
+4. Tu parles comme au téléphone : langage oral, quelques « euh », « bon », « ouais », « attendez », sans en abuser. Jamais de formules d'assistant (« excellente question », « je comprends tout à fait », « n'hésitez pas »), jamais de résumé de ce qu'il dit.
+5. Tu ne fais pas son travail : tu ne relances pas la conversation à sa place. S'il hésite, tu attends.
+6. Ton ton suit l'appel : plus froid s'il récite un pitch, plus ouvert s'il s'intéresse vraiment à toi.
+7. S'il conclut, tu dis au revoir simplement. Le tout premier message signifie que ton téléphone sonne : décroche comme indiqué, sans rien ajouter.`;
 
 const REF_RULES = `
-- Si le commercial cite une référence client proche de ton contexte (même secteur, même problème, ou un changement de prestataire réussi), tu deviens plus réceptif et tu demandes un détail concret : « Et vous avez fait quoi exactement chez eux ? ».
-- Si la référence citée n'a aucun rapport avec ton métier, fais-le remarquer poliment.
-- Si le commercial reste vague (« on fait plein de choses », « on est leader »), demande-lui un exemple concret.`;
+- Référence client proche de ton contexte : tu deviens plus réceptif et tu demandes un détail concret. Référence sans rapport : tu le fais remarquer. Réponse vague : tu demandes un exemple.`;
 
 /* =========================================================
    COMPTES ET PERSONNAGES
@@ -2008,6 +1998,7 @@ async function startCall(){
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
+  S.directVer=0; S.directFailed = (()=>{ try{ return sessionStorage.getItem("laligne.directFailed")==="1"; }catch(e){ return false; } })();
   S.liveModelOverride=null; S.liveTried=[$("#liveModel").value]; S.partialSaved=false; S.latencies=[]; A.lastSpeechAt=0; A.turnStarted=false; S.helpUsed=0; S.helpBusy=false; S.helpAuto = S.scenario.aid==="souffleur"; S.helpKey=""; clearTimeout(S.helpTimer); S.helpRot={}; S.helpQ=0; S.helpTurn=0; S.helpLastTip=null;
   $("#callWho").textContent = speaker();
   $("#callOrg").textContent = `${s.speakerRole || s.contact.role}, ${s.contact.entreprise.split(" (")[0]}`;
@@ -2041,7 +2032,7 @@ function buildSetup(level){
   }[pace] || {};
   const setup = {
     model: S.liveModelOverride || $("#liveModel").value,
-    generationConfig:{ responseModalities:["AUDIO"], temperature:1.0,
+    generationConfig:{ responseModalities:["AUDIO"], temperature:0.7,
       speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName: chosen || s.voice } } } },
     systemInstruction:{ parts:[{text:s.prompt}] },
     inputAudioTranscription:{}, outputAudioTranscription:{}
@@ -2059,13 +2050,41 @@ function buildSetup(level){
   }
   return setup;
 }
+/* Connexion directe navigateur → Gemini avec un jeton temporaire fourni par le serveur.
+   La voix ne transite plus par Render. En cas d'échec, repli automatique sur le relais par le serveur. */
+const DIRECT_VERSIONS = ["v1alpha","v1beta"];
+async function openDirect(level){
+  S.lineLevel = level; S.setupDone = false; S.lineMode = "direct";
+  let token = null;
+  try{
+    const r = await fetch("api/live-token",{method:"POST"});
+    const d = await r.json().catch(()=>({}));
+    if(r.ok) token = d.token;
+  }catch(e){}
+  if(!token){ S.directFailed = true; return openLine(level); }
+  const ver = DIRECT_VERSIONS[S.directVer||0];
+  const ws = new WebSocket(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${ver}.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(token)}`);
+  S.ws = ws;
+  wireLine(ws, level, ()=>{
+    // Échec avant le démarrage : autre version d'API, puis niveau d'options suivant, puis relais par le serveur
+    if((S.directVer||0) < DIRECT_VERSIONS.length-1){ S.directVer=(S.directVer||0)+1; return openDirect(level); }
+    S.directVer = 0;
+    if(level < 3) return openDirect(level+1);
+    S.directFailed = true; try{ sessionStorage.setItem("laligne.directFailed","1"); }catch(e){}
+    return openLine(0);
+  });
+}
 function openLine(level){
-  S.lineLevel = level; S.setupDone = false;
+  if(S.viaServer && !S.directFailed) return openDirect(level);
+  S.lineLevel = level; S.setupDone = false; S.lineMode = S.viaServer ? "relais" : "clé";
   const url = S.viaServer
     ? `${location.protocol==="https:"?"wss":"ws"}://${location.host}${location.pathname.replace(/[^/]*$/,"")}api/live?v=${level===0?"v1alpha":"v1beta"}`
     : (level===0 ? WS_URL.replace("v1beta","v1alpha") : WS_URL) + `?key=${encodeURIComponent(S.key)}`;
   const ws = new WebSocket(url);
   S.ws = ws;
+  wireLine(ws, level, null);
+}
+function wireLine(ws, level, onEarlyFail){
   ws.onopen = () => ws.send(JSON.stringify({setup:buildSetup(level)}));
   ws.onmessage = async ev => {
     let msg; try{ msg = JSON.parse(typeof ev.data==="string" ? ev.data : await ev.data.text()); }catch(e){ return; }
@@ -2073,6 +2092,7 @@ function openLine(level){
   };
   ws.onclose = ev => {
     if(S.ws!==ws) return;
+    if(!S.setupDone && ev.code!==1000 && onEarlyFail){ onEarlyFail(); return; }
     if(!S.setupDone && ev.code!==1000 && level<3){ openLine(level+1); return; }
     if(!S.setupDone && ev.code!==1000 && level===3){
       // Le modèle vocal est refusé : on essaie automatiquement le suivant de la liste
@@ -2097,7 +2117,10 @@ async function handleServer(msg){
     S.callActive=true; S.startedAt=Date.now();
     S.timerId=setInterval(()=>{ const e=Date.now()-S.startedAt; $("#timer").textContent=fmt(e); $("#timer").classList.toggle("warn", e>(S.scenario.kind==="messagerie"?30000:300000)); },500);
     S.maxTimer=setTimeout(()=>hangUp(), MAX_CALL_MS);
-    S.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:"[Ton téléphone sonne. Tu décroches.]"}]}],turnComplete:true}}));
+    const kickoff = S.lineMode==="direct"
+      ? `[Consignes de jeu, à ne jamais lire à voix haute : ${S.scenario.prompt}]\n\n[Ton téléphone sonne. Tu décroches.]`
+      : "[Ton téléphone sonne. Tu décroches.]";
+    S.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:kickoff}]}],turnComplete:true}}));
     A.sending=true;
     return;
   }
@@ -2661,6 +2684,7 @@ function renderDebrief(d, rec, prev, grid){
         <div class="legend"><span>Prospect ${rec.talkShare} %</span><span>Toi ${100-rec.talkShare} %</span></div>
         <p style="margin:8px 0 0;font-size:.9rem;color:var(--mute)">Cible : 60 % pour le prospect.</p></div>`}
       ${(S.latencies||[]).length ? `<div class="panel"><h3>Délai de réponse du prospect</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${(S.latencies.reduce((a,b)=>a+b,0)/S.latencies.length/1000).toFixed(1).replace(".",",")} s</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">En moyenne, entre la fin de ta phrase et sa réponse</p></div>` : ""}
+      ${S.lineMode?`<div class="panel"><h3>Connexion vocale</h3><p style="margin:0;font-size:1.3rem;font-weight:600">${S.lineMode==="direct"?"Directe":"Par le serveur"}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${S.lineMode==="direct"?"La voix va directement à Google : délai minimal.":"La voix passe par Render : plus lent."}</p></div>`:""}
       <div class="panel"><h3>Durée</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${fmt(S.lastDuration)}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${targetDur}</p></div>
     </div>
 
