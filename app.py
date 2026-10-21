@@ -31,6 +31,10 @@ HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 DATASET_REPO = os.getenv("DATASET_REPO", "").strip()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 GITHUB_REPO = os.getenv("GITHUB_REPO", "").strip()
+# Tolère les erreurs de saisie courantes : URL complète, ".git" final, barre oblique
+GITHUB_REPO = GITHUB_REPO.replace("https://", "").replace("http://", "").replace("github.com/", "").strip("/ ")
+if GITHUB_REPO.endswith(".git"):
+    GITHUB_REPO = GITHUB_REPO[:-4]
 GITHUB_API = os.getenv("GITHUB_API", "https://api.github.com").rstrip("/")
 API = "https://generativelanguage.googleapis.com/v1beta"
 HERE = Path(__file__).parent
@@ -131,6 +135,12 @@ class GitHubBackup:
         """Renvoie (données, sha, ok). ok=False si GitHub n'a pas pu être lu (dans ce cas on n'envoie rien)."""
         r = httpx.get(self.url, headers=self.headers, timeout=30)
         if r.status_code == 404:
+            # Fichier absent… ou dépôt inaccessible ? GitHub répond 404 dans les deux cas : on vérifie le dépôt.
+            repo = httpx.get(f"{GITHUB_API}/repos/{GITHUB_REPO}", headers=self.headers, timeout=30)
+            if repo.status_code != 200:
+                raise RuntimeError(f"le dépôt « {GITHUB_REPO} » est introuvable avec ce jeton (code {repo.status_code}) : "
+                                   "vérifie GITHUB_REPO (format propriétaire/nom) et que le jeton a accès à ce dépôt, "
+                                   "avec la permission Contents en lecture et écriture")
             return b"", None, True
         if r.status_code != 200:
             raise RuntimeError(f"lecture impossible ({r.status_code}) : {r.text[:150]}")
@@ -189,7 +199,9 @@ class GitHubBackup:
                         return
                     if r.status_code in (409, 422) and attempt == 0:
                         continue
-                    self._error(f"envoi refusé ({r.status_code}) : {r.text[:150]}")
+                    hint = {401: "jeton invalide ou expiré", 403: "le jeton n'a pas la permission Contents en écriture",
+                            404: f"dépôt « {GITHUB_REPO} » introuvable pour ce jeton (nom du dépôt ou accès du jeton)"}.get(r.status_code, r.text[:150])
+                    self._error(f"envoi refusé ({r.status_code}) : {hint}")
                     return
                 except Exception as e:
                     if attempt == 0:
@@ -428,6 +440,27 @@ async def generate(request: Request):
     async with httpx.AsyncClient(timeout=180) as c:
         r = await c.post(f"{API}/{model}:generateContent", params={"key": GEMINI_KEY}, json=body.get("payload", {}))
     return JSONResponse(r.json(), status_code=r.status_code)
+
+
+@app.post("/api/live-token")
+async def live_token():
+    """Jeton temporaire Gemini : le navigateur se connecte directement à Google pour la voix (plus rapide).
+    Usage unique, à utiliser dans les 2 minutes, valable 30 minutes. La vraie clé ne quitte jamais le serveur."""
+    if not GEMINI_KEY:
+        return JSONResponse({"error": "GEMINI_API_KEY manquante"}, status_code=503)
+    now = time.time()
+    iso = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+    body = {"uses": 1, "expireTime": iso(now + 30 * 60), "newSessionExpireTime": iso(now + 2 * 60)}
+    last = ""
+    async with httpx.AsyncClient(timeout=20) as c:
+        for version in ("v1beta", "v1alpha"):
+            r = await c.post(f"https://generativelanguage.googleapis.com/{version}/auth_tokens",
+                             headers={"x-goog-api-key": GEMINI_KEY}, json=body)
+            if r.status_code == 200 and r.json().get("name"):
+                return {"token": r.json()["name"], "expireTime": body["expireTime"]}
+            last = f"{r.status_code} {r.text[:200]}"
+    print(f"Jeton temporaire refusé : {last}")
+    return JSONResponse({"error": f"jeton refusé : {last}"}, status_code=502)
 
 
 def safe_reason(text: str) -> str:
