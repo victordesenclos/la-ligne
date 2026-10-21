@@ -1142,7 +1142,7 @@ async function connect(key, silent){
       && !/(tts|image|embedding|live|audio|aqa|gemma|learnlm|robotics|computer)/i.test(m.name));
     if(!live.length) throw new Error("aucun modèle vocal temps réel n'est disponible pour cette clé.");
     if(!text.length) throw new Error("aucun modèle texte n'est disponible pour cette clé.");
-    fillSelect("#liveModel", live, m => (/native-audio/i.test(m.name)?1000:0) + modelVersion(m.name)*10 - (/preview|exp/i.test(m.name)?1:0), "laligne.liveModel.v3");
+    fillSelect("#liveModel", live, m => modelVersion(m.name)*100 - (/extended|thinking/i.test(m.name)?5000:0) - (/preview|exp/i.test(m.name)?1:0) + (/native-audio|-live\b|live$/i.test(m.name)?1:0), "laligne.liveModel.v4");
     fillSelect("#textModel", text, m => (/flash/i.test(m.name)?1000:0) - (/lite/i.test(m.name)?500:0) + modelVersion(m.name)*10 - (/preview|exp/i.test(m.name)?1:0), "laligne.textModel.v3");
     S.key = key; S.connected = true;
     S.viaServer = viaServer;
@@ -2014,7 +2014,12 @@ async function startCall(){
     teardownAudio(); return;
   }
   animate();
-  openLine(0);
+  let startLevel = 0;
+  try{
+    const ok = JSON.parse(sessionStorage.getItem("laligne.directOk")||"null");
+    if(ok && ok.model===$("#liveModel").value){ S.directVer = ok.ver||0; startLevel = ok.level||0; }
+  }catch(e){}
+  openLine(startLevel);
 }
 
 /* Niveau 0 : options natives (dialogue affectif, audio proactif) + détection de tour réglée
@@ -2043,9 +2048,15 @@ function buildSetup(level){
   // 2 : détection de tour réglée
   // 3 : configuration minimale
   if(level<=2) setup.realtimeInputConfig = { automaticActivityDetection: vad };
-  if(level<=1) setup.generationConfig.thinkingConfig = { thinkingBudget: 0 };  // supprime le temps de réflexion avant de répondre
+  // Réflexion minimale avant de répondre, selon la génération du modèle :
+  // 2.x : thinkingBudget 0 ; 3.1 à 3.7 : thinkingLevel « minimal » ; 3.8 et plus : réglage interdit, on l'omet.
+  const v = modelVersion(setup.model);
+  if(level<=1){
+    if(v && v < 3) setup.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    else if(v >= 3 && v < 3.8) setup.generationConfig.thinkingConfig = { thinkingLevel: "minimal" };
+  }
   if(level===0){
-    setup.enableAffectiveDialog = true;
+    if(v && v < 3) setup.enableAffectiveDialog = true;   // option propre aux modèles 2.x « native audio »
     if(s.kind==="messagerie") setup.proactivity = { proactiveAudio: true };  // le répondeur doit savoir se taire
   }
   return setup;
@@ -2110,7 +2121,8 @@ function wireLine(ws, level, onEarlyFail){
 async function handleServer(msg){
   if(msg.setupComplete){
     S.setupDone = true;
-    if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v3", S.liveModelOverride); }
+    if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v4", S.liveModelOverride); }
+    if(S.lineMode==="direct"){ try{ sessionStorage.setItem("laligne.directOk", JSON.stringify({model:$("#liveModel").value, ver:S.directVer||0, level:S.lineLevel})); }catch(e){} }
     $("#callState").textContent="Ça sonne…";
     await ringTone();
     if(!S.ws || S.ws.readyState!==1) return;
@@ -2684,7 +2696,7 @@ function renderDebrief(d, rec, prev, grid){
         <div class="legend"><span>Prospect ${rec.talkShare} %</span><span>Toi ${100-rec.talkShare} %</span></div>
         <p style="margin:8px 0 0;font-size:.9rem;color:var(--mute)">Cible : 60 % pour le prospect.</p></div>`}
       ${(S.latencies||[]).length ? `<div class="panel"><h3>Délai de réponse du prospect</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${(S.latencies.reduce((a,b)=>a+b,0)/S.latencies.length/1000).toFixed(1).replace(".",",")} s</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">En moyenne, entre la fin de ta phrase et sa réponse</p></div>` : ""}
-      ${S.lineMode?`<div class="panel"><h3>Connexion vocale</h3><p style="margin:0;font-size:1.3rem;font-weight:600">${S.lineMode==="direct"?"Directe":"Par le serveur"}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${S.lineMode==="direct"?"La voix va directement à Google : délai minimal.":"La voix passe par Render : plus lent."}</p></div>`:""}
+      ${S.lineMode?`<div class="panel"><h3>Connexion vocale</h3><p style="margin:0;font-size:1.3rem;font-weight:600">${S.lineMode==="direct"?"Directe":"Par le serveur"}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${S.lineMode==="direct"?"La voix va directement à Google : délai minimal.":"La voix passe par Render : plus lent."}<br>Modèle : ${esc(($("#liveModel").value||"").replace("models/",""))}</p></div>`:""}
       <div class="panel"><h3>Durée</h3><p style="margin:0;font-size:1.6rem;font-weight:600">${fmt(S.lastDuration)}</p><p style="margin:2px 0 0;font-size:.9rem;color:var(--mute)">${targetDur}</p></div>
     </div>
 
