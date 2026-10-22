@@ -691,7 +691,7 @@ const MODES = [
   {id:"n2", group:"level", num:"2", kind:"appel", title:"Objections classiques", sub:"Avec le mémo Smile", aid:"memo"},
   {id:"n3", group:"level", num:"3", kind:"appel", title:"Appel réaliste", sub:"Sans aucune aide", aid:"none"},
   {id:"barrage", group:"drill", num:"A", kind:"barrage", title:"Passer le barrage", sub:"L'assistant filtre les appels", aid:"memo"},
-  {id:"messagerie", group:"drill", num:"B", kind:"messagerie", title:"Laisser un message", sub:"30 secondes sur répondeur", aid:"memo"}
+  {id:"profil", group:"drill", num:"B", kind:"profil", title:"Pousser un profil", sub:"Proposer un consultant disponible", aid:"memo"}
 ];
 
 function normName(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
@@ -782,6 +782,27 @@ Comportement :
 - Si le commercial est courtois, te donne une raison précise et crédible liée à l'actualité de l'entreprise et te demande ton aide, tu deviens coopérati${aF?"ve":"f"} : tu donnes le meilleur moment pour rappeler, ou le format de l'e-mail, ou tu proposes de transmettre un message.
 - Tu ne transfères jamais directement l'appel.
 ${COMMON_RULES}`;
+  } else if(m.kind==="profil"){
+    const intro = base.split("\n\nC'EST UN VRAI APPEL À FROID")[0];
+    const marque = UXB ? "UX-Republic" : "Smile";
+    goal = `Présenter ton consultant à ${full} et repartir avec un entretien, ou un besoin qualifié et une date de rappel.`;
+    prompt = intro + `
+
+CET APPEL EST UN PUSH DE PROFIL :
+- ${UXB?"La commerciale":"Le commercial"} t'appelle pour te proposer un consultant de ${marque} disponible. Tu ne connais pas ce consultant : tu ne sais de lui que ce qu'on te dit pendant l'appel, et tu n'inventes jamais rien à son sujet.
+- Tu reçois ce genre d'appel plusieurs fois par semaine, avec des CV qui ne correspondent souvent à rien chez toi.
+
+Ta situation à cet instant : tu es à ton bureau, entre deux sujets, poli${e} mais méfiant${e}.
+
+Comportement :
+- Tu décroches en disant « ${full}, oui ? ».
+- Tant que tu ne vois pas le lien avec ton équipe, tu es sceptique : « On reçoit des CV toute la journée », « Envoyez-moi le CV par mail, je regarderai ».
+- Tu poses des questions précises sur le consultant, une à la fois, au fil de l'appel : ses années d'expérience, ce qu'il a fait concrètement, s'il connaît ton secteur, sa disponibilité, s'il peut venir sur site, s'il est salarié ou freelance, son tarif (« Il est à combien ? »). Si la réponse est vague ou semble inventée, tu le relèves.
+- Tu compares le profil avec ton contexte ci-dessus. S'il touche un de tes sujets, tu as un besoin latent, mais tu ne le révèles que si on te pose des questions sur tes projets, ton équipe ou tes besoins à venir. Si on te les pose, tu en parles franchement.
+- Si le profil ne correspond à aucun de tes sujets, tu le dis (« Ce n'est pas vraiment ce qu'on cherche »). Si on te demande alors quels profils tu recherches ou quels projets arrivent, tu réponds honnêtement à partir de ton contexte.
+- Tes objections possibles : « Envoyez-moi juste le CV », « Il faut passer par nos achats, on a un référencement », « On a déjà nos prestataires », « C'est trop cher », « Pas de besoin pour le moment », « ${co.objection} ». Tu en sors deux ou trois, quand elles viennent naturellement.
+- Tu acceptes une suite concrète (un échange de 20 minutes avec le consultant, ou une visio pour préciser ton besoin) seulement si on a relié le consultant à un de tes enjeux, posé au moins une question sur ton besoin et bien traité tes objections. Sinon, tu dis « Envoyez, je regarderai » et tu conclus.
+- Si l'appel dépasse environ 6 minutes, tu indiques que tu dois raccrocher.` + REF_RULES + "\n" + COMMON_RULES;
   } else {
     speakerName = `Messagerie de ${full}`; speakerRole = "Répondeur";
     goal = "Laisser un message de moins de 30 secondes qui donne envie de rappeler.";
@@ -943,6 +964,16 @@ const GRIDS = {
     ["alliance","Faire de l'assistante une alliée","Demande son aide, l'écoute, ne la contourne pas et ne la prend pas de haut."],
     ["resultat","Résultat obtenu","Repart avec un créneau de rappel, un e-mail ou un message transmis."]
   ],
+  profil:[
+    ["accroche","Accroche et permission","Se présente clairement (prénom, société) et demande si c'est un bon moment."],
+    ["raison","Raison de l'appel","Part du prospect et non du CV : relie l'appel à une actualité ou un enjeu de son équipe."],
+    ["pitch","Pitch du profil","Présente le consultant en 30 secondes : métier, expérience, 2 ou 3 compétences clés, une réalisation concrète, disponibilité. Sans réciter le CV."],
+    ["fidelite","Fidélité au profil","N'invente rien sur le consultant : s'il ne sait pas, il le dit et propose de revenir avec la réponse."],
+    ["qualification","Qualification du besoin","Pose des questions sur les projets en cours, les profils recherchés, les délais et le mode de contractualisation."],
+    ["rebond","Rebond","Si le profil ne colle pas, demande quels profils le prospect recherche ou quels projets arrivent."],
+    ["objections","Traitement des objections","« Envoyez le CV », achats, tarif, pas de besoin : accueille, rassure, relance par une question, sans forcer."],
+    ["conclusion","Prochaine étape","Obtient une suite concrète : échange avec le consultant, visio de qualification, ou envoi du CV ciblé avec un rappel daté."]
+  ],
   messagerie:[
     ["presentation","Présentation","Prénom, Smile, en une phrase."],
     ["actualite","Actualité citée","Mentionne un fait précis sur l'entreprise du prospect."],
@@ -978,7 +1009,30 @@ Réponds uniquement avec un objet JSON valide, sans texte autour, au format :
   "erreurs_smile": ["..."],
   "axe_de_travail": "..."
 }
-Pour le type "barrage", "rdv_obtenu" signifie : le commercial repart avec un créneau de rappel, un e-mail ou un message transmis. Pour le type "messagerie", "rdv_obtenu" vaut false.`;
+Pour le type "barrage", "rdv_obtenu" signifie : le commercial repart avec un créneau de rappel, un e-mail ou un message transmis. Pour le type "profil", "rdv_obtenu" signifie : le commercial obtient un échange avec le consultant, une visio de qualification, ou un besoin qualifié avec une date de rappel ; un simple « envoyez le CV » ne compte pas. Pour le type "messagerie", "rdv_obtenu" vaut false.`;
+
+const PUSH_TIPS = [
+  "Partir du prospect, pas du CV : une raison d'appeler liée à son actualité ou à ses enjeux.",
+  "Pitcher le profil en 30 secondes : métier, années d'expérience, 2 ou 3 compétences clés, une réalisation proche de son contexte, disponibilité.",
+  "Ne rien inventer sur le consultant. Si tu ne sais pas, dis-le et propose de revenir avec la réponse.",
+  "Qualifier avant d'envoyer le CV : projets en cours, profils recherchés, délais, passage par les achats ou non.",
+  "Si le profil ne colle pas, demander quels profils il recherche : c'est l'information la plus précieuse de l'appel.",
+  "« Envoyez-moi le CV » : accepter, poser deux questions pour cibler, puis caler un point de suivi daté.",
+  "Conclure sur une suite concrète : 20 minutes avec le consultant, une visio de qualification ou un rappel à date."
+];
+const CONSULTANT_FIELDS = [
+  ["prenom","Prénom du consultant","Ex. Thomas",false],
+  ["metier","Métier","Ex. Développeur fullstack Java / Angular",false],
+  ["xp","Expérience","Ex. 6 ans, dont 3 dans le retail",false],
+  ["competences","Compétences clés","Ex. Java, Spring Boot, Angular, API, CI/CD",true],
+  ["realisation","Réalisation marquante","Ex. Refonte du tunnel de commande d'un site e-commerce",true],
+  ["dispo","Disponibilité","Ex. Sous 2 semaines",false],
+  ["modalites","Modalités","Ex. Salarié Smile, en régie, basé à Lille, 2 jours sur site",false],
+  ["tarif","Tarif indicatif (facultatif)","Ex. TJM à valider avec ton manager",false]
+];
+function consultantKey(){ return "laligne.consultant." + brandOf(companyById(S.scenario.companyId)); }
+function loadConsultant(){ try{ return JSON.parse(localStorage.getItem(consultantKey())||"{}")||{}; }catch(e){ return {}; } }
+function saveConsultant(c){ try{ localStorage.setItem(consultantKey(), JSON.stringify(c)); }catch(e){} }
 
 
 /* =========================================================
@@ -1262,7 +1316,7 @@ function renderHome(){
       h.slice(-8).reverse().map(x=>`<div class="hrow"><span>${new Date(x.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
         <span><b style="font-weight:500">${esc(x.companyName||"")}</b><br><span style="color:var(--mute);font-size:.88rem">${esc(x.scenarioTitle)}</span></span>
         <span class="score-tag" style="color:${scoreColor(x.score)}">${x.score??"–"}</span>
-        <span class="hide-s">${x.score==null?"Débrief non généré":x.kind==="messagerie"?"Message laissé":x.rdv?(x.kind==="barrage"?"Contact obtenu":"Rendez-vous"):"Sans suite"}</span>
+        <span class="hide-s">${x.score==null?"Débrief non généré":x.kind==="messagerie"?"Message laissé":x.rdv?(x.kind==="barrage"?"Contact obtenu":x.kind==="profil"?"Suite obtenue":"Rendez-vous"):"Sans suite"}</span>
         <span class="hide-s" style="color:var(--mute)">${esc(x.axe||"")}</span></div>`).join("")
       : `<div class="empty">Tes appels apparaîtront ici, avec leur score et ton axe de travail.</div>`}
   </div>`;
@@ -1387,13 +1441,27 @@ function goPrep(id){ S.scenario=scById(id); showView("prep"); renderPrep(); }
 function readPrep(){
   const s=S.scenario, el=id=>$(id);
   if(el("#pA")) S.prepDrafts[s.key]={accroche:el("#pA").value.trim(), probleme:el("#pB").value.trim(), objectif:el("#pC").value.trim()};
-  return {id:s.id, ...(S.prepDrafts[s.key]||{accroche:"",probleme:"",objectif:""})};
+  let consultant = null;
+  if(s.kind==="profil"){
+    if(el("#c_metier")){ const c={}; for(const [k] of CONSULTANT_FIELDS) c[k]=el("#c_"+k).value.trim(); saveConsultant(c); }
+    consultant = loadConsultant();
+  }
+  return {id:s.id, ...(S.prepDrafts[s.key]||{accroche:"",probleme:"",objectif:""}), consultant};
 }
 function renderPrep(){
   const s=S.scenario, c=s.contact, st=statusOf(s.id);
   const prep=S.prepDrafts[s.key]||{accroche:"",probleme:"",objectif:""};
   const axe=lastAxe();
-  const isMsg=s.kind==="messagerie", isBar=s.kind==="barrage";
+  const isMsg=s.kind==="messagerie", isBar=s.kind==="barrage", isProf=s.kind==="profil";
+  const cons = isProf ? loadConsultant() : {};
+  const consHtml = !isProf ? "" : `
+      <h2 style="margin-bottom:6px">Ton consultant</h2>
+      <p class="aid-note" style="margin-top:0">Renseigne le vrai profil à pousser. La fiche est gardée sur ton ordinateur pour tes prochains appels. Le prospect ne la voit pas : il ne saura que ce que tu lui dis.</p>
+      <div class="prepq" style="margin-bottom:22px">
+        ${CONSULTANT_FIELDS.map(([k,label,ph,multi])=>`<div class="field"><label for="c_${k}">${esc(label)}</label>${multi
+          ? `<textarea id="c_${k}" placeholder="${esc(ph)}">${esc(cons[k]||"")}</textarea>`
+          : `<input id="c_${k}" type="text" placeholder="${esc(ph)}" value="${esc(cons[k]||"")}">`}</div>`).join("")}
+      </div>`;
   $("#viewPrep").innerHTML=`
   <button class="link back" type="button" id="backHome">Changer de compte ou de difficulté</button>
   <div class="prep">
@@ -1415,12 +1483,14 @@ function renderPrep(){
     <section class="card">
       ${axe?`<div class="axe-remind"><b>Ton axe de travail :</b> ${esc(axe)}</div>`:""}
       <p class="aid-note">${s.aid==="souffleur"?"Niveau 1 : pendant l'appel, le souffleur IA t'affiche en direct une phrase courte à dire.":s.aid==="memo"?"Niveau 2 : pendant l'appel, tu as uniquement le mémo Smile.":"Niveau 3 : aucune aide pendant l'appel. Prépare-toi bien."}</p>
+      ${consHtml}
       <h2 style="margin-bottom:14px">Ta préparation</h2>
       <div class="prepq">
-        <div class="field"><label for="pA">Quelle est mon accroche ?</label><textarea id="pA" placeholder="${isMsg?"Le fait récent que je cite dans mon message":"Le fait récent que je vais citer"}">${esc(prep.accroche)}</textarea></div>
-        <div class="field"><label for="pB">Quel problème ce fait peut-il créer ou révéler ?</label><textarea id="pB">${esc(prep.probleme)}</textarea></div>
+        <div class="field"><label for="pA">${isProf?"Pourquoi j'appelle cette personne-là ?":"Quelle est mon accroche ?"}</label><textarea id="pA" placeholder="${isProf?"L'actualité ou l'enjeu qui rend ce profil pertinent pour elle":isMsg?"Le fait récent que je cite dans mon message":"Le fait récent que je vais citer"}">${esc(prep.accroche)}</textarea></div>
+        <div class="field"><label for="pB">${isProf?"En quoi mon consultant peut l'aider ?":"Quel problème ce fait peut-il créer ou révéler ?"}</label><textarea id="pB">${esc(prep.probleme)}</textarea></div>
         <div class="field"><label for="pC">Quel est mon objectif précis pour cet appel ?</label><textarea id="pC">${esc(prep.objectif)}</textarea></div>
       </div>
+      ${isProf?`<details class="memo" open><summary>La méthode du push de profil</summary><ul>${PUSH_TIPS.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`:""}
       <details class="memo"><summary>Aide-mémoire : la trame de l'agence</summary>${memoHtml()}</details>
       <div class="callbar">
         <button class="btn orange big" id="callBtn" type="button" ${S.connected?"":"disabled"}>Appeler ${esc(isBar?"le standard":c.nom.split(" (")[0])}</button>
@@ -1429,8 +1499,12 @@ function renderPrep(){
     </section>
   </div>`;
   $("#backHome").onclick=()=>{ readPrep(); goHome(); };
-  ["#pA","#pB","#pC"].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
-  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ if(S.starting) return; cb.disabled=true; prepareCallScreen(); startCall(); };
+  ["#pA","#pB","#pC",...(isProf?CONSULTANT_FIELDS.map(f=>"#c_"+f[0]):[])].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
+  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{
+    if(S.starting) return;
+    if(isProf && (!$("#c_metier").value.trim() || !$("#c_competences").value.trim())){ toast("Renseigne au moins le métier et les compétences clés de ton consultant."); $("#c_metier").focus(); return; }
+    cb.disabled=true; prepareCallScreen(); startCall();
+  };
   const os=$("#openSet2"); if(os) os.onclick=()=>openDlg("#dlgSettings");
 }
 function prepareCallScreen(){
@@ -1904,6 +1978,7 @@ function sendAudio(f32){
   const i16 = new Int16Array(f32.length);
   for(let i=0;i<f32.length;i++){ const v=Math.max(-1,Math.min(1,f32[i])); i16[i]= v<0 ? v*0x8000 : v*0x7FFF; }
   S.ws.send(JSON.stringify({realtimeInput:{audio:{data:toB64(new Uint8Array(i16.buffer)), mimeType:"audio/pcm;rate=16000"}}}));
+  if(S.dbg){ S.dbg.sent++; S.dbg.bytes += i16.byteLength; }
 }
 function toB64(bytes){
   let s=""; const step=0x8000;
@@ -2006,6 +2081,25 @@ function dropSocket(ws){
   ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
   try{ if(ws.readyState<=1) ws.close(1000); }catch(e){}
 }
+/* Diagnostic : ajouter ?debug à l'adresse de la page pour l'afficher pendant l'appel */
+const DEBUG = /[?&]debug/.test(location.search);
+function dbgReset(){ S.dbg = { sent:0, bytes:0, msgs:0, inTr:0, outTr:0, audio:0, ver:"", closes:[] }; }
+function dbgLog(...a){ if(DEBUG) console.log("[La Ligne]", ...a); }
+function dbgShow(){
+  if(!DEBUG) return;
+  let el = document.getElementById("callDbg");
+  if(!el){ el=document.createElement("div"); el.id="callDbg";
+    el.style.cssText="font:12px/1.5 monospace;color:#fff;background:rgba(0,0,0,.45);border-radius:8px;padding:8px 10px;margin-top:12px;text-align:left;max-width:100%;overflow-x:auto;white-space:pre";
+    const st=document.getElementById("callState"); st && st.parentNode.insertBefore(el, st.nextSibling); }
+  const d=S.dbg||{}, model=(S.liveModelOverride || $("#liveModel").value || "").replace("models/","");
+  el.textContent =
+`Modèle     : ${model}
+Connexion  : ${S.lineMode||"?"} ${d.ver||""} · niveau ${S.lineLevel??"?"}
+Micro      : contexte ${A.micCtx?A.micCtx.state:"aucun"} · piste ${A.micStream&&A.micStream.getAudioTracks()[0]?A.micStream.getAudioTracks()[0].readyState+(A.micStream.getAudioTracks()[0].muted?" (muette)":""):"aucune"} · niveau ${(A.micLevel||0).toFixed(3)}
+Envoi      : ${A.sending?"actif":"inactif"} · ${d.sent} paquets (${Math.round((d.bytes||0)/1024)} Ko)
+Google     : ${d.msgs} messages · ${d.audio} morceaux de voix · transcriptions toi ${d.inTr} / prospect ${d.outTr}
+Coupures   : ${(d.closes||[]).join(" | ")||"aucune"}`;
+}
 function resetCallState(){
   if(S.ws){ const old=S.ws; S.ws=null; dropSocket(old); }
   clearTimeout(S.answerTimer); clearInterval(S.timerId); clearTimeout(S.maxTimer); clearTimeout(S.helpTimer);
@@ -2018,6 +2112,7 @@ async function startCall(){
   S.starting = true;
   S.callId = (S.callId||0) + 1;
   resetCallState();
+  dbgReset(); clearInterval(S.dbgTimer); if(DEBUG){ S.dbgTimer=setInterval(dbgShow, 400); dbgShow(); }
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
@@ -2098,6 +2193,7 @@ async function openDirect(level){
   }catch(e){}
   if(!token){ S.directFailed = true; return openLine(level); }
   const ver = DIRECT_VERSIONS[S.directVer||0];
+  if(S.dbg) S.dbg.ver = ver;
   const ws = new WebSocket(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${ver}.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(token)}`);
   S.ws = ws;
   wireLine(ws, level, ()=>{
@@ -2112,6 +2208,7 @@ async function openDirect(level){
 function openLine(level){
   if(S.viaServer && !S.directFailed) return openDirect(level);
   S.lineLevel = level; S.setupDone = false; S.lineMode = S.viaServer ? "relais" : "clé";
+  if(S.dbg) S.dbg.ver = level===0 ? "v1alpha" : "v1beta";
   const url = S.viaServer
     ? `${location.protocol==="https:"?"wss":"ws"}://${location.host}${location.pathname.replace(/[^/]*$/,"")}api/live?v=${level===0?"v1alpha":"v1beta"}`
     : (level===0 ? WS_URL.replace("v1beta","v1alpha") : WS_URL) + `?key=${encodeURIComponent(S.key)}`;
@@ -2121,7 +2218,12 @@ function openLine(level){
 }
 function wireLine(ws, level, onEarlyFail){
   const callId = S.callId;
-  ws.onopen = () => { if(S.ws===ws) ws.send(JSON.stringify({setup:buildSetup(level)})); };
+  ws.onopen = () => {
+    if(S.ws!==ws) return;
+    const setup = buildSetup(level);
+    dbgLog("setup envoyé", JSON.parse(JSON.stringify({...setup, systemInstruction:"(prompt masqué)"})));
+    ws.send(JSON.stringify({setup}));
+  };
   ws.onmessage = async ev => {
     if(S.ws!==ws || S.callId!==callId) return;
     let msg; try{ msg = JSON.parse(typeof ev.data==="string" ? ev.data : await ev.data.text()); }catch(e){ return; }
@@ -2129,6 +2231,8 @@ function wireLine(ws, level, onEarlyFail){
     handleServer(msg);
   };
   ws.onclose = ev => {
+    if(S.dbg) S.dbg.closes.push(`${ev.code}${ev.reason?" "+ev.reason.slice(0,80):""}`);
+    dbgLog("ligne fermée", ev.code, ev.reason);
     if(S.ws!==ws) return;
     if(!S.setupDone && ev.code!==1000 && onEarlyFail){ onEarlyFail(); return; }
     if(!S.setupDone && ev.code!==1000 && level<3){ openLine(level+1); return; }
@@ -2160,6 +2264,14 @@ function noAnswerFallback(){
   openLine(0);
 }
 async function handleServer(msg){
+  if(S.dbg){
+    S.dbg.msgs++;
+    const sc0 = msg.serverContent;
+    if(sc0?.inputTranscription?.text) S.dbg.inTr++;
+    if(sc0?.outputTranscription?.text) S.dbg.outTr++;
+    if(sc0?.modelTurn?.parts?.some(p=>p.inlineData)) S.dbg.audio++;
+    if(DEBUG && !sc0?.modelTurn) dbgLog("message reçu", JSON.stringify(msg).slice(0,300));
+  }
   if(msg.setupComplete){
     S.setupDone = true;
     if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v4", S.liveModelOverride); }
@@ -2213,6 +2325,7 @@ $("#liveToggle").onclick = () => {
 
 function hangUp(){ finishCall(true); }
 function finishCall(manual){
+  if(DEBUG){ dbgShow(); clearInterval(S.dbgTimer); dbgLog("fin d'appel", JSON.stringify(S.dbg)); }
   clearTimeout(S.answerTimer);
   S.helpAuto=false; clearTimeout(S.helpTimer);
   const wasActive = S.callActive || manual;
@@ -2314,10 +2427,10 @@ function demoData(){
         const v = score + 8 + (rnd()-0.5)*26 - (id===p.weak?32:0);
         crit[id] = v>=72?"acquis":v>=45?"en_cours":"a_travailler";
       }
-      const kind = drill ? (rnd()<0.5?"barrage":"messagerie") : "appel";
+      const kind = drill ? (rnd()<0.5?"barrage":"profil") : "appel";
       const coName=p.cos[Math.floor(rnd()*3)];
       out.push({ companyName:coName, companyId:coName.toLowerCase().replace(/\s/g,""), id:p.name+d, date:new Date(now-d*DAY-rnd()*DAY/2).toISOString(), t:now-d*DAY, junior:p.name,
-        scenarioId: drill?kind:level, scenarioTitle: drill?(kind==="barrage"?"Passer le barrage":"Laisser un message"):({n1:"Prospect bienveillant",n2:"Objections classiques",n3:"Appel réaliste"}[level]),
+        scenarioId: drill?kind:level, scenarioTitle: drill?(kind==="barrage"?"Passer le barrage":"Pousser un profil"):({n1:"Prospect bienveillant",n2:"Objections classiques",n3:"Appel réaliste"}[level]),
         kind, level: drill?"":level.slice(1), durationSec: 120+Math.round(rnd()*240), talkShare: Math.round(35+rnd()*30 - (p.weak==="ecoute"?12:0)),
         rdv: kind==="appel" && score>62 && rnd()<0.8, score, criteria: kind==="appel"?crit:{}, axe: axes[p.weak], verdict:"",
         erreursSmile: rnd()<0.12?1:0, prepFilled: rnd()<(p.name.startsWith("Tom")?0.4:0.9)?3:0 });
@@ -2604,7 +2717,13 @@ RÉFÉRENCES SMILE LES PLUS PERTINENTES POUR CE COMPTE : ${s.bestRefs}
 CONTEXTE CACHÉ DU PROSPECT SIMULÉ (ce que le commercial pouvait découvrir) :
 ${s.prompt}
 
-PRÉPARATION ÉCRITE PAR LE COMMERCIAL AVANT L'APPEL :
+${s.kind==="profil" ? `PROFIL DU CONSULTANT POUSSÉ (fiche remplie par le commercial ; vérifie qu'il n'a rien inventé au-delà) :
+${CONSULTANT_FIELDS.map(([k,label])=>`- ${label} : ${(S.lastPrep.consultant||{})[k] || "(non renseigné)"}`).join("\n")}
+
+MÉTHODE ATTENDUE POUR UN PUSH DE PROFIL :
+${PUSH_TIPS.map(t=>"- "+t).join("\n")}
+
+` : ""}PRÉPARATION ÉCRITE PAR LE COMMERCIAL AVANT L'APPEL :
 - Accroche : ${S.lastPrep.accroche || "(vide)"}
 - Problème identifié : ${S.lastPrep.probleme || "(vide)"}
 - Objectif de l'appel : ${S.lastPrep.objectif || "(vide)"}
@@ -2711,8 +2830,8 @@ function gauge(v){
 function renderDebrief(d, rec, prev, grid){
   const s=S.scenario;
   const byId = Object.fromEntries((d.criteres||[]).map(c=>[c.id,c]));
-  const yes = s.kind==="barrage" ? "Contact obtenu" : "Rendez-vous obtenu";
-  const no = s.kind==="barrage" ? "Contact non obtenu" : "Pas de rendez-vous";
+  const yes = s.kind==="barrage" ? "Contact obtenu" : s.kind==="profil" ? "Suite concrète obtenue" : "Rendez-vous obtenu";
+  const no = s.kind==="barrage" ? "Contact non obtenu" : s.kind==="profil" ? "Pas de suite concrète" : "Pas de rendez-vous";
   const pill = s.kind==="messagerie" ? `<span class="pill neutral">Message laissé</span>`
     : (rec.rdv ? `<span class="pill yes">${yes}</span>` : `<span class="pill no">${no}</span>`);
   let delta="";
