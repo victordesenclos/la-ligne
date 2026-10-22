@@ -1030,6 +1030,7 @@ const CONSULTANT_FIELDS = [
   ["modalites","Modalités","Ex. Salarié Smile, en régie, basé à Lille, 2 jours sur site",false],
   ["tarif","Tarif indicatif (facultatif)","Ex. TJM à valider avec ton manager",false]
 ];
+function profilTargets(){ return brandOf(companyById(S.company))==="uxr" ? ["decathlon-ux","adeo-ux"] : ["decathlon","adeo"]; }
 function consultantKey(){ return "laligne.consultant." + brandOf(companyById(S.scenario.companyId)); }
 function loadConsultant(){ try{ return JSON.parse(localStorage.getItem(consultantKey())||"{}")||{}; }catch(e){ return {}; } }
 function saveConsultant(c){ try{ localStorage.setItem(consultantKey(), JSON.stringify(c)); }catch(e){} }
@@ -1437,7 +1438,14 @@ function memoHtml(){
     </details>
   </div>`;
 }
-function goPrep(id){ S.scenario=scById(id); showView("prep"); renderPrep(); }
+function goPrep(id){
+  // « Pousser un profil » se joue uniquement sur Decathlon ou Adeo
+  if(id==="profil"){
+    const t = profilTargets();
+    if(!t.includes(S.company)){ S.companyBeforeProfil = S.company; setCompany(t[0]); }
+  }
+  S.scenario=scById(id); showView("prep"); renderPrep();
+}
 function readPrep(){
   const s=S.scenario, el=id=>$(id);
   if(el("#pA")) S.prepDrafts[s.key]={accroche:el("#pA").value.trim(), probleme:el("#pB").value.trim(), objectif:el("#pC").value.trim()};
@@ -1455,6 +1463,11 @@ function renderPrep(){
   const isMsg=s.kind==="messagerie", isBar=s.kind==="barrage", isProf=s.kind==="profil";
   const cons = isProf ? loadConsultant() : {};
   const consHtml = !isProf ? "" : `
+      <h2 style="margin-bottom:10px">Prospect à appeler</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px" role="group" aria-label="Prospect à appeler">
+        ${profilTargets().map(id=>{ const co=companyById(id), on=id===s.companyId;
+          return `<button type="button" class="btn small ${on?"":"ghost"}" data-target="${id}" aria-pressed="${on}">${esc(co.name)} · ${esc(co.contact.first+" "+co.contact.last)}</button>`; }).join("")}
+      </div>
       <h2 style="margin-bottom:6px">Ton consultant</h2>
       <p class="aid-note" style="margin-top:0">Renseigne le vrai profil à pousser. La fiche est gardée sur ton ordinateur pour tes prochains appels. Le prospect ne la voit pas : il ne saura que ce que tu lui dis.</p>
       <div class="prepq" style="margin-bottom:22px">
@@ -1498,7 +1511,14 @@ function renderPrep(){
       </div>
     </section>
   </div>`;
-  $("#backHome").onclick=()=>{ readPrep(); goHome(); };
+  $("#backHome").onclick=()=>{
+    readPrep();
+    if(S.companyBeforeProfil){ setCompany(S.companyBeforeProfil); S.companyBeforeProfil=null; }
+    goHome();
+  };
+  document.querySelectorAll("[data-target]").forEach(b=>b.onclick=()=>{
+    readPrep(); setCompany(b.dataset.target); S.scenario=scById("profil"); renderPrep();
+  });
   ["#pA","#pB","#pC",...(isProf?CONSULTANT_FIELDS.map(f=>"#c_"+f[0]):[])].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
   const cb=$("#callBtn"); if(cb) cb.onclick=()=>{
     if(S.starting) return;
