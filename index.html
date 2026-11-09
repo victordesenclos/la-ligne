@@ -131,6 +131,43 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 @media (prefers-reduced-motion:reduce){.help-box.flash{animation:none}}
 .aid-note{background:var(--paper);border-radius:10px;padding:8px 12px;font-size:.88rem;color:var(--mute);margin:0 0 14px}
 .company .co-track{background:var(--orange-soft);color:#8A3A1C;border-radius:999px;padding:1px 8px;font-size:.78rem;font-weight:600;vertical-align:middle}
+.company.pending{cursor:default;border-style:dashed;background:var(--paper)}
+.company.pending:hover{border-color:var(--line)}
+.company .co-track.ia{background:var(--blue-soft);color:var(--blue-deep)}
+.co-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-1px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.co-spin{animation:none}}
+.rank-link{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--orange-soft);border:0;border-radius:16px;padding:14px 18px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);grid-column:1/-1}
+.rank-link b{font-weight:600}
+.rank-link span.go{font-weight:600;color:#8A3A1C}
+.rk-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin:28px 0 18px}
+.rk-head h1{margin:0 0 4px;font-size:1.8rem}
+.rk-head p{margin:0;color:var(--mute)}
+.seg{display:flex;gap:4px;background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:4px}
+.seg button{border:0;border-radius:999px;padding:8px 14px;background:transparent;font-weight:500;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--blue);color:var(--white);font-weight:600}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.podium .pc{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:4px}
+.podium .pc.first{background:var(--blue-deep);color:var(--white);border-color:var(--blue-deep)}
+.podium .pc.me{border:2px solid var(--orange)}
+.podium .pc small{font-weight:600;font-size:.82rem;color:var(--mute)}
+.podium .pc.first small{color:#FFB89E}
+.podium .pc b{font-size:1.4rem}
+.rk-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.rk-table{background:var(--white);border:1.5px solid var(--line);border-radius:16px;overflow-x:auto}
+.rk-table table{width:100%;border-collapse:collapse;font-size:.94rem;min-width:620px}
+.rk-table th{text-align:left;font-weight:500;color:var(--mute);font-size:.84rem;padding:10px 12px}
+.rk-table td{padding:11px 12px;border-top:1px solid var(--line)}
+.rk-table tr.me td{background:var(--orange-soft)}
+.rk-side{display:flex;flex-direction:column;gap:14px}
+.rk-side .box{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:18px}
+.rk-side .box.info{background:var(--blue-soft);border-color:var(--blue-soft)}
+.rk-side h2{margin:0 0 8px;font-size:1.05rem}
+.rk-side p{margin:0;font-size:.92rem}
+.src-list{margin:6px 0 0;padding-left:18px;font-size:.86rem;color:var(--mute)}
+@media (max-width:860px){.podium{grid-template-columns:1fr}.rk-grid{grid-template-columns:1fr}}
+.rank-link[hidden]{display:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .company .co-owner{background:var(--paper);border-radius:999px;padding:1px 8px;margin-left:4px}
 details.more-co{margin:4px 0 6px}
 details.more-co summary{cursor:pointer;color:var(--blue);font-weight:500;margin-bottom:12px}
@@ -311,6 +348,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
   <button class="logo" id="homeBtn" type="button"><i aria-hidden="true"></i>La Ligne</button>
   <nav class="tabs" aria-label="Sections">
     <button type="button" id="tabHome" aria-current="page">Mon parcours</button>
+    <button type="button" id="tabRanking" aria-current="false">Classement</button>
     <button type="button" id="tabManager" aria-current="false">Manager</button>
   </nav>
   <span class="spacer"></span>
@@ -346,6 +384,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     </div>
   </main>
   <main id="viewDebrief" hidden><div id="debriefBody"></div></main>
+  <main id="viewRanking" hidden></main>
   <main id="viewManager" hidden>
     <div class="mhead">
       <div><h1>Suivi des juniors</h1><p id="mSub">Progression de l'équipe sur La Ligne</p></div>
@@ -387,7 +426,15 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     </div>
     <div class="row" style="margin-top:12px">
       <div class="field"><label for="whoBu">Ton agence</label><select id="whoBu" required></select></div>
+      <div class="field"><label for="whoRole">Ton rôle</label><select id="whoRole">
+        <option value="junior">Commercial junior</option>
+        <option value="manager">Manager d'agence</option>
+        <option value="direction">Direction commerciale</option>
+      </select></div>
     </div>
+    <div class="field" style="margin-top:12px"><label for="whoPortfolio">Ton portefeuille clients, un client par ligne</label>
+      <textarea id="whoPortfolio" style="min-height:120px" placeholder="Decathlon&#10;Auchan&#10;Lesaffre"></textarea></div>
+    <p class="hint" style="margin-top:6px">Les comptes déjà connus de La Ligne arrivent avec leur interlocuteur. Pour les autres, l'IA se renseigne sur internet et prépare une fiche prospect, que tu vérifies avant l'appel.</p>
     <p class="hint" id="whoShare" style="margin-top:14px"></p>
     <div class="foot"><button class="btn orange" type="submit">Commencer</button></div>
   </form>
@@ -432,6 +479,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     </div>
     <div class="field" style="margin-top:12px"><label for="cuRelation">Relation avec Smile</label><input id="cuRelation"></div>
     <div class="field" style="margin-top:12px"><label for="cuRefs">Références Smile à mettre en avant</label><input id="cuRefs"></div>
+    <div id="cuSources" class="hint" style="margin-top:12px" hidden></div>
     <div class="foot">
       <button class="btn ghost" type="button" id="customCancel">Annuler</button>
       <button class="btn orange" type="submit">Enregistrer le prospect</button>
@@ -813,7 +861,7 @@ function registerCustom(){
   for(const c of customList()){
     const F=c.gender==="F";
     COMPANIES.push({
-      id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"",
+      id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"", auto:!!c.auto, verified:!!c.verified, sources:c.sources||[],
       hook:(c.actu||"").replace(/[.;].*$/,"").slice(0,70), proof:(c.base && (COMPANIES.find(x=>x.id===c.base)||{}).proof) || "des références comme Cultura, Accor ou la STIB",
       desc:c.desc||"entreprise",
       contact:{first:c.first, last:c.last, role:c.role, gender:c.gender, voice:F?"Kore":"Charon"},
@@ -1022,8 +1070,9 @@ function firstName(){ return speaker().split(" ")[0]; }
 function scById(id){ return SCENARIOS.find(s=>s.id===id) || SCENARIOS[0]; }
 
 function showView(v){
-  for(const id of ["Home","Prep","Call","Debrief","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
-  $("#tabHome").setAttribute("aria-current", v==="manager" ? "false" : "page");
+  for(const id of ["Home","Prep","Call","Debrief","Ranking","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
+  $("#tabHome").setAttribute("aria-current", v==="manager"||v==="ranking" ? "false" : "page");
+  $("#tabRanking").setAttribute("aria-current", v==="ranking" ? "page" : "false");
   $("#tabManager").setAttribute("aria-current", v==="manager" ? "page" : "false");
   $("#privacyNote").hidden = v==="manager";
   window.scrollTo({top:0});
@@ -1076,22 +1125,150 @@ function askJunior(){
     ? "Ton prénom sert à suivre ta progression. Tes scores, tes niveaux et tes axes de travail sont partagés avec ton manager. Les transcriptions de tes appels restent sur ton ordinateur."
     : "Ton prénom sert à suivre ta progression sur cet ordinateur. Rien n'est envoyé ailleurs.";
   if(S.junior){ $("#whoFirst").value=S.junior.first; $("#whoLast").value=S.junior.last; }
+  $("#whoRole").value = myRole();
+  $("#whoPortfolio").value = portfolioLines().join("\n");
   try{ d.showModal(); }catch(err){ d.setAttribute("open",""); }
 }
 $("#whoForm").addEventListener("submit", e=>{
   const first=$("#whoFirst").value.trim(), last=$("#whoLast").value.trim(), bu=$("#whoBu").value;
   if(!first||!last||!bu){ e.preventDefault(); toast("Indique ton prénom, ton nom et ton agence."); return; }
-  S.junior={first,last,bu}; safeSet("laligne.junior", JSON.stringify(S.junior));
-  const mineIds=myCompanyIds(first);
-  if(mineIds.length && !mineIds.includes(S.company)) setCompany(mineIds[0]);
-  renderChrome(); renderHome();
+  const role=$("#whoRole").value || "junior";
+  const portfolio=$("#whoPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
+  S.junior={first,last,bu,role,portfolio}; safeSet("laligne.junior", JSON.stringify(S.junior));
+  const first1 = resolvePortfolio().find(x=>x.co);
+  if(first1) setCompany(first1.co.id);
+  renderChrome();
+  if(role!=="junior"){ showView("manager"); openManager(); } else goHome();
+  runResearchQueue();
 });
+/* =========================================================
+   PORTEFEUILLE ET FICHES AUTOMATIQUES
+   ========================================================= */
+function myRole(){ return (S.junior && S.junior.role) || "junior"; }
+function nkey(t){ return normName(t).replace(/[^a-z0-9]/g,""); }
+// Portefeuille saisi par le junior ; à défaut, celui défini dans le code (anciens profils)
+function portfolioLines(){
+  if(S.junior && Array.isArray(S.junior.portfolio)) return S.junior.portfolio;
+  const ids = S.junior ? myCompanyIds(S.junior.first) : [];
+  return ids.map(id=>{ const c=COMPANIES.find(x=>x.id===id); return c ? c.name+(c.track?" "+c.track:"") : ""; }).filter(Boolean);
+}
+// Associe chaque ligne du portefeuille à un compte connu, à un prospect déjà créé, ou à une recherche à lancer
+function resolvePortfolio(){
+  const seen=new Set(), out=[];
+  for(const line of portfolioLines()){
+    const k=nkey(line); if(!k || seen.has(k)) continue; seen.add(k);
+    const known = COMPANIES.find(c=>!c.custom && nkey(c.name+(c.track?" "+c.track:""))===k)
+               || COMPANIES.find(c=>!c.custom && !c.track && nkey(c.name)===k);
+    if(known){ out.push({line, key:k, co:known}); continue; }
+    const mine = COMPANIES.find(c=>c.custom && nkey(c.name)===k);
+    if(mine){ out.push({line, key:k, co:mine}); continue; }
+    out.push({line, key:k, co:null, research:(S.research||{})[k] || {state:"queued"}});
+  }
+  return out;
+}
+S.research = {};
+let researchRunning = false;
+async function runResearchQueue(){
+  if(researchRunning || !S.junior) return;
+  researchRunning = true;
+  try{
+    for(;;){
+      const next = resolvePortfolio().find(x=>!x.co && x.research.state==="queued");
+      if(!next) break;
+      S.research[next.key] = {state:"running"};
+      if(!$("#viewHome").hidden) renderHome();
+      try{
+        const r = await fetch("api/research",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({company:next.line, brand: normName(S.junior.first)==="elisa" ? "uxr" : "smile"})});
+        let d=null; try{ d=await r.json(); }catch(e){}
+        if(!r.ok || !d || !d.ok) throw new Error(d && d.error ? d.error : (r.status===404 ? "Recherche indisponible : le serveur n'est pas à jour." : "Erreur "+r.status));
+        const f=d.fiche;
+        const rec = { id:"auto-"+Date.now().toString(36), auto:true, verified:false, sources:d.sources||[], base:"", owner:S.junior.first,
+          company:next.line, desc:f.desc, first:f.first, last:f.last, gender:f.gender, role:f.role,
+          actu:f.actu || "Aucune actualité précise trouvée.", context:(f.context||[]).join("\n"), besoin:f.besoin, objection:f.objection,
+          decision:f.decision, relation:f.relation, refs:"" };
+        const list=customList().filter(x=>nkey(x.company)!==next.key); list.push(rec); saveCustomList(list);
+        registerCustom();
+        delete S.research[next.key];
+      }catch(err){
+        S.research[next.key] = {state:"error", msg:String(err.message||err).slice(0,200)};
+      }
+      if(!$("#viewHome").hidden) renderHome();
+    }
+  } finally { researchRunning = false; }
+}
+function retryResearch(key){ S.research[key]={state:"queued"}; runResearchQueue(); renderHome(); }
+function pendingCard(x){
+  const r=x.research;
+  const body = r.state==="error"
+    ? `<span class="co-who">La recherche n'a pas abouti.</span><span class="co-meta">${esc(r.msg||"")}</span>`
+    : `<span class="co-who"><span class="co-spin" aria-hidden="true"></span>${r.state==="running"?"Recherche web en cours…":"En attente de recherche…"}</span><span class="co-meta">Site officiel, actualités, offres d'emploi. Environ 20 secondes.</span>`;
+  const actions = r.state==="error"
+    ? `<div class="co-actions"><button type="button" class="co-btn co-retry" data-key="${esc(x.key)}">Relancer la recherche</button><button type="button" class="co-btn co-manual" data-name="${esc(x.line)}">Remplir à la main</button></div>` : "";
+  return `<div class="co-wrap"><div class="company pending" role="status"><span class="co-name">${esc(x.line)} <span class="co-track ia">Fiche IA</span></span>${body}</div>${actions}</div>`;
+}
+
+/* =========================================================
+   CLASSEMENT DES AGENCES
+   ========================================================= */
+S.rankPeriod = "week";
+async function fetchRanking(period){
+  const q = new URLSearchParams({period, bu:myBu()||"", junior: S.junior ? juniorName() : ""});
+  const r = await fetch("api/leaderboard?"+q, {cache:"no-store"});
+  const d = await r.json().catch(()=>null);
+  if(!r.ok || !d || !d.ok) throw new Error("Classement indisponible.");
+  return d;
+}
+async function fillRankStat(){
+  const el=$("#rankStat"); if(!el || !myBu()) return;
+  try{
+    const d=await fetchRanking("week");
+    const row=d.rows.find(x=>x.bu===myBu());
+    el.innerHTML = row && row.rank
+      ? `<span><b>Agence ${esc(myBu())} : ${row.rank}${row.rank===1?"re":"e"} sur ${d.rankedCount}</b> cette semaine</span><span class="go">Classement</span>`
+      : `<span><b>Agence ${esc(myBu())}</b> : pas encore classée cette semaine</span><span class="go">Classement</span>`;
+    el.hidden=false;
+  }catch(e){ el.hidden=true; }
+}
+async function renderRanking(){
+  const v=$("#viewRanking"), per=S.rankPeriod;
+  const lab={week:"Semaine",month:"Mois",quarter:"Trimestre"};
+  v.innerHTML = `<div class="rk-head"><div><h1>Classement des agences</h1>
+      <p>Indice La Ligne : 60 % qualité (score moyen) et 40 % régularité (appels par junior actif). Une petite agence régulière peut battre une grande.</p></div>
+    <div class="seg" role="group" aria-label="Période">${Object.keys(lab).map(k=>`<button type="button" data-per="${k}" aria-pressed="${k===per}">${lab[k]}</button>`).join("")}</div></div>
+    <p class="hint" id="rkLoading">Chargement…</p>`;
+  v.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{ S.rankPeriod=b.dataset.per; renderRanking(); });
+  let d;
+  try{ d=await fetchRanking(per); }catch(e){ $("#rkLoading").textContent = "Le classement n'est disponible qu'avec le serveur La Ligne."; return; }
+  const ranked=d.rows.filter(x=>x.rank), mine=myBu();
+  const fmt1=n=>String(n).replace(".",",");
+  const trend=x=>x.delta==null?`<span style="color:var(--mute)">–</span>`:x.delta>0?`<span style="color:var(--ok)">+${x.delta}</span>`:x.delta<0?`<span style="color:var(--ko)">${x.delta}</span>`:"=";
+  const podium = ranked.slice(0,3).map((x,i)=>`<div class="pc ${i===0?"first":""} ${x.bu===mine?"me":""}"><small>${i+1}${i===0?"re":"e"} place${x.bu===mine?" · ton agence":""}</small><b>${esc(x.bu)}</b><span>Indice ${x.index} · ${x.juniors} junior${x.juniors>1?"s":""} actif${x.juniors>1?"s":""}</span></div>`).join("");
+  const rows = d.rows.map(x=>x.rank
+    ? `<tr class="${x.bu===mine?"me":""}"><td><b>${x.rank}</b></td><td><b>${esc(x.bu)}</b></td><td>${x.index}</td><td>${x.avg??"–"}</td><td>${fmt1(x.perJunior)}</td><td>${x.rdvRate==null?"–":x.rdvRate+" %"}</td><td>${trend(x)}</td></tr>`
+    : `<tr class="${x.bu===mine?"me":""}"><td>–</td><td><b>${esc(x.bu)}</b></td><td colspan="5" style="color:var(--mute)">${x.juniors? "Moins de 2 juniors actifs : agence non classée" : "Aucun appel sur la période"}</td></tr>`).join("");
+  const me=d.me;
+  v.innerHTML = v.innerHTML.replace(/<p class="hint" id="rkLoading">[\s\S]*?<\/p>/, "") + `
+    ${ranked.length?`<div class="podium">${podium}</div>`:`<p class="hint">Aucune agence classée sur cette période : il faut au moins 2 juniors actifs par agence.</p>`}
+    <div class="rk-grid">
+      <div class="rk-table"><table><caption class="sr-only">Toutes les agences</caption>
+        <thead><tr><th scope="col">Rang</th><th scope="col">Agence</th><th scope="col">Indice</th><th scope="col">Score moyen</th><th scope="col">Appels par junior</th><th scope="col">Taux de RDV</th><th scope="col">Tendance</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <aside class="rk-side">
+        ${mine && myRole()==="junior" ? `<div class="box"><h2>Ma place dans mon agence</h2><p>${me?`<b style="font-size:1.6rem">${me.rank}${me.rank===1?"re":"e"}</b> sur ${me.of} junior${me.of>1?"s":""} actif${me.of>1?"s":""} à ${esc(mine)}, score moyen ${me.avg}.`:"Fais au moins un appel sur la période pour apparaître."}</p></div>` : ""}
+        <div class="box info"><h2>Confidentialité</h2><p>Le classement ne montre que des moyennes d'agence. Aucun prénom, aucun score individuel ni aucun appel n'est visible des autres agences.</p></div>
+      </aside>
+    </div>`;
+  v.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{ S.rankPeriod=b.dataset.per; renderRanking(); });
+}
+
 function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
 function juniorName(){ return S.junior ? `${S.junior.first} ${S.junior.last}` : "Anonyme"; }
 function renderChrome(){
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>` : "";
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>${S.junior.bu?` · ${esc(S.junior.bu)}`:""}` : "";
-  $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""}.` : "";
+  $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""} (${({junior:"commercial junior",manager:"manager d'agence",direction:"direction commerciale"})[myRole()]}).` : "";
+  $("#tabManager").hidden = myRole()==="junior";
   $("#privacyNote").textContent = sharing()
     ? "Les transcriptions restent sur cet ordinateur. Seuls tes scores, niveaux et axes de travail sont partagés avec ton manager. Utilise un casque pour éviter l'écho."
     : "Rien ne quitte cet ordinateur, à part l'échange avec Gemini pendant l'appel. Utilise un casque pour éviter l'écho.";
@@ -1106,6 +1283,7 @@ function renderChrome(){
   $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); askJunior(); };
   $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
   $("#tabHome").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
+  $("#tabRanking").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("ranking"); renderRanking(); };
   $("#tabManager").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("manager"); openManager(); };
   if(CONFIG.GEMINI_API_KEY){ $("#keyBlock").hidden = true; }
   const saved = CONFIG.GEMINI_API_KEY || safeGet("laligne.key");
@@ -1216,12 +1394,12 @@ function companyCard(co, mine){
   const sel = co.id===S.company;
   const n = history().filter(h=>h.companyId===co.id).length;
   const card = `<button type="button" class="company ${mine?"mine":""}" data-co="${co.id}" aria-pressed="${sel}">
-    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track ${co.custom?"real":""}">${esc(co.custom?"Mon prospect":co.track)}</span>`:""}</span>
+    <span class="co-name">${esc(co.name)}${co.track?` <span class="co-track ${co.auto&&!co.verified?"ia":co.custom?"real":""}">${esc(co.auto&&!co.verified?"Fiche IA · à vérifier":co.custom?"Mon prospect":co.track)}</span>`:""}</span>
     <span class="co-who">${esc(co.contact.first+" "+co.contact.last)}, ${esc(co.contact.role)}</span>
     <span class="co-meta">${n?`${n} appel${n>1?"s":""}`:"Pas encore appelé"}${mine||co.custom||(myBu()||"Lille")!=="Lille"?"":` <span class="co-owner">compte de ${esc(co.owner)}</span>`}</span>
   </button>`;
   const actions = co.custom
-    ? `<div class="co-actions"><button type="button" class="co-btn co-edit" data-id="${co.id}">Modifier</button><button type="button" class="co-btn danger co-del" data-id="${co.id}" aria-label="Supprimer ${esc(co.contact.first)}">Supprimer</button></div>`
+    ? `<div class="co-actions"><button type="button" class="co-btn co-edit" data-id="${co.id}">${co.auto&&!co.verified?"Vérifier la fiche":"Modifier"}</button><button type="button" class="co-btn danger co-del" data-id="${co.id}" aria-label="Supprimer ${esc(co.contact.first)}">Supprimer</button></div>`
     : "";
   return `<div class="co-wrap">${card}${actions}</div>`;
 }
@@ -1239,9 +1417,11 @@ function renderHome(){
   const subtitle = !h.length ? "Choisis ton compte et ta difficulté plus bas, prépare ton accroche, puis appelle. Le débrief arrive juste après."
               : axe ? "C'est ton axe de travail, issu de ton dernier débrief. Garde-le en tête pour le prochain appel." : "";
   const isLille = (myBu()||"Lille")==="Lille";
-  const mineIds = isLille ? myCompanyIds(S.junior?.first) : [];
-  const base = COMPANIES.filter(c=>!c.custom), reals = COMPANIES.filter(c=>c.custom);
-  const mine = base.filter(c=>mineIds.includes(c.id)), others = base.filter(c=>!mineIds.includes(c.id));
+  const pf = resolvePortfolio();
+  const mineIds = pf.filter(x=>x.co).map(x=>x.co.id);
+  const pending = pf.filter(x=>!x.co);
+  const base = COMPANIES.filter(c=>!c.custom), reals = COMPANIES.filter(c=>c.custom && !mineIds.includes(c.id));
+  const mine = pf.filter(x=>x.co).map(x=>x.co), others = base.filter(c=>!mineIds.includes(c.id));
   $("#viewHome").innerHTML = `
   <section class="hero">
     <div class="focus">
@@ -1256,14 +1436,15 @@ function renderHome(){
     <div class="stats">
       <div class="stat"><div class="v">${h.length}</div><div class="l">appel${h.length>1?"s":""} d'entraînement</div></div>
       <div class="stat"><div class="v">${rdvRate==null?"–":rdvRate+" %"}</div><div class="l">de rendez-vous obtenus</div></div>
+      <button type="button" class="rank-link" id="rankStat" hidden></button>
       <div class="stat wide"><div class="v" style="color:${scoreColor(avg)}">${avg==null?"–":avg}<span style="font-size:1rem;color:var(--mute);font-weight:400"> / 100</span></div>
         <div class="l">score moyen sur tes 5 derniers appels (validation à ${PASS_SCORE})</div>${spark(h.slice(-12).map(x=>x.score).filter(v=>v!=null))}</div>
     </div>
   </section>
 
-  <div class="sec-title"><div><h2>1. Choisis ton compte</h2><p style="margin-top:2px">${isLille ? "Chaque compte a son interlocuteur, son contexte et ses objections." : `Ton agence (${esc(myBu())}) n'a pas encore ses comptes types : entraîne-toi sur ces comptes d'exemple, ou crée tes propres prospects.`}</p></div>
+  <div class="sec-title"><div><h2>1. Choisis ton compte</h2><p style="margin-top:2px">${pf.length ? `Ton portefeuille : ${pf.length} compte${pf.length>1?"s":""}. Modifiable dans Réglages, « Changer d'identité ».` : isLille ? "Chaque compte a son interlocuteur, son contexte et ses objections. Ajoute ton portefeuille dans Réglages, « Changer d'identité »." : `Ton agence (${esc(myBu())}) n'a pas encore ses comptes types : entraîne-toi sur ces comptes d'exemple, ou ajoute ton portefeuille dans Réglages.`}</p></div>
     <button type="button" class="btn small" id="createReal">+ Créer mon propre prospect</button></div>
-  ${mine.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}</div>
+  ${mine.length||pending.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}${pending.map(pendingCard).join("")}</div>
     <details class="more-co" ${mineIds.includes(S.company)||company().custom?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
     : `<div class="companies">${base.map(c=>companyCard(c,false)).join("")}</div>`}
   ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects</h2><p>Créés par toi. Ils restent sur cet ordinateur.</p></div>
@@ -1285,6 +1466,10 @@ function renderHome(){
       : `<div class="empty">Tes appels apparaîtront ici, avec leur score et ton axe de travail.</div>`}
   </div>`;
   $("#goRec").onclick=()=>goPrep(rec.id);
+  $("#rankStat").onclick=()=>{ showView("ranking"); renderRanking(); };
+  fillRankStat();
+  document.querySelectorAll(".co-retry").forEach(b=>b.onclick=()=>retryResearch(b.dataset.key));
+  document.querySelectorAll(".co-manual").forEach(b=>b.onclick=()=>{ openCustom(null,null); $("#cuCompany").value=b.dataset.name; });
   const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
   document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
   document.querySelectorAll(".company").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
@@ -1318,6 +1503,13 @@ function openCustom(baseId, customId){
   f("cuRelation").value = c ? (c.relation||"") : (b ? b.relation : "");
   f("cuRefs").value = c ? (c.refs||"") : (b ? b.refs : "");
   f("cuCompany").dataset.base = c ? (c.base||"") : (b ? b.id : "");
+  const src=$("#cuSources");
+  if(c && c.auto){
+    $("#customTitle").textContent = c.verified ? `Modifier ${c.first} ${c.last}` : `Vérifier la fiche IA : ${c.company}`;
+    src.hidden=false;
+    src.innerHTML = `<b>Fiche préparée par l'IA à partir d'une recherche web.</b> L'interlocuteur est fictif. Vérifie les faits, corrige si besoin, puis enregistre pour valider la fiche.`
+      + (c.sources && c.sources.length ? `<ul class="src-list">${c.sources.map(x=>`<li>${x.uri?`<a href="${esc(x.uri)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</li>`).join("")}</ul>` : "");
+  } else { src.hidden=true; src.innerHTML=""; }
   openDlg("#dlgCustom");
 }
 $("#customCancel").onclick = ()=>$("#dlgCustom").close();
@@ -1328,6 +1520,8 @@ $("#customForm").addEventListener("submit", e=>{
     company:f("cuCompany"), desc:f("cuDesc"), first:f("cuFirst"), last:f("cuLast"), gender:$("#cuGender").value, role:f("cuRole"),
     actu:f("cuActu"), context:$("#cuContext").value.trim(), besoin:f("cuBesoin"), objection:f("cuObjection"),
     decision:f("cuDecision"), relation:f("cuRelation"), refs:f("cuRefs") };
+  const prev=customList().find(x=>x.id===rec.id);
+  if(prev && prev.auto){ rec.auto=true; rec.verified=true; rec.sources=prev.sources||[]; }
   const list=customList().filter(x=>x.id!==rec.id); list.push(rec); saveCustomList(list);
   registerCustom(); setCompany(rec.id); renderHome();
   toast(`Prospect enregistré : ${rec.first} ${rec.last}, ${rec.company}.`);
@@ -2834,6 +3028,7 @@ try{
   renderChrome();
   goHome();
   if(!S.junior || !S.junior.bu) askJunior();
+  else setTimeout(()=>runResearchQueue(), 1200);
   setTimeout(()=>flushOutbox().catch(()=>{}), 1500);
 }catch(err){ showFatal(err.message); }
 </script>
