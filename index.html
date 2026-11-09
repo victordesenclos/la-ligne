@@ -375,8 +375,8 @@ details.transcript p{margin:8px 0;font-size:.93rem}
       <h1>Connexion</h1>
       <p class="lead">Choisis ton profil pour ouvrir La Ligne.</p>
       <div class="role-pick" role="group" aria-label="Profil">
-        <button type="button" id="lgRoleJunior" aria-pressed="true"><b>Commercial junior</b><span>Je m'entraîne aux appels</span></button>
-        <button type="button" id="lgRoleManager" aria-pressed="false"><b>Manager</b><span>Je suis la progression de mon agence</span></button>
+        <button type="button" id="lgRoleJunior" aria-pressed="true"><b>Commercial</b><span>Je m'entraîne aux appels</span></button>
+        <button type="button" id="lgRoleManager" aria-pressed="false"><b>Manager</b><span>Je suis mon agence et je m'entraîne aussi</span></button>
       </div>
       <form id="lgJunior" novalidate>
         <div class="field"><label for="lgBu">Agence</label><select id="lgBu" required></select></div>
@@ -387,14 +387,10 @@ details.transcript p{margin:8px 0;font-size:.93rem}
         <div class="field" style="margin-top:12px"><label for="lgPortfolio">Ton portefeuille clients, un client par ligne</label>
           <textarea id="lgPortfolio" style="min-height:110px" placeholder="Decathlon&#10;Auchan&#10;Lesaffre"></textarea></div>
         <p class="hint" id="lgPfNote" style="margin-top:6px">Les comptes connus arrivent avec leur interlocuteur. Pour les autres, l'IA prépare une fiche à partir d'une recherche web.</p>
+        <div class="field" id="lgPwBox" style="margin-top:12px" hidden><label for="lgPw">Mot de passe manager de ton agence</label><input id="lgPw" type="password" autocomplete="current-password"></div>
+        <p class="hint" id="lgPwHint" style="margin-top:6px" hidden>Le mot de passe détermine ton périmètre de suivi : ton agence, ou toutes les agences pour la direction. Tes appels d'entraînement ne comptent pas dans le classement.</p>
         <p class="err" id="lgErr" role="alert"></p>
-        <div class="foot"><button class="btn orange" type="submit">Se connecter</button></div>
-      </form>
-      <form id="lgManager" novalidate hidden>
-        <div class="field"><label for="lgPw">Mot de passe de ton agence</label><input id="lgPw" type="password" autocomplete="current-password"></div>
-        <p class="hint" style="margin-top:8px">Le mot de passe détermine ton périmètre : ton agence, ou toutes les agences pour la direction.</p>
-        <p class="err" id="lgPwErr" role="alert"></p>
-        <div class="foot"><button class="btn orange" type="submit">Accéder au suivi</button></div>
+        <div class="foot"><button class="btn orange" type="submit" id="lgSubmit">Se connecter</button></div>
       </form>
     </div></div>
   </main>
@@ -468,7 +464,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     <div class="row" style="margin-top:12px">
       <div class="field"><label for="whoBu">Ton agence</label><select id="whoBu" required></select></div>
       <div class="field"><label for="whoRole">Ton rôle</label><select id="whoRole">
-        <option value="junior">Commercial junior</option>
+        <option value="junior">Commercial</option>
         <option value="manager">Manager d'agence</option>
         <option value="direction">Direction commerciale</option>
       </select></div>
@@ -1395,9 +1391,12 @@ function findProfile(first,last,bu){
   return null;
 }
 function setLoginRole(r){
+  S.loginRole = r;
   $("#lgRoleJunior").setAttribute("aria-pressed", r==="junior"); $("#lgRoleManager").setAttribute("aria-pressed", r==="manager");
-  $("#lgJunior").hidden = r!=="junior"; $("#lgManager").hidden = r!=="manager";
-  setTimeout(()=>(r==="junior" ? ($("#lgFirst").value?$("#lgPortfolio"):$("#lgFirst")) : $("#lgPw")).focus(), 30);
+  $("#lgPwBox").hidden = r!=="manager"; $("#lgPwHint").hidden = r!=="manager";
+  $("#lgSubmit").textContent = r==="manager" ? "Se connecter en manager" : "Se connecter";
+  $("#lgErr").textContent = "";
+  setTimeout(()=>($("#lgFirst").value ? (r==="manager" ? $("#lgPw") : $("#lgPortfolio")) : $("#lgFirst")).focus(), 30);
 }
 function fillLoginBu(){
   const sel=$("#lgBu"), cur=sel.value || (JSON.parse(safeGet("laligne.lastLogin")||"{}").bu) || "";
@@ -1420,7 +1419,7 @@ function showLogin(){
   fillLoginBu();
   $("#lgFirst").value = last.first||""; $("#lgLast").value = last.last||"";
   $("#lgPortfolio").value=""; delete $("#lgPortfolio").dataset.touched;
-  $("#lgPw").value=""; $("#lgErr").textContent=""; $("#lgPwErr").textContent="";
+  $("#lgPw").value=""; $("#lgErr").textContent="";
   showView("login"); setLoginRole(last.role==="manager" ? "manager" : "junior");
   loginLookup();
 }
@@ -1428,33 +1427,33 @@ $("#lgRoleJunior").onclick=()=>setLoginRole("junior");
 $("#lgRoleManager").onclick=()=>setLoginRole("manager");
 for(const id of ["#lgFirst","#lgLast","#lgBu"]) $(id).addEventListener("change", loginLookup);
 $("#lgPortfolio").addEventListener("input", ()=>{ $("#lgPortfolio").dataset.touched="1"; });
-$("#lgJunior").addEventListener("submit", e=>{
+$("#lgJunior").addEventListener("submit", async e=>{
   e.preventDefault();
+  const isMgr = S.loginRole==="manager";
   const first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim(), bu=$("#lgBu").value;
   if(!first || !last || !bu){ $("#lgErr").textContent="Indique ton agence, ton prénom et ton nom."; return; }
   const portfolio=$("#lgPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
-  S.junior={first,last,bu,role:"junior",portfolio}; S.mode="junior";
+  if(isMgr){
+    const pw=$("#lgPw").value.trim();
+    if(!pw){ $("#lgErr").textContent="Saisis le mot de passe manager de ton agence."; $("#lgPw").focus(); return; }
+    $("#lgErr").textContent="Vérification…";
+    let d=null, r=null;
+    try{ r=await fetch("api/sessions",{headers:{"x-manager-password":pw},cache:"no-store"}); d=await r.json(); }catch(err){}
+    if(!r || !r.ok || !d || !d.ok){ $("#lgErr").textContent = d && d.error ? d.error : "Connexion impossible. Réessaie dans un instant."; return; }
+    if(d.scope && d.scope!=="*" && d.scope.toLowerCase()!==bu.toLowerCase()){ $("#lgErr").textContent=`Ce mot de passe correspond à l'agence de ${d.scope}. Choisis cette agence.`; return; }
+    $("#lgErr").textContent="";
+    ssSet("laligne.managerPw", pw);
+  }
+  S.junior={first,last,bu,role:isMgr?"manager":"junior",portfolio}; S.mode=isMgr?"manager":"junior";
   saveProfile(S.junior); safeSet("laligne.junior", JSON.stringify(S.junior));
-  safeSet("laligne.lastLogin", JSON.stringify({first,last,bu,role:"junior"}));
+  safeSet("laligne.lastLogin", JSON.stringify({first,last,bu,role:S.mode}));
   S.agency=[]; S.extraResearch=[]; S.research={};
   const first1 = resolvePortfolio().find(x=>x.co);
   setCompany(first1 ? first1.co.id : (safeGet("laligne.company") || COMPANIES[0].id));
-  renderChrome(); goHome();
+  renderChrome();
+  if(isMgr){ showView("manager"); openManager(); } else goHome();
   pushPortfolio().then(loadAgency); runResearchQueue();
   setTimeout(()=>syncAll(), 800);
-});
-$("#lgManager").addEventListener("submit", async e=>{
-  e.preventDefault();
-  const pw=$("#lgPw").value.trim();
-  if(!pw){ $("#lgPwErr").textContent="Saisis le mot de passe de ton agence."; return; }
-  $("#lgPwErr").textContent="Vérification…";
-  let d=null, r=null;
-  try{ r=await fetch("api/sessions",{headers:{"x-manager-password":pw},cache:"no-store"}); d=await r.json(); }catch(err){}
-  if(!r || !r.ok || !d || !d.ok){ $("#lgPwErr").textContent = d && d.error ? d.error : "Connexion impossible. Réessaie dans un instant."; return; }
-  ssSet("laligne.managerPw", pw);
-  S.mode="manager"; S.junior=null;
-  safeSet("laligne.lastLogin", JSON.stringify({role:"manager"}));
-  renderChrome(); showView("manager"); openManager();
 });
 $("#logoutBtn").onclick=()=>{ if(!$("#viewCall").hidden) return; showLogin(); };
 
@@ -1463,10 +1462,10 @@ function juniorName(){ return S.junior ? `${S.junior.first} ${S.junior.last}` : 
 function renderChrome(){
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>` : "";
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>${S.junior.bu?` · ${esc(S.junior.bu)}`:""}` : "";
-  $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""} (${({junior:"commercial junior",manager:"manager d'agence",direction:"direction commerciale"})[myRole()]}).` : "";
+  $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""} (${({junior:"commercial",manager:"manager d'agence",direction:"direction commerciale"})[myRole()]}).` : "";
   $("#tabManager").hidden = S.mode!=="manager";
-  $("#tabHome").hidden = S.mode==="manager";
-  if(S.mode==="manager") $("#whoChip").innerHTML = "<b>Manager</b>";
+  $("#tabHome").hidden = !S.junior;
+  if(S.mode==="manager" && S.junior) $("#whoChip").innerHTML = `<b>${esc(S.junior.first)}</b> · ${esc(S.junior.bu)} · Manager`;
   $("#privacyNote").textContent = sharing()
     ? "Les transcriptions restent sur cet ordinateur. Seuls tes scores, niveaux et axes de travail sont partagés avec ton manager. Utilise un casque pour éviter l'écho."
     : "Rien ne quitte cet ordinateur, à part l'échange avec Gemini pendant l'appel. Utilise un casque pour éviter l'écho.";
@@ -1479,7 +1478,7 @@ function renderChrome(){
   $("#settingsBtn").onclick = ()=>openDlg("#dlgSettings");
   $("#closeSettings").onclick = ()=>$("#dlgSettings").close();
   $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); showLogin(); };
-  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden || !$("#viewLogin").hidden) return; S.mode==="manager" ? (showView("manager"), openManager()) : goHome(); };
+  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden || !$("#viewLogin").hidden) return; S.junior ? goHome() : (showView("manager"), openManager()); };
   $("#tabHome").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
   $("#tabRanking").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("ranking"); renderRanking(); };
   $("#tabManager").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("manager"); openManager(); };
@@ -3132,7 +3131,7 @@ ${transcriptTxt}`;
     const criteria = Object.fromEntries((d.criteres||[]).map(c=>[c.id, LVL[c.niveau]?c.niveau:"non_observe"]));
     const rec = {
       id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
-      date: new Date().toISOString(), junior: juniorName(),
+      date: new Date().toISOString(), junior: juniorName(), role: S.mode==="manager" ? "manager" : "commercial",
       scenarioId: s.id, scenarioTitle: s.title, kind: s.kind, level: s.num,
       companyId: s.companyId, companyName: s.companyName, bu: myBu(),
       durationSec: Math.round(S.lastDuration/1000), talkShare: share,
@@ -3148,7 +3147,7 @@ ${transcriptTxt}`;
     // L'appel compte quand même dans le suivi, sans score
     if(!S.partialSaved){
       S.partialSaved=true;
-      recordSession({ id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())), date:new Date().toISOString(), junior:juniorName(),
+      recordSession({ id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())), date:new Date().toISOString(), junior:juniorName(), role: S.mode==="manager" ? "manager" : "commercial",
         scenarioId:s.id, scenarioTitle:s.title, kind:s.kind, level:s.num, companyId:s.companyId, companyName:s.companyName, bu:myBu(),
         durationSec:Math.round(S.lastDuration/1000), talkShare:share, rdv:false, score:null, criteria:{}, axe:lastAxe(),
         verdict:"Débrief non généré", erreursSmile:0, prepFilled:[S.lastPrep.accroche,S.lastPrep.probleme,S.lastPrep.objectif].filter(Boolean).length }).catch(()=>{});
