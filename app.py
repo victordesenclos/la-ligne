@@ -26,7 +26,15 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse
 
 GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD", "").strip()
+MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD", "").strip()   # accès à toutes les agences (CODIR, admin)
+# Agences (BU) proposées aux juniors, et mot de passe Manager de chaque agence
+BUS = [b.strip() for b in os.getenv("BUS", "Lille,Paris,Lyon,Marseille,Nantes,Bordeaux,Toulouse,Montpellier").split(",") if b.strip()]
+DEFAULT_BU = BUS[0] if BUS else "Lille"   # les appels enregistrés avant l'arrivée des agences sont rattachés à la première
+try:
+    BU_PASSWORDS = {k.strip().lower(): str(v) for k, v in json.loads(os.getenv("MANAGER_PASSWORDS", "{}") or "{}").items() if str(v)}
+except Exception:
+    BU_PASSWORDS = {}
+    print("MANAGER_PASSWORDS illisible : format attendu {\"Lille\":\"motdepasse\",\"Paris\":\"autre\"}")
 HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 DATASET_REPO = os.getenv("DATASET_REPO", "").strip()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
@@ -92,10 +100,28 @@ if DATASET_REPO and HF_TOKEN:
     lock = scheduler.lock
 
 # ---------- Sauvegarde dans un dépôt GitHub privé ----------
+def bu_of(rec: dict) -> str:
+    return (rec.get("bu") or DEFAULT_BU).strip()
+
+
 def after_reset(rec: dict) -> bool:
-    """Ignore les appels antérieurs à la dernière remise à zéro."""
-    reset_at = read_meta().get("resetAt")
-    return not reset_at or (rec.get("date") or "") >= reset_at
+    """Ignore les appels antérieurs à la dernière remise à zéro (générale ou de l'agence du junior)."""
+    meta = read_meta()
+    limits = [meta.get("resetAt") or "", (meta.get("resetAtBu") or {}).get(bu_of(rec).lower(), "")]
+    return (rec.get("date") or "") >= max(limits)
+
+
+def manager_scope(request) -> str | None:
+    """'*' pour l'accès toutes agences, le nom de l'agence pour un manager d'agence, None sinon."""
+    pw = request.headers.get("x-manager-password", "")
+    if not pw:
+        return None
+    if MANAGER_PASSWORD and pw == MANAGER_PASSWORD:
+        return "*"
+    for bu, p in BU_PASSWORDS.items():
+        if pw == p:
+            return next((b for b in BUS if b.lower() == bu), bu.capitalize())
+    return None
 
 
 def parse_lines(data: bytes) -> list:
@@ -271,7 +297,7 @@ def backup_status() -> dict:
 
 FIELDS = {
     "id": str, "date": str, "junior": str, "scenarioId": str, "scenarioTitle": str, "kind": str,
-    "level": str, "companyId": str, "companyName": str, "durationSec": int, "talkShare": int, "rdv": bool, "score": int, "criteria": dict,
+    "level": str, "bu": str, "companyId": str, "companyName": str, "durationSec": int, "talkShare": int, "rdv": bool, "score": int, "criteria": dict,
     "axe": str, "verdict": str, "erreursSmile": int, "prepFilled": int,
 }
 
@@ -335,9 +361,11 @@ def index():
 def config():
     return {
         "serverKey": bool(GEMINI_KEY),
-        "managerReady": bool(MANAGER_PASSWORD),
+        "managerReady": bool(MANAGER_PASSWORD or BU_PASSWORDS),
         "backup": BACKUP_ON,
+        "bus": BUS,
         "resetAt": read_meta().get("resetAt"),
+        "resetAtBu": read_meta().get("resetAtBu") or {},
     }
 
 
@@ -384,39 +412,55 @@ async def sync_sessions(request: Request):
 
 @app.get("/api/sessions")
 def list_sessions(request: Request):
-    if not MANAGER_PASSWORD:
-        return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré dans le Space."}, status_code=503)
-    if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
+    if not (MANAGER_PASSWORD or BU_PASSWORDS):
+        return JSONResponse({"ok": False, "error": "Aucun mot de passe Manager n'est configuré sur le serveur."}, status_code=503)
+    scope = manager_scope(request)
+    if not scope:
         return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
-    return {"ok": True, "sessions": read_sessions(), "backup": BACKUP_ON, "backupStatus": backup_status(),
-            "resetAt": read_meta().get("resetAt")}
+    rows = read_sessions()
+    for r in rows:
+        r["bu"] = bu_of(r)
+    if scope != "*":
+        rows = [r for r in rows if r["bu"].lower() == scope.lower()]
+    return {"ok": True, "scope": scope, "bus": BUS, "sessions": rows, "backup": BACKUP_ON,
+            "backupStatus": backup_status(), "resetAt": read_meta().get("resetAt")}
 
 
 @app.post("/api/reset")
 def reset_sessions(request: Request):
-    """Remise à zéro des résultats (onglet Manager). Les données sont archivées avant d'être effacées."""
-    if not MANAGER_PASSWORD:
-        return JSONResponse({"ok": False, "error": "Le mot de passe Manager n'est pas configuré."}, status_code=503)
-    if request.headers.get("x-manager-password", "") != MANAGER_PASSWORD:
+    """Remise à zéro (onglet Manager). Un manager d'agence n'efface que son agence ; l'accès général efface tout.
+    Les données effacées sont archivées."""
+    scope = manager_scope(request)
+    if not scope:
         return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
     stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
     reset_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    archived = 0
-    archive_name = f"archives/sessions-{stamp}.jsonl"
+    suffix = "" if scope == "*" else "-" + "".join(c for c in scope.lower() if c.isalnum())
+    archive_name = f"archives/sessions-{stamp}{suffix}.jsonl"
     with lock:
         old = SESSIONS.read_bytes() if SESSIONS.exists() else b""
-        archived = len([l for l in old.decode("utf-8", errors="ignore").splitlines() if l.strip()])
-        if archived:
+        rows = parse_lines(old)
+        if scope == "*":
+            removed, kept = rows, []
+        else:
+            removed = [r for r in rows if bu_of(r).lower() == scope.lower()]
+            kept = [r for r in rows if bu_of(r).lower() != scope.lower()]
+        if removed:
             ARCHIVES.mkdir(parents=True, exist_ok=True)
-            (DATA_DIR / archive_name).write_bytes(old)
-        SESSIONS.write_text("\n", encoding="utf-8")
-        META.write_text(json.dumps({"resetAt": reset_at}), encoding="utf-8")
+            (DATA_DIR / archive_name).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in removed), encoding="utf-8")
+        SESSIONS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in kept) or "\n", encoding="utf-8")
+        meta = read_meta()
+        if scope == "*":
+            meta = {"resetAt": reset_at, "resetAtBu": {}}
+        else:
+            meta.setdefault("resetAtBu", {})[scope.lower()] = reset_at
+        META.write_text(json.dumps(meta), encoding="utf-8")
     if github_backup is not None:
-        if archived:
-            github_backup.put_file(archive_name, old, f"Archive avant remise à zéro {stamp}")
+        if removed:
+            github_backup.put_file(archive_name, (DATA_DIR / archive_name).read_bytes(), f"Archive avant remise à zéro {stamp}")
         github_backup.push(overwrite=True)
-        github_backup.put_file("meta.json", META.read_bytes(), f"Remise à zéro {stamp}")
-    return {"ok": True, "archived": archived, "resetAt": reset_at}
+        github_backup.put_file("meta.json", META.read_bytes(), f"Remise à zéro {stamp} ({scope})")
+    return {"ok": True, "archived": len(removed), "resetAt": reset_at, "scope": scope}
 
 
 # ---------- Relais vers Gemini (la clé reste sur le serveur) ----------
