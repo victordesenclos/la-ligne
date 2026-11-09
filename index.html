@@ -167,6 +167,18 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .src-list{margin:6px 0 0;padding-left:18px;font-size:.86rem;color:var(--mute)}
 @media (max-width:860px){.podium{grid-template-columns:1fr}.rk-grid{grid-template-columns:1fr}}
 .rank-link[hidden]{display:none}
+.login{max-width:560px;margin:40px auto 60px}
+.login .card{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:30px}
+.login h1{margin:0 0 6px;font-size:1.8rem}
+.login .lead{margin:0 0 22px;color:var(--mute)}
+.role-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.role-pick button{border:1.5px solid var(--line);background:var(--white);border-radius:14px;padding:14px;text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px}
+.role-pick button b{font-weight:600}
+.role-pick button span{color:var(--mute);font-size:.86rem}
+.role-pick button[aria-pressed="true"]{border:2px solid var(--orange);background:#FFF7F3}
+.login .err{color:var(--ko);font-size:.9rem;margin:10px 0 0}
+.login .foot{display:flex;justify-content:flex-end;margin-top:18px}
+#logoutBtn[hidden],#settingsBtn[hidden],#whoChip[hidden],.tabs[hidden],.tabs button[hidden]{display:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .company .co-owner{background:var(--paper);border-radius:999px;padding:1px 8px;margin-left:4px}
 details.more-co{margin:4px 0 6px}
@@ -354,9 +366,38 @@ details.transcript p{margin:8px 0;font-size:.93rem}
   <span class="spacer"></span>
   <span class="who-chip" id="whoChip"></span>
   <button class="btn ghost small" id="settingsBtn" type="button">Réglages</button>
+  <button class="btn ghost small" id="logoutBtn" type="button" hidden>Se déconnecter</button>
 </div></header>
 
 <div class="wrap">
+  <main id="viewLogin" hidden>
+    <div class="login"><div class="card">
+      <h1>Connexion</h1>
+      <p class="lead">Choisis ton profil pour ouvrir La Ligne.</p>
+      <div class="role-pick" role="group" aria-label="Profil">
+        <button type="button" id="lgRoleJunior" aria-pressed="true"><b>Commercial junior</b><span>Je m'entraîne aux appels</span></button>
+        <button type="button" id="lgRoleManager" aria-pressed="false"><b>Manager</b><span>Je suis la progression de mon agence</span></button>
+      </div>
+      <form id="lgJunior" novalidate>
+        <div class="field"><label for="lgBu">Agence</label><select id="lgBu" required></select></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field"><label for="lgFirst">Prénom</label><input id="lgFirst" autocomplete="given-name" required></div>
+          <div class="field"><label for="lgLast">Nom</label><input id="lgLast" autocomplete="family-name" required></div>
+        </div>
+        <div class="field" style="margin-top:12px"><label for="lgPortfolio">Ton portefeuille clients, un client par ligne</label>
+          <textarea id="lgPortfolio" style="min-height:110px" placeholder="Decathlon&#10;Auchan&#10;Lesaffre"></textarea></div>
+        <p class="hint" id="lgPfNote" style="margin-top:6px">Les comptes connus arrivent avec leur interlocuteur. Pour les autres, l'IA prépare une fiche à partir d'une recherche web.</p>
+        <p class="err" id="lgErr" role="alert"></p>
+        <div class="foot"><button class="btn orange" type="submit">Se connecter</button></div>
+      </form>
+      <form id="lgManager" novalidate hidden>
+        <div class="field"><label for="lgPw">Mot de passe de ton agence</label><input id="lgPw" type="password" autocomplete="current-password"></div>
+        <p class="hint" style="margin-top:8px">Le mot de passe détermine ton périmètre : ton agence, ou toutes les agences pour la direction.</p>
+        <p class="err" id="lgPwErr" role="alert"></p>
+        <div class="foot"><button class="btn orange" type="submit">Accéder au suivi</button></div>
+      </form>
+    </div></div>
+  </main>
   <main id="viewHome"></main>
   <main id="viewPrep" hidden></main>
   <main id="viewCall" hidden>
@@ -1070,7 +1111,9 @@ function firstName(){ return speaker().split(" ")[0]; }
 function scById(id){ return SCENARIOS.find(s=>s.id===id) || SCENARIOS[0]; }
 
 function showView(v){
-  for(const id of ["Home","Prep","Call","Debrief","Ranking","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
+  for(const id of ["Login","Home","Prep","Call","Debrief","Ranking","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
+  const off = v==="login";
+  $(".tabs").hidden = off; $("#whoChip").hidden = off; $("#settingsBtn").hidden = off; $("#logoutBtn").hidden = off;
   $("#tabHome").setAttribute("aria-current", v==="manager"||v==="ranking" ? "false" : "page");
   $("#tabRanking").setAttribute("aria-current", v==="ranking" ? "page" : "false");
   $("#tabManager").setAttribute("aria-current", v==="manager" ? "page" : "false");
@@ -1088,8 +1131,24 @@ function scoreOf(criteria){
   const pts = Object.values(criteria||{}).filter(n=>n in LVL_PTS).map(n=>LVL_PTS[n]);
   return pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : null;
 }
-function history(){ try{ return JSON.parse(safeGet("laligne.history")||"[]"); }catch(e){ return []; } }
-function saveHistory(h){ safeSet("laligne.history", JSON.stringify(h.slice(-300))); }
+// Un historique par personne et par agence : changer d'identité ne mélange pas les appels
+function histKeyFor(junior, bu){ return "laligne.history." + String((junior||"")+"|"+(bu||"")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9|]/g,""); }
+function histKey(){ return S.junior ? histKeyFor(`${S.junior.first} ${S.junior.last}`, S.junior.bu) : "laligne.history.anonyme"; }
+function history(){ try{ return JSON.parse(safeGet(histKey())||"[]"); }catch(e){ return []; } }
+function saveHistory(h){ safeSet(histKey(), JSON.stringify(h.slice(-300))); }
+// Ancien historique commun : chaque appel rejoint l'historique de la personne et de l'agence qui l'a passé
+(function migrateHistory(){
+  let old; try{ old=JSON.parse(safeGet("laligne.history")||"null"); }catch(e){ old=null; }
+  if(!Array.isArray(old)) return;
+  const groups={};
+  for(const x of old){ const k=histKeyFor(x.junior, x.bu || "Lille"); (groups[k]=groups[k]||[]).push(x); }
+  for(const [k,list] of Object.entries(groups)){
+    let cur=[]; try{ cur=JSON.parse(safeGet(k)||"[]"); }catch(e){}
+    const ids=new Set(cur.map(x=>x.id));
+    safeSet(k, JSON.stringify(cur.concat(list.filter(x=>!ids.has(x.id))).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-300)));
+  }
+  safeSet("laligne.history", null);
+})();
 function attemptsOf(id){ return history().filter(h=>h.scenarioId===id); }
 function statusOf(id){
   const a = attemptsOf(id);
@@ -1138,7 +1197,9 @@ $("#whoForm").addEventListener("submit", e=>{
   const first1 = resolvePortfolio().find(x=>x.co);
   if(first1) setCompany(first1.co.id);
   renderChrome();
+  S.agency=[]; S.extraResearch=[];
   if(role!=="junior"){ showView("manager"); openManager(); } else goHome();
+  pushPortfolio().then(loadAgency);
   runResearchQueue();
 });
 /* =========================================================
@@ -1167,14 +1228,49 @@ function resolvePortfolio(){
   return out;
 }
 S.research = {};
+S.agency = [];          // comptes saisis par les juniors de mon agence (serveur)
+S.extraResearch = [];   // comptes de l'agence dont je lance la fiche
+async function pushPortfolio(){
+  if(!S.junior || !myBu()) return;
+  try{ await fetch("api/portfolio",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({bu:myBu(), junior:juniorName(), first:S.junior.first, lines:portfolioLines()})}); }catch(e){}
+}
+async function loadAgency(){
+  if(!myBu()) return;
+  try{
+    const r=await fetch("api/accounts?bu="+encodeURIComponent(myBu()),{cache:"no-store"});
+    const d=await r.json();
+    if(d && d.ok){ S.agency=d.accounts||[]; if(!$("#viewHome").hidden) renderHome(); runResearchQueue(); }
+  }catch(e){}
+}
+function shareFiche(name, rec, verified){
+  if(!myBu()) return;
+  const fiche={desc:rec.desc, first:rec.first, last:rec.last, gender:rec.gender, role:rec.role, actu:rec.actu, context:rec.context,
+    besoin:rec.besoin, objection:rec.objection, decision:rec.decision, relation:rec.relation, refs:rec.refs||""};
+  fetch("api/accounts/fiche",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({bu:myBu(), name, fiche, sources:rec.sources||[], verified:!!verified})}).catch(()=>{});
+}
+// Crée sur cet ordinateur un prospect à partir de la fiche partagée par l'agence
+function adoptFiche(name, a){
+  const f=a.fiche;
+  const rec={ id:"auto-"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), auto:true, verified:!!a.verified, sources:a.sources||[], base:"",
+    owner:S.junior?.first||"", company:name, desc:f.desc, first:f.first, last:f.last, gender:f.gender==="F"?"F":"M", role:f.role,
+    actu:f.actu, context:f.context, besoin:f.besoin, objection:f.objection, decision:f.decision, relation:f.relation, refs:f.refs||"" };
+  const list=customList().filter(x=>nkey(x.company)!==nkey(name)); list.push(rec); saveCustomList(list); registerCustom();
+  return COMPANIES.find(c=>c.id===rec.id);
+}
+function agencyEntry(key){ return S.agency.find(a=>a.key===key || nkey(a.name)===key); }
 let researchRunning = false;
 async function runResearchQueue(){
   if(researchRunning || !S.junior) return;
   researchRunning = true;
   try{
     for(;;){
-      const next = resolvePortfolio().find(x=>!x.co && x.research.state==="queued");
+      const extra = S.extraResearch.map(n=>({line:n, key:nkey(n), co:null, research:S.research[nkey(n)]||{state:"queued"}}));
+      const next = resolvePortfolio().concat(extra).find(x=>!x.co && x.research.state==="queued" && !COMPANIES.some(c=>c.custom && nkey(c.name)===x.key));
       if(!next) break;
+      const shared = agencyEntry(next.key);
+      if(shared && shared.fiche){ adoptFiche(next.line, shared); S.extraResearch=S.extraResearch.filter(n=>nkey(n)!==next.key); if(!$("#viewHome").hidden) renderHome(); continue; }
       S.research[next.key] = {state:"running"};
       if(!$("#viewHome").hidden) renderHome();
       try{
@@ -1189,6 +1285,8 @@ async function runResearchQueue(){
           decision:f.decision, relation:f.relation, refs:"" };
         const list=customList().filter(x=>nkey(x.company)!==next.key); list.push(rec); saveCustomList(list);
         registerCustom();
+        shareFiche(next.line, rec, false);
+        S.extraResearch=S.extraResearch.filter(n=>nkey(n)!==next.key);
         delete S.research[next.key];
       }catch(err){
         S.research[next.key] = {state:"error", msg:String(err.message||err).slice(0,200)};
@@ -1197,6 +1295,25 @@ async function runResearchQueue(){
     }
   } finally { researchRunning = false; }
 }
+// Bloc « Autres comptes de l'agence » : comptes des collègues, et à Lille les comptes types
+function agencyBlock(agencyOthers, lilleBase, examples){
+  const cards = agencyOthers.map(a=>{
+    const known = COMPANIES.find(c=>!c.custom && (nkey(c.name+(c.track?" "+c.track:""))===a.key || (!c.track && nkey(c.name)===a.key)));
+    const local = COMPANIES.find(c=>c.custom && nkey(c.name)===a.key);
+    const co = known || local;
+    const owners = `Portefeuille de ${a.owners.map(esc).join(", ")}`;
+    if(co) return companyCard(co,false).replace('<span class="co-meta">', `<span class="co-meta">${owners} · `);
+    const r = S.research[a.key];
+    const who = a.fiche ? `${esc(a.fiche.first)} ${esc(a.fiche.last)}, ${esc(a.fiche.role)}` : (r&&r.state==="running" ? `<span class="co-spin" aria-hidden="true"></span>Recherche web en cours…` : "Fiche pas encore préparée");
+    const tag = a.fiche ? (a.verified ? `<span class="co-track real">Fiche vérifiée</span>` : `<span class="co-track ia">Fiche IA · à vérifier</span>`) : `<span class="co-track ia">Fiche IA</span>`;
+    return `<div class="co-wrap"><button type="button" class="company ag-adopt" data-key="${esc(a.key)}"><span class="co-name">${esc(a.name)} ${tag}</span><span class="co-who">${who}</span><span class="co-meta">${owners}${a.fiche?"":" · clique pour préparer la fiche"}</span></button></div>`;
+  });
+  const all = cards.concat(lilleBase.map(c=>companyCard(c,false)));
+  const title = `Autres comptes de l'agence${myBu()?` de ${esc(myBu())}`:""}`;
+  if(!all.length) return `<p class="hint" style="margin:6px 0 16px">${title} : les comptes saisis par tes collègues apparaîtront ici.</p>`;
+  return `<details class="more-co" ${mineIdsOpen()?"":"open"}><summary>${title} (${all.length})</summary><div class="companies">${all.join("")}</div></details>`;
+}
+function mineIdsOpen(){ return resolvePortfolio().some(x=>x.co && x.co.id===S.company); }
 function retryResearch(key){ S.research[key]={state:"queued"}; runResearchQueue(); renderHome(); }
 function pendingCard(x){
   const r=x.research;
@@ -1262,13 +1379,94 @@ async function renderRanking(){
   v.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{ S.rankPeriod=b.dataset.per; renderRanking(); });
 }
 
+/* =========================================================
+   CONNEXION (à chaque ouverture)
+   ========================================================= */
+S.mode = null;   // "junior" ou "manager"
+function ssSet(k,v){ try{ v===null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v); }catch(e){} }
+function profiles(){ try{ return JSON.parse(safeGet("laligne.profiles")||"{}"); }catch(e){ return {}; } }
+function saveProfile(p){ const all=profiles(); all[histKeyFor(`${p.first} ${p.last}`, p.bu)]=p; safeSet("laligne.profiles", JSON.stringify(all)); }
+function findProfile(first,last,bu){
+  const p = profiles()[histKeyFor(`${first} ${last}`, bu)];
+  if(p) return p;
+  // Ancien profil unique (avant la page de connexion)
+  const old = loadJunior();
+  if(old && nkey(old.first)===nkey(first) && nkey(old.last)===nkey(last) && (old.bu||"")===bu) return old;
+  return null;
+}
+function setLoginRole(r){
+  $("#lgRoleJunior").setAttribute("aria-pressed", r==="junior"); $("#lgRoleManager").setAttribute("aria-pressed", r==="manager");
+  $("#lgJunior").hidden = r!=="junior"; $("#lgManager").hidden = r!=="manager";
+  setTimeout(()=>(r==="junior" ? ($("#lgFirst").value?$("#lgPortfolio"):$("#lgFirst")) : $("#lgPw")).focus(), 30);
+}
+function fillLoginBu(){
+  const sel=$("#lgBu"), cur=sel.value || (JSON.parse(safeGet("laligne.lastLogin")||"{}").bu) || "";
+  sel.innerHTML = `<option value="" disabled ${cur?"":"selected"}>Choisis ton agence</option>` + S.bus.map(b=>`<option ${b===cur?"selected":""}>${esc(b)}</option>`).join("");
+}
+// Retrouve le portefeuille déjà saisi pour ce prénom, ce nom et cette agence
+function loginLookup(){
+  const first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim(), bu=$("#lgBu").value;
+  if(!first || !last || !bu) return;
+  const p=findProfile(first,last,bu);
+  const known = p ? (Array.isArray(p.portfolio) ? p.portfolio : (myCompanyIds(first).map(id=>{ const c=COMPANIES.find(x=>x.id===id); return c ? c.name+(c.track?" "+c.track:"") : ""; }).filter(Boolean))) : null;
+  if(known && !$("#lgPortfolio").dataset.touched) $("#lgPortfolio").value = known.join("\n");
+  $("#lgPfNote").textContent = p ? "Profil retrouvé sur cet ordinateur : ton portefeuille est prérempli, tu peux le modifier."
+    : "Premier passage avec ce nom : indique ton portefeuille. Les comptes connus arrivent avec leur interlocuteur ; pour les autres, l'IA prépare une fiche à partir d'une recherche web.";
+}
+function showLogin(){
+  S.junior=null; S.mode=null; S.agency=[]; S.extraResearch=[]; S.research={};
+  ssSet("laligne.managerPw", null);
+  const last=JSON.parse(safeGet("laligne.lastLogin")||"{}");
+  fillLoginBu();
+  $("#lgFirst").value = last.first||""; $("#lgLast").value = last.last||"";
+  $("#lgPortfolio").value=""; delete $("#lgPortfolio").dataset.touched;
+  $("#lgPw").value=""; $("#lgErr").textContent=""; $("#lgPwErr").textContent="";
+  showView("login"); setLoginRole(last.role==="manager" ? "manager" : "junior");
+  loginLookup();
+}
+$("#lgRoleJunior").onclick=()=>setLoginRole("junior");
+$("#lgRoleManager").onclick=()=>setLoginRole("manager");
+for(const id of ["#lgFirst","#lgLast","#lgBu"]) $(id).addEventListener("change", loginLookup);
+$("#lgPortfolio").addEventListener("input", ()=>{ $("#lgPortfolio").dataset.touched="1"; });
+$("#lgJunior").addEventListener("submit", e=>{
+  e.preventDefault();
+  const first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim(), bu=$("#lgBu").value;
+  if(!first || !last || !bu){ $("#lgErr").textContent="Indique ton agence, ton prénom et ton nom."; return; }
+  const portfolio=$("#lgPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
+  S.junior={first,last,bu,role:"junior",portfolio}; S.mode="junior";
+  saveProfile(S.junior); safeSet("laligne.junior", JSON.stringify(S.junior));
+  safeSet("laligne.lastLogin", JSON.stringify({first,last,bu,role:"junior"}));
+  S.agency=[]; S.extraResearch=[]; S.research={};
+  const first1 = resolvePortfolio().find(x=>x.co);
+  setCompany(first1 ? first1.co.id : (safeGet("laligne.company") || COMPANIES[0].id));
+  renderChrome(); goHome();
+  pushPortfolio().then(loadAgency); runResearchQueue();
+  setTimeout(()=>syncAll(), 800);
+});
+$("#lgManager").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const pw=$("#lgPw").value.trim();
+  if(!pw){ $("#lgPwErr").textContent="Saisis le mot de passe de ton agence."; return; }
+  $("#lgPwErr").textContent="Vérification…";
+  let d=null, r=null;
+  try{ r=await fetch("api/sessions",{headers:{"x-manager-password":pw},cache:"no-store"}); d=await r.json(); }catch(err){}
+  if(!r || !r.ok || !d || !d.ok){ $("#lgPwErr").textContent = d && d.error ? d.error : "Connexion impossible. Réessaie dans un instant."; return; }
+  ssSet("laligne.managerPw", pw);
+  S.mode="manager"; S.junior=null;
+  safeSet("laligne.lastLogin", JSON.stringify({role:"manager"}));
+  renderChrome(); showView("manager"); openManager();
+});
+$("#logoutBtn").onclick=()=>{ if(!$("#viewCall").hidden) return; showLogin(); };
+
 function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
 function juniorName(){ return S.junior ? `${S.junior.first} ${S.junior.last}` : "Anonyme"; }
 function renderChrome(){
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>` : "";
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>${S.junior.bu?` · ${esc(S.junior.bu)}`:""}` : "";
   $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""} (${({junior:"commercial junior",manager:"manager d'agence",direction:"direction commerciale"})[myRole()]}).` : "";
-  $("#tabManager").hidden = myRole()==="junior";
+  $("#tabManager").hidden = S.mode!=="manager";
+  $("#tabHome").hidden = S.mode==="manager";
+  if(S.mode==="manager") $("#whoChip").innerHTML = "<b>Manager</b>";
   $("#privacyNote").textContent = sharing()
     ? "Les transcriptions restent sur cet ordinateur. Seuls tes scores, niveaux et axes de travail sont partagés avec ton manager. Utilise un casque pour éviter l'écho."
     : "Rien ne quitte cet ordinateur, à part l'échange avec Gemini pendant l'appel. Utilise un casque pour éviter l'écho.";
@@ -1280,8 +1478,8 @@ function renderChrome(){
 (function initSettings(){
   $("#settingsBtn").onclick = ()=>openDlg("#dlgSettings");
   $("#closeSettings").onclick = ()=>$("#dlgSettings").close();
-  $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); askJunior(); };
-  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
+  $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); showLogin(); };
+  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden || !$("#viewLogin").hidden) return; S.mode==="manager" ? (showView("manager"), openManager()) : goHome(); };
   $("#tabHome").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
   $("#tabRanking").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("ranking"); renderRanking(); };
   $("#tabManager").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("manager"); openManager(); };
@@ -1298,7 +1496,7 @@ function renderChrome(){
   $("#phoneFx").onchange=()=>safeSet("laligne.phoneFx",$("#phoneFx").checked?"1":"0");
   fetch("api/config",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(cfg=>{
     // Le manager a remis les analyses à zéro : on efface l'historique local antérieur
-    if(cfg && Array.isArray(cfg.bus) && cfg.bus.length){ S.bus = cfg.bus; fillBuSelect(); }
+    if(cfg && Array.isArray(cfg.bus) && cfg.bus.length){ S.bus = cfg.bus; fillBuSelect(); fillLoginBu(); }
     // Remise à zéro propre à l'agence du junior
     const buReset = cfg && cfg.resetAtBu && myBu() ? cfg.resetAtBu[myBu().toLowerCase()] : null;
     if(cfg){ const eff=[cfg.resetAt||"", buReset||""].sort().pop(); if(eff) cfg.resetAt = eff; }
@@ -1318,7 +1516,7 @@ function renderChrome(){
       if(saved) connect(saved, true);
       else if(cfg) { $("#connStatus").className="status err"; $("#connStatus").textContent="La clé Gemini n'est pas configurée dans le Space. Colle une clé ci-dessous ou demande à l'administrateur."; }
     }
-    if(!$("#viewHome").hidden) renderHome();
+    if(!$("#viewHome").hidden && S.junior) renderHome();
   });
 })();
 
@@ -1420,8 +1618,17 @@ function renderHome(){
   const pf = resolvePortfolio();
   const mineIds = pf.filter(x=>x.co).map(x=>x.co.id);
   const pending = pf.filter(x=>!x.co);
-  const base = COMPANIES.filter(c=>!c.custom), reals = COMPANIES.filter(c=>c.custom && !mineIds.includes(c.id));
-  const mine = pf.filter(x=>x.co).map(x=>x.co), others = base.filter(c=>!mineIds.includes(c.id));
+  const me1 = normName(S.junior?.first||"");
+  const base = COMPANIES.filter(c=>!c.custom);
+  const mine = pf.filter(x=>x.co).map(x=>x.co);
+  const myKeys = new Set(pf.map(x=>x.key));
+  // Comptes saisis par mes collègues de l'agence (hors mon portefeuille)
+  const agencyOthers = S.agency.filter(a=>!myKeys.has(a.key) && !myKeys.has(nkey(a.name)));
+  const agencyKeys = new Set(agencyOthers.map(a=>nkey(a.name)));
+  // À Lille, les comptes types font partie de l'agence ; ailleurs, ce sont des comptes d'exemple
+  const lilleBase = isLille ? base.filter(c=>!mineIds.includes(c.id) && !agencyKeys.has(nkey(c.name+(c.track?" "+c.track:"")))) : [];
+  const examples = isLille ? [] : base.filter(c=>!mineIds.includes(c.id));
+  const reals = COMPANIES.filter(c=>c.custom && !mineIds.includes(c.id) && normName(c.owner)===me1 && !agencyKeys.has(nkey(c.name)));
   $("#viewHome").innerHTML = `
   <section class="hero">
     <div class="focus">
@@ -1445,8 +1652,8 @@ function renderHome(){
   <div class="sec-title"><div><h2>1. Choisis ton compte</h2><p style="margin-top:2px">${pf.length ? `Ton portefeuille : ${pf.length} compte${pf.length>1?"s":""}. Modifiable dans Réglages, « Changer d'identité ».` : isLille ? "Chaque compte a son interlocuteur, son contexte et ses objections. Ajoute ton portefeuille dans Réglages, « Changer d'identité »." : `Ton agence (${esc(myBu())}) n'a pas encore ses comptes types : entraîne-toi sur ces comptes d'exemple, ou ajoute ton portefeuille dans Réglages.`}</p></div>
     <button type="button" class="btn small" id="createReal">+ Créer mon propre prospect</button></div>
   ${mine.length||pending.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}${pending.map(pendingCard).join("")}</div>
-    <details class="more-co" ${mineIds.includes(S.company)||company().custom?"":"open"}><summary>Autres comptes de l'agence</summary><div class="companies">${others.map(c=>companyCard(c,false)).join("")}</div></details>`
-    : `<div class="companies">${base.map(c=>companyCard(c,false)).join("")}</div>`}
+    ${agencyBlock(agencyOthers, lilleBase, examples)}${examples.length ? `<details class="more-co"><summary>Comptes d'exemple (agence de Lille)</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`
+    : `${agencyBlock(agencyOthers, lilleBase, [])}${!isLille ? `<details class="more-co" open><summary>Comptes d'exemple (agence de Lille)</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`}
   ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects</h2><p>Créés par toi. Ils restent sur cet ordinateur.</p></div>
     <div class="companies">${reals.map(c=>companyCard(c,true)).join("")}</div>` : ""}
 
@@ -1469,10 +1676,19 @@ function renderHome(){
   $("#rankStat").onclick=()=>{ showView("ranking"); renderRanking(); };
   fillRankStat();
   document.querySelectorAll(".co-retry").forEach(b=>b.onclick=()=>retryResearch(b.dataset.key));
+  document.querySelectorAll(".ag-adopt").forEach(b=>b.onclick=()=>{
+    const a=agencyEntry(b.dataset.key); if(!a) return;
+    const known = COMPANIES.find(c=>!c.custom && (nkey(c.name+(c.track?" "+c.track:""))===a.key || (!c.track && nkey(c.name)===a.key)));
+    const local = COMPANIES.find(c=>c.custom && nkey(c.name)===a.key);
+    const co = known || local || (a.fiche ? adoptFiche(a.name, a) : null);
+    if(co){ setCompany(co.id); renderHome(); return; }
+    if(!S.extraResearch.some(n=>nkey(n)===a.key)) S.extraResearch.push(a.name);
+    S.research[a.key]={state:"queued"}; runResearchQueue(); renderHome();
+  });
   document.querySelectorAll(".co-manual").forEach(b=>b.onclick=()=>{ openCustom(null,null); $("#cuCompany").value=b.dataset.name; });
   const os=$("#openSet"); if(os) os.onclick=()=>openDlg("#dlgSettings");
   document.querySelectorAll(".step").forEach(b=>b.onclick=()=>goPrep(b.dataset.id));
-  document.querySelectorAll(".company").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
+  document.querySelectorAll(".company[data-co]").forEach(b=>b.onclick=()=>{ setCompany(b.dataset.co); renderHome(); });
   $("#createReal").onclick=()=>openCustom(null, null);
   document.querySelectorAll(".co-edit").forEach(b=>b.onclick=()=>openCustom(null, b.dataset.id));
   document.querySelectorAll(".co-del").forEach(b=>b.onclick=()=>{
@@ -1521,7 +1737,7 @@ $("#customForm").addEventListener("submit", e=>{
     actu:f("cuActu"), context:$("#cuContext").value.trim(), besoin:f("cuBesoin"), objection:f("cuObjection"),
     decision:f("cuDecision"), relation:f("cuRelation"), refs:f("cuRefs") };
   const prev=customList().find(x=>x.id===rec.id);
-  if(prev && prev.auto){ rec.auto=true; rec.verified=true; rec.sources=prev.sources||[]; }
+  if(prev && prev.auto){ rec.auto=true; rec.verified=true; rec.sources=prev.sources||[]; shareFiche(rec.company, rec, true); }
   const list=customList().filter(x=>x.id!==rec.id); list.push(rec); saveCustomList(list);
   registerCustom(); setCompany(rec.id); renderHome();
   toast(`Prospect enregistré : ${rec.first} ${rec.last}, ${rec.company}.`);
@@ -2802,13 +3018,14 @@ $("#resetForm").addEventListener("submit", async e=>{
     $("#dlgReset").close();
     if(d.scope && d.scope!=="*"){ await start(); const t=document.querySelector("#toast"); if(t){ t.textContent=`Agence de ${d.scope} remise à zéro. ${d.archived} appel${d.archived>1?"s":""} archivé${d.archived>1?"s":""}.`; t.hidden=false; setTimeout(()=>t.hidden=true,5000);} $("#resetGo").disabled=false; return; }
     // Remet aussi à zéro l'historique local de cet ordinateur
-    try{ localStorage.removeItem("laligne.history"); localStorage.removeItem("laligne.outbox"); localStorage.setItem("laligne.resetAt", d.resetAt); }catch(err){}
+    try{ Object.keys(localStorage).filter(k=>k.startsWith("laligne.history")).forEach(k=>localStorage.removeItem(k)); localStorage.removeItem("laligne.outbox"); localStorage.setItem("laligne.resetAt", d.resetAt); }catch(err){}
     await start();
     const t=document.querySelector("#toast"); if(t){ t.textContent=`Analyses remises à zéro. ${d.archived} appel${d.archived>1?"s":""} archivé${d.archived>1?"s":""}.`; t.hidden=false; setTimeout(()=>t.hidden=true,5000); }
   }catch(err){ $("#resetErr").textContent=`La remise à zéro a échoué : ${err.message}`; }
   $("#resetGo").disabled=false;
 });
 $("#mLogout").onclick=()=>{ sessionSet("laligne.managerPw",null); DEMO=false; ALL=[]; $("#mApp").hidden=true; $("#mFilters").hidden=true; $("#mLogin").hidden=false; $("#mLoginErr").textContent=""; $("#mPw").value=""; $("#mSub").textContent="Progression de l'équipe sur La Ligne"; };
+$("#mLogout").addEventListener("click", ()=>showLogin());
 window.openManager = ()=>{
   if(DEMO || sessionGet("laligne.managerPw")) start();
   else { $("#mLogin").hidden=false; $("#mApp").hidden=true; $("#mFilters").hidden=true; setTimeout(()=>$("#mPw").focus(),50); }
@@ -3023,12 +3240,8 @@ function transcriptBlock(){
    DÉMARRAGE
    ========================================================= */
 try{
-  S.junior = loadJunior();
-  setCompany(safeGet("laligne.company") || (S.junior && myCompanyIds(S.junior.first)[0]) || COMPANIES[0].id);
-  renderChrome();
-  goHome();
-  if(!S.junior || !S.junior.bu) askJunior();
-  else setTimeout(()=>runResearchQueue(), 1200);
+  setCompany(safeGet("laligne.company") || COMPANIES[0].id);
+  showLogin();
   setTimeout(()=>flushOutbox().catch(()=>{}), 1500);
 }catch(err){ showFatal(err.message); }
 </script>
