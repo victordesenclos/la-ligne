@@ -313,7 +313,7 @@ def backup_status() -> dict:
 FIELDS = {
     "id": str, "date": str, "junior": str, "scenarioId": str, "scenarioTitle": str, "kind": str,
     "level": str, "bu": str, "companyId": str, "companyName": str, "durationSec": int, "talkShare": int, "rdv": bool, "score": int, "criteria": dict,
-    "axe": str, "verdict": str, "erreursSmile": int, "prepFilled": int,
+    "axe": str, "verdict": str, "erreursSmile": int, "prepFilled": int, "role": str,
 }
 
 
@@ -784,7 +784,8 @@ def leaderboard(period: str = "week", bu: str = "", junior: str = ""):
     lui est donnée sans révéler les autres."""
     days = PERIODS.get(period, 7)
     now = time.time()
-    rows = [r for r in read_sessions() if after_reset(r)]
+    # Les appels d'entraînement des managers ne comptent pas dans le classement
+    rows = [r for r in read_sessions() if after_reset(r) and r.get("role") != "manager"]
     cur = [r for r in rows if (r.get("date") or "") >= _iso(now - days * 86400)]
     prev = [r for r in rows if _iso(now - 2 * days * 86400) <= (r.get("date") or "") < _iso(now - days * 86400)]
     s_cur, s_prev = bu_stats(cur, days), bu_stats(prev, days)
