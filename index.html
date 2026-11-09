@@ -898,7 +898,7 @@ function registerCustom(){
   for(const c of customList()){
     const F=c.gender==="F";
     COMPANIES.push({
-      id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"", auto:!!c.auto, verified:!!c.verified, sources:c.sources||[],
+      id:c.id, custom:true, base:c.base, name:c.company, track:"Réel", owner:c.owner||"", auto:!!c.auto, verified:!!c.verified, sources:c.sources||[], grounded:c.grounded!==false,
       hook:(c.actu||"").replace(/[.;].*$/,"").slice(0,70), proof:(c.base && (COMPANIES.find(x=>x.id===c.base)||{}).proof) || "des références comme Cultura, Accor ou la STIB",
       desc:c.desc||"entreprise",
       contact:{first:c.first, last:c.last, role:c.role, gender:c.gender, voice:F?"Kore":"Charon"},
@@ -1275,7 +1275,7 @@ async function runResearchQueue(){
         let d=null; try{ d=await r.json(); }catch(e){}
         if(!r.ok || !d || !d.ok) throw new Error(d && d.error ? d.error : (r.status===404 ? "Recherche indisponible : le serveur n'est pas à jour." : "Erreur "+r.status));
         const f=d.fiche;
-        const rec = { id:"auto-"+Date.now().toString(36), auto:true, verified:false, sources:d.sources||[], base:"", owner:S.junior.first,
+        const rec = { id:"auto-"+Date.now().toString(36), auto:true, verified:false, sources:d.sources||[], grounded:d.grounded!==false, base:"", owner:S.junior.first,
           company:next.line, desc:f.desc, first:f.first, last:f.last, gender:f.gender, role:f.role,
           actu:f.actu || "Aucune actualité précise trouvée.", context:(f.context||[]).join("\n"), besoin:f.besoin, objection:f.objection,
           decision:f.decision, relation:f.relation, refs:"" };
@@ -1722,7 +1722,9 @@ function openCustom(baseId, customId){
   if(c && c.auto){
     $("#customTitle").textContent = c.verified ? `Modifier ${c.first} ${c.last}` : `Vérifier la fiche IA : ${c.company}`;
     src.hidden=false;
-    src.innerHTML = `<b>Fiche préparée par l'IA à partir d'une recherche web.</b> L'interlocuteur est fictif. Vérifie les faits, corrige si besoin, puis enregistre pour valider la fiche.`
+    src.innerHTML = (c.grounded===false
+      ? `<b>Fiche préparée par l'IA sans recherche web</b> (quota Google atteint) : elle repose sur les connaissances du modèle, qui peuvent être datées. Vérifie chaque fait, surtout l'actualité.`
+      : `<b>Fiche préparée par l'IA à partir d'une recherche web.</b>`) + ` L'interlocuteur est fictif. Vérifie les faits, corrige si besoin, puis enregistre pour valider la fiche.`
       + (c.sources && c.sources.length ? `<ul class="src-list">${c.sources.map(x=>`<li>${x.uri?`<a href="${esc(x.uri)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</li>`).join("")}</ul>` : "");
   } else { src.hidden=true; src.innerHTML=""; }
   openDlg("#dlgCustom");
@@ -1736,7 +1738,7 @@ $("#customForm").addEventListener("submit", e=>{
     actu:f("cuActu"), context:$("#cuContext").value.trim(), besoin:f("cuBesoin"), objection:f("cuObjection"),
     decision:f("cuDecision"), relation:f("cuRelation"), refs:f("cuRefs") };
   const prev=customList().find(x=>x.id===rec.id);
-  if(prev && prev.auto){ rec.auto=true; rec.verified=true; rec.sources=prev.sources||[]; shareFiche(rec.company, rec, true); }
+  if(prev && prev.auto){ rec.auto=true; rec.verified=true; rec.sources=prev.sources||[]; rec.grounded=prev.grounded; shareFiche(rec.company, rec, true); }
   const list=customList().filter(x=>x.id!==rec.id); list.push(rec); saveCustomList(list);
   registerCustom(); setCompany(rec.id); renderHome();
   toast(`Prospect enregistré : ${rec.first} ${rec.last}, ${rec.company}.`);
