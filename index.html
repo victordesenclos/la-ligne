@@ -1652,8 +1652,8 @@ function renderHome(){
   <div class="sec-title"><div><h2>1. Choisis ton compte</h2><p style="margin-top:2px">${pf.length ? `Ton portefeuille : ${pf.length} compte${pf.length>1?"s":""}. Modifiable dans Réglages, « Changer d'identité ».` : isLille ? "Chaque compte a son interlocuteur, son contexte et ses objections. Ajoute ton portefeuille dans Réglages, « Changer d'identité »." : `Ton agence (${esc(myBu())}) n'a pas encore ses comptes types : entraîne-toi sur ces comptes d'exemple, ou ajoute ton portefeuille dans Réglages.`}</p></div>
     <button type="button" class="btn small" id="createReal">+ Créer mon propre prospect</button></div>
   ${mine.length||pending.length ? `<div class="companies">${mine.map(c=>companyCard(c,true)).join("")}${pending.map(pendingCard).join("")}</div>
-    ${agencyBlock(agencyOthers, lilleBase, examples)}${examples.length ? `<details class="more-co"><summary>Comptes d'exemple (agence de Lille)</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`
-    : `${agencyBlock(agencyOthers, lilleBase, [])}${!isLille ? `<details class="more-co" open><summary>Comptes d'exemple (agence de Lille)</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`}
+    ${agencyBlock(agencyOthers, lilleBase, examples)}${examples.length ? `<details class="more-co"><summary>Comptes d'exemple, pour t'entraîner en attendant les comptes de ton agence</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`
+    : `${agencyBlock(agencyOthers, lilleBase, [])}${!isLille ? `<details class="more-co" open><summary>Comptes d'exemple, pour t'entraîner en attendant les comptes de ton agence</summary><div class="companies">${examples.map(c=>companyCard(c,false)).join("")}</div></details>` : ""}`}
   ${reals.length ? `<div class="sec-title" style="margin-top:22px"><h2 style="font-size:1.05rem">Tes prospects</h2><p>Créés par toi. Ils restent sur cet ordinateur.</p></div>
     <div class="companies">${reals.map(c=>companyCard(c,true)).join("")}</div>` : ""}
 
