@@ -15,7 +15,9 @@ import asyncio
 import base64
 import json
 import os
+import re
 import shutil
+import hashlib
 import threading
 import time
 from pathlib import Path
@@ -484,6 +486,220 @@ async def generate(request: Request):
     async with httpx.AsyncClient(timeout=180) as c:
         r = await c.post(f"{API}/{model}:generateContent", params={"key": GEMINI_KEY}, json=body.get("payload", {}))
     return JSONResponse(r.json(), status_code=r.status_code)
+
+
+# ---------- Fiche prospect automatique (recherche web) ----------
+RESEARCH_MODEL = os.getenv("RESEARCH_MODEL", "").strip()   # facultatif, ex. "models/gemini-3-flash"
+_models_cache = {"t": 0.0, "list": []}
+SKIP_MODELS = ("live", "tts", "image", "audio", "embedding", "lite", "learnlm", "robotics", "computer", "aqa", "gemma")
+
+
+def _version(name: str) -> float:
+    m = re.search(r"gemini-(\d+(?:\.\d+)?)", name)
+    return float(m.group(1)) if m else 0.0
+
+
+async def research_models(c) -> list:
+    """Modèles texte capables de chercher sur le web, du plus récent au plus ancien (flash d'abord)."""
+    if RESEARCH_MODEL:
+        return [RESEARCH_MODEL if RESEARCH_MODEL.startswith("models/") else "models/" + RESEARCH_MODEL]
+    if _models_cache["list"] and time.time() - _models_cache["t"] < 3600:
+        return _models_cache["list"]
+    r = await c.get(f"{API}/models", params={"pageSize": 200, "key": GEMINI_KEY})
+    names = []
+    for m in (r.json().get("models") or []):
+        n = m.get("name", "")
+        low = n.lower()
+        if "generateContent" not in (m.get("supportedGenerationMethods") or []):
+            continue
+        if "gemini" not in low or any(x in low for x in SKIP_MODELS):
+            continue
+        names.append(n)
+    names.sort(key=lambda n: (_version(n), "flash" in n.lower(), "preview" not in n.lower()), reverse=True)
+    _models_cache.update(t=time.time(), list=names)
+    return names
+
+
+NAMES = {
+    "F": ["Claire Morel", "Julie Lambert", "Camille Roussel", "Sophie Bernard", "Laure Petit", "Anne Dubois", "Marion Fontaine", "Céline Garnier"],
+    "M": ["Thomas Leroy", "Nicolas Girard", "Antoine Mercier", "Julien Faure", "Pierre Lemoine", "Mathieu Roux", "Romain Chevalier", "Olivier Blanc"],
+}
+
+
+def research_prompt(company: str, brand: str) -> str:
+    cible = ("un commercial de UX-Republic, cabinet spécialiste de l'expérience utilisateur (UX) du groupe Smile. "
+             "L'interlocuteur cible est un décideur UX, design, produit ou expérience client.") if brand == "uxr" else \
+            ("un commercial de Smile, entreprise de services numériques spécialisée dans l'open source, le digital, la data et l'IA. "
+             "L'interlocuteur cible est un décideur IT, digital, data ou applications métier.")
+    return f"""Recherche sur le web l'entreprise « {company} » (France en priorité) pour préparer un appel de prospection de {cible}
+
+Réponds uniquement avec un objet JSON valide, sans texte autour ni balises Markdown, au format :
+{{
+  "company": "nom officiel de l'entreprise",
+  "desc": "activité en quelques mots, ex. : distributeur d'articles de sport",
+  "actu": "une actualité récente, précise et datée, utile pour une accroche (moins de 12 mois si possible)",
+  "context": ["4 à 6 faits courts : taille, implantations, organisation, projets digitaux, data ou IT, recrutements tech, enjeux"],
+  "besoin": "besoin probable en services numériques, en une phrase",
+  "role": "poste de l'interlocuteur le plus pertinent à appeler",
+  "gender": "F ou M, au hasard",
+  "objection": "l'objection la plus probable de cet interlocuteur, en une phrase entre guillemets français",
+  "decision": "qui d'autre intervient dans la décision",
+  "relation": "Aucune relation connue avec Smile., sauf si une source publique mentionne un lien avec Smile"
+}}
+
+Règles :
+- Uniquement des faits trouvés dans tes sources. Si tu n'es pas sûr d'un fait, ne l'écris pas.
+- Aucun nom de personne réelle : seulement des rôles.
+- Tout en français, phrases courtes."""
+
+
+def extract_json(text: str):
+    text = (text or "").replace("```json", "").replace("```", "")
+    a, b = text.find("{"), text.rfind("}")
+    if a < 0 or b <= a:
+        return None
+    try:
+        return json.loads(text[a:b + 1])
+    except Exception:
+        return None
+
+
+def clean_fiche(f: dict, company: str) -> dict:
+    s = lambda k, n=400: str(f.get(k) or "").strip()[:n]
+    ctx = f.get("context") or []
+    if isinstance(ctx, str):
+        ctx = [x for x in ctx.split("\n")]
+    ctx = [str(x).strip()[:240] for x in ctx if str(x).strip()][:6]
+    gender = "F" if str(f.get("gender", "")).upper().startswith("F") else "M"
+    pool = NAMES[gender]
+    first, last = pool[int(hashlib.md5(company.lower().encode()).hexdigest(), 16) % len(pool)].split(" ", 1)
+    return {
+        "company": s("company", 80) or company, "desc": s("desc", 120) or "entreprise",
+        "actu": s("actu"), "context": ctx, "besoin": s("besoin"), "role": s("role", 120) or "Directeur des systèmes d'information",
+        "gender": gender, "first": first, "last": last,
+        "objection": s("objection", 200), "decision": s("decision", 200),
+        "relation": s("relation", 200) or "Aucune relation connue avec Smile.",
+    }
+
+
+@app.post("/api/research")
+async def research(request: Request):
+    """Recherche web (Google Search via Gemini) et fiche prospect prête à l'emploi. L'interlocuteur est toujours fictif."""
+    if not GEMINI_KEY:
+        return JSONResponse({"ok": False, "error": "GEMINI_API_KEY manquante sur le serveur."}, status_code=503)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    company = re.sub(r"\s+", " ", str(body.get("company", ""))).strip()[:80]
+    if len(company) < 2:
+        return JSONResponse({"ok": False, "error": "Nom d'entreprise manquant."}, status_code=400)
+    brand = "uxr" if body.get("brand") == "uxr" else "smile"
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": research_prompt(company, brand)}]}],
+        "tools": [{"google_search": {}}],
+        "generationConfig": {"temperature": 0.3},
+    }
+    last = "Aucun modèle Gemini disponible pour la recherche."
+    async with httpx.AsyncClient(timeout=120) as c:
+        try:
+            models = await research_models(c)
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": f"Liste des modèles indisponible : {e}"}, status_code=502)
+        for m in models[:4]:
+            try:
+                r = await c.post(f"{API}/{m}:generateContent", params={"key": GEMINI_KEY}, json=payload)
+            except Exception as e:
+                last = f"{m} : {e}"
+                continue
+            if r.status_code != 200:
+                try:
+                    last = f"{m} : {r.json().get('error', {}).get('message', r.status_code)}"
+                except Exception:
+                    last = f"{m} : erreur {r.status_code}"
+                continue
+            cand = (r.json().get("candidates") or [{}])[0]
+            text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+            fiche = extract_json(text)
+            if not isinstance(fiche, dict):
+                last = f"{m} : réponse illisible"
+                continue
+            sources, seen = [], set()
+            for ch in (cand.get("groundingMetadata") or {}).get("groundingChunks") or []:
+                w = ch.get("web") or {}
+                title = str(w.get("title") or "").strip()
+                if title and title not in seen:
+                    seen.add(title)
+                    sources.append({"title": title[:120], "uri": str(w.get("uri") or "")})
+            return {"ok": True, "model": m, "fiche": clean_fiche(fiche, company), "sources": sources[:8]}
+    return JSONResponse({"ok": False, "error": last[:300]}, status_code=502)
+
+
+# ---------- Classement des agences (moyennes uniquement) ----------
+PERIODS = {"week": 7, "month": 30, "quarter": 90}
+WEEKLY_TARGET = 6   # appels par junior et par semaine pour une régularité de 100
+
+
+def _iso(ts: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
+
+
+def bu_stats(rows: list, days: int) -> dict:
+    out = {}
+    for r in rows:
+        b = bu_of(r)
+        d = out.setdefault(b.lower(), {"bu": b, "juniors": set(), "calls": 0, "scores": [], "appels": 0, "rdv": 0})
+        d["juniors"].add(r.get("junior") or "?")
+        d["calls"] += 1
+        if r.get("score") is not None:
+            d["scores"].append(r["score"])
+        if r.get("kind") == "appel" and r.get("score") is not None:
+            d["appels"] += 1
+            d["rdv"] += 1 if r.get("rdv") else 0
+    target = WEEKLY_TARGET * days / 7
+    for d in out.values():
+        n = len(d["juniors"])
+        d["avg"] = round(sum(d["scores"]) / len(d["scores"])) if d["scores"] else None
+        d["perJunior"] = round(d["calls"] / n, 1) if n else 0
+        d["rdvRate"] = round(d["rdv"] / d["appels"] * 100) if d["appels"] else None
+        reg = min(100, d["perJunior"] / target * 100) if target else 0
+        d["index"] = round(0.6 * d["avg"] + 0.4 * reg) if d["avg"] is not None else None
+        d["ranked"] = n >= 2 and d["index"] is not None
+    return out
+
+
+@app.get("/api/leaderboard")
+def leaderboard(period: str = "week", bu: str = "", junior: str = ""):
+    """Classement des agences. Ne renvoie que des moyennes, jamais de noms ; la place d'un junior dans son agence
+    lui est donnée sans révéler les autres."""
+    days = PERIODS.get(period, 7)
+    now = time.time()
+    rows = [r for r in read_sessions() if after_reset(r)]
+    cur = [r for r in rows if (r.get("date") or "") >= _iso(now - days * 86400)]
+    prev = [r for r in rows if _iso(now - 2 * days * 86400) <= (r.get("date") or "") < _iso(now - days * 86400)]
+    s_cur, s_prev = bu_stats(cur, days), bu_stats(prev, days)
+    table = []
+    for b in BUS:
+        d = s_cur.get(b.lower()) or {"bu": b, "juniors": set(), "calls": 0, "avg": None, "perJunior": 0, "rdvRate": None, "index": None, "ranked": False}
+        p = s_prev.get(b.lower())
+        delta = d["index"] - p["index"] if d.get("index") is not None and p and p.get("index") is not None else None
+        table.append({"bu": b, "index": d["index"], "avg": d["avg"], "perJunior": d["perJunior"], "rdvRate": d["rdvRate"],
+                      "juniors": len(d["juniors"]), "calls": d["calls"], "ranked": d["ranked"], "delta": delta})
+    ranked = sorted([t for t in table if t["ranked"]], key=lambda t: t["index"], reverse=True)
+    for i, t in enumerate(ranked):
+        t["rank"] = i + 1
+    table = ranked + [t for t in table if not t["ranked"]]
+    me = None
+    if bu and junior:
+        mine = [r for r in cur if bu_of(r).lower() == bu.lower() and r.get("score") is not None]
+        per = {}
+        for r in mine:
+            per.setdefault(r.get("junior"), []).append(r["score"])
+        avgs = sorted(((sum(v) / len(v), k) for k, v in per.items()), reverse=True)
+        names = [k for _, k in avgs]
+        if junior in names:
+            me = {"rank": names.index(junior) + 1, "of": len(names), "avg": round(per[junior] and sum(per[junior]) / len(per[junior]))}
+    return {"ok": True, "period": period, "days": days, "rows": table, "rankedCount": len(ranked), "me": me}
 
 
 @app.post("/api/live-token")
