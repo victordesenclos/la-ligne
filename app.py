@@ -539,12 +539,15 @@ NAMES = {
 }
 
 
-def research_prompt(company: str, brand: str) -> str:
+def research_prompt(company: str, brand: str, offline: bool = False) -> str:
     cible = ("un commercial de UX-Republic, cabinet spécialiste de l'expérience utilisateur (UX) du groupe Smile. "
              "L'interlocuteur cible est un décideur UX, design, produit ou expérience client.") if brand == "uxr" else \
             ("un commercial de Smile, entreprise de services numériques spécialisée dans l'open source, le digital, la data et l'IA. "
              "L'interlocuteur cible est un décideur IT, digital, data ou applications métier.")
-    return f"""Recherche sur le web l'entreprise « {company} » (France en priorité) pour préparer un appel de prospection de {cible}
+    intro = (f"À partir de tes connaissances (sans accès au web), décris l'entreprise « {company} » (France en priorité) "
+             f"pour préparer un appel de prospection de {cible}") if offline else \
+            f"Recherche sur le web l'entreprise « {company} » (France en priorité) pour préparer un appel de prospection de {cible}"
+    return f"""{intro}
 
 Réponds uniquement avec un objet JSON valide, sans texte autour ni balises Markdown, au format :
 {{
@@ -561,7 +564,7 @@ Réponds uniquement avec un objet JSON valide, sans texte autour ni balises Mark
 }}
 
 Règles :
-- Uniquement des faits trouvés dans tes sources. Si tu n'es pas sûr d'un fait, ne l'écris pas.
+- Uniquement des faits trouvés dans tes sources{" ou dont tu es certain ; pour \"actu\", écris une chaîne vide si tu ne connais pas d'actualité datée et sûre" if offline else ""}. Si tu n'es pas sûr d'un fait, ne l'écris pas.
 - Aucun nom de personne réelle : seulement des rôles.
 - Tout en français, phrases courtes."""
 
@@ -614,37 +617,62 @@ async def research(request: Request):
         "generationConfig": {"temperature": 0.3},
     }
     last = "Aucun modèle Gemini disponible pour la recherche."
+    quota_hit = False
+
+    async def ask(c, m, with_search: bool):
+        nonlocal last, quota_hit
+        body = dict(payload) if with_search else {
+            "contents": [{"role": "user", "parts": [{"text": research_prompt(company, brand, offline=True)}]}],
+            "generationConfig": {"temperature": 0.3},
+        }
+        try:
+            r = await c.post(f"{API}/{m}:generateContent", params={"key": GEMINI_KEY}, json=body)
+        except Exception as e:
+            last = f"{m} : {e}"
+            return None
+        if r.status_code != 200:
+            try:
+                msg = str(r.json().get("error", {}).get("message", r.status_code))
+            except Exception:
+                msg = f"erreur {r.status_code}"
+            if r.status_code == 429 or "quota" in msg.lower():
+                quota_hit = True
+            last = f"{m} : {msg}"
+            return None
+        cand = (r.json().get("candidates") or [{}])[0]
+        text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+        fiche = extract_json(text)
+        if not isinstance(fiche, dict):
+            last = f"{m} : réponse illisible"
+            return None
+        sources, seen = [], set()
+        for ch in (cand.get("groundingMetadata") or {}).get("groundingChunks") or []:
+            w = ch.get("web") or {}
+            title = str(w.get("title") or "").strip()
+            if title and title not in seen:
+                seen.add(title)
+                sources.append({"title": title[:120], "uri": str(w.get("uri") or "")})
+        return {"ok": True, "model": m, "grounded": with_search, "fiche": clean_fiche(fiche, company), "sources": sources[:8]}
+
     async with httpx.AsyncClient(timeout=120) as c:
         try:
             models = await research_models(c)
         except Exception as e:
             return JSONResponse({"ok": False, "error": f"Liste des modèles indisponible : {e}"}, status_code=502)
+        # 1) Recherche web : le quota gratuit diffère d'un modèle à l'autre, on les essaie tous
+        for m in models[:8]:
+            res = await ask(c, m, True)
+            if res:
+                return res
+        # 2) Sans recherche web : fiche tirée des connaissances du modèle, signalée comme à vérifier
         for m in models[:4]:
-            try:
-                r = await c.post(f"{API}/{m}:generateContent", params={"key": GEMINI_KEY}, json=payload)
-            except Exception as e:
-                last = f"{m} : {e}"
-                continue
-            if r.status_code != 200:
-                try:
-                    last = f"{m} : {r.json().get('error', {}).get('message', r.status_code)}"
-                except Exception:
-                    last = f"{m} : erreur {r.status_code}"
-                continue
-            cand = (r.json().get("candidates") or [{}])[0]
-            text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
-            fiche = extract_json(text)
-            if not isinstance(fiche, dict):
-                last = f"{m} : réponse illisible"
-                continue
-            sources, seen = [], set()
-            for ch in (cand.get("groundingMetadata") or {}).get("groundingChunks") or []:
-                w = ch.get("web") or {}
-                title = str(w.get("title") or "").strip()
-                if title and title not in seen:
-                    seen.add(title)
-                    sources.append({"title": title[:120], "uri": str(w.get("uri") or "")})
-            return {"ok": True, "model": m, "fiche": clean_fiche(fiche, company), "sources": sources[:8]}
+            res = await ask(c, m, False)
+            if res:
+                res["fiche"]["actu"] = res["fiche"].get("actu") or ""
+                return res
+    if quota_hit:
+        return JSONResponse({"ok": False, "error": "Quota Gemini dépassé pour le moment. Réessaie plus tard, ou remplis la fiche à la main. "
+                             "Pour lever la limite, active la facturation sur le projet Google de la clé."}, status_code=429)
     return JSONResponse({"ok": False, "error": last[:300]}, status_code=502)
 
 
