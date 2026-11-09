@@ -10,6 +10,10 @@ services:
         sync: false
       - key: MANAGER_PASSWORD
         sync: false
+      - key: MANAGER_PASSWORDS
+        sync: false
+      - key: BUS
+        value: Lille,Paris,Lyon,Marseille,Nantes,Bordeaux,Toulouse,Montpellier
       - key: GITHUB_TOKEN
         sync: false
       - key: GITHUB_REPO
