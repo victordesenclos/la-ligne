@@ -70,6 +70,7 @@ DATA_DIR = pick_data_dir()
 SESSIONS = DATA_DIR / "sessions.jsonl"
 META = DATA_DIR / "meta.json"          # date de la dernière remise à zéro
 ARCHIVES = DATA_DIR / "archives"       # copies des données avant chaque remise à zéro
+ACCOUNTS = DATA_DIR / "accounts.json"  # comptes saisis par les juniors, agence par agence, avec leurs fiches IA
 
 
 def read_meta() -> dict:
@@ -261,6 +262,17 @@ class GitHubBackup:
         except Exception:
             pass
 
+    def restore_file(self, name: str, path: Path):
+        if path.exists():
+            return
+        try:
+            r = httpx.get(f"{GITHUB_API}/repos/{GITHUB_REPO}/contents/{name}", headers=self.headers, timeout=30)
+            if r.status_code == 200 and r.json().get("content"):
+                path.write_bytes(base64.b64decode(r.json()["content"]))
+                print(f"{name} restauré depuis GitHub")
+        except Exception:
+            pass
+
     def loop(self):
         while True:
             time.sleep(120)
@@ -272,6 +284,7 @@ if GITHUB_TOKEN and GITHUB_REPO and scheduler is None:
     github_backup = GitHubBackup()
     github_backup.restore()
     github_backup.restore_meta()
+    github_backup.restore_file("accounts.json", ACCOUNTS)
     threading.Thread(target=github_backup.loop, daemon=True).start()
 
 BACKUP_ON = scheduler is not None or github_backup is not None or str(DATA_DIR) == "/data"
@@ -633,6 +646,103 @@ async def research(request: Request):
                     sources.append({"title": title[:120], "uri": str(w.get("uri") or "")})
             return {"ok": True, "model": m, "fiche": clean_fiche(fiche, company), "sources": sources[:8]}
     return JSONResponse({"ok": False, "error": last[:300]}, status_code=502)
+
+
+# ---------- Comptes de chaque agence (portefeuilles et fiches partagées) ----------
+_accounts_timer = None
+
+
+def akey(t: str) -> str:
+    t = re.sub(r"[\u0300-\u036f]", "", __import__("unicodedata").normalize("NFD", str(t or "").lower()))
+    return re.sub(r"[^a-z0-9]", "", t)[:60]
+
+
+def read_accounts() -> dict:
+    try:
+        return json.loads(ACCOUNTS.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def write_accounts(data: dict):
+    global _accounts_timer
+    with lock:
+        ACCOUNTS.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    if github_backup is not None:
+        # Regroupe les modifications rapprochées en une seule sauvegarde
+        if _accounts_timer:
+            _accounts_timer.cancel()
+        _accounts_timer = threading.Timer(15, lambda: github_backup.put_file("accounts.json", ACCOUNTS.read_bytes(), "Comptes des agences"))
+        _accounts_timer.daemon = True
+        _accounts_timer.start()
+
+
+def find_bu(bu: str) -> str | None:
+    return next((b for b in BUS if b.lower() == str(bu or "").strip().lower()), None)
+
+
+@app.post("/api/portfolio")
+async def save_portfolio(request: Request):
+    """Enregistre le portefeuille d'un junior : ses comptes deviennent des comptes de son agence."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "format"}, status_code=400)
+    bu = find_bu(body.get("bu"))
+    who = str(body.get("junior") or "").strip()[:80]
+    first = str(body.get("first") or "").strip()[:40]
+    lines = [re.sub(r"\s+", " ", str(x)).strip()[:80] for x in (body.get("lines") or [])[:30]]
+    if not bu or not who:
+        return JSONResponse({"ok": False, "error": "incomplet"}, status_code=400)
+    data = read_accounts()
+    agency = data.setdefault(bu.lower(), {})
+    wanted = {akey(x): x for x in lines if akey(x)}
+    for k in list(agency.keys()):
+        acc = agency[k]
+        acc["owners"] = [o for o in acc.get("owners", []) if o.get("id") != who]
+        if not acc["owners"]:
+            del agency[k]
+    for k, name in wanted.items():
+        acc = agency.setdefault(k, {"name": name, "owners": []})
+        acc["owners"].append({"id": who, "first": first})
+    write_accounts(data)
+    return {"ok": True}
+
+
+@app.post("/api/accounts/fiche")
+async def save_fiche(request: Request):
+    """Partage avec l'agence la fiche IA d'un compte (faits publics et interlocuteur fictif uniquement)."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "format"}, status_code=400)
+    bu = find_bu(body.get("bu"))
+    name = re.sub(r"\s+", " ", str(body.get("name") or "")).strip()[:80]
+    f = body.get("fiche") if isinstance(body.get("fiche"), dict) else None
+    if not bu or not akey(name) or not f:
+        return JSONResponse({"ok": False, "error": "incomplet"}, status_code=400)
+    keep = ("desc", "first", "last", "gender", "role", "actu", "context", "besoin", "objection", "decision", "relation", "refs")
+    fiche = {k: str(f.get(k) or "")[:1500] for k in keep}
+    sources = [{"title": str(x.get("title") or "")[:120], "uri": str(x.get("uri") or "")[:500]}
+               for x in (body.get("sources") or [])[:8] if isinstance(x, dict)]
+    data = read_accounts()
+    acc = data.setdefault(bu.lower(), {}).setdefault(akey(name), {"name": name, "owners": []})
+    acc.update(fiche=fiche, sources=sources, verified=bool(body.get("verified")),
+               updatedAt=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    write_accounts(data)
+    return {"ok": True}
+
+
+@app.get("/api/accounts")
+def list_accounts(bu: str = ""):
+    b = find_bu(bu)
+    if not b:
+        return {"ok": True, "accounts": []}
+    agency = read_accounts().get(b.lower(), {})
+    out = [{"key": k, "name": a.get("name", k), "owners": sorted({o.get("first") or "?" for o in a.get("owners", [])}),
+            "fiche": a.get("fiche"), "sources": a.get("sources", []), "verified": bool(a.get("verified"))}
+           for k, a in agency.items()]
+    return {"ok": True, "bu": b, "accounts": sorted(out, key=lambda x: x["name"].lower())}
 
 
 # ---------- Classement des agences (moyennes uniquement) ----------
