@@ -544,6 +544,8 @@ def research_prompt(company: str, brand: str, offline: bool = False) -> str:
              "L'interlocuteur cible est un décideur UX, design, produit ou expérience client.") if brand == "uxr" else \
             ("un commercial de Smile, entreprise de services numériques spécialisée dans l'open source, le digital, la data et l'IA. "
              "L'interlocuteur cible est un décideur IT, digital, data ou applications métier.")
+    regle_hors_ligne = (" ou dont tu es certain ; pour le champ actu, écris une chaîne vide "
+                        "si tu ne connais pas d'actualité datée et sûre") if offline else ""
     intro = (f"À partir de tes connaissances (sans accès au web), décris l'entreprise « {company} » (France en priorité) "
              f"pour préparer un appel de prospection de {cible}") if offline else \
             f"Recherche sur le web l'entreprise « {company} » (France en priorité) pour préparer un appel de prospection de {cible}"
@@ -564,7 +566,7 @@ Réponds uniquement avec un objet JSON valide, sans texte autour ni balises Mark
 }}
 
 Règles :
-- Uniquement des faits trouvés dans tes sources{" ou dont tu es certain ; pour \"actu\", écris une chaîne vide si tu ne connais pas d'actualité datée et sûre" if offline else ""}. Si tu n'es pas sûr d'un fait, ne l'écris pas.
+- Uniquement des faits trouvés dans tes sources{regle_hors_ligne}. Si tu n'es pas sûr d'un fait, ne l'écris pas.
 - Aucun nom de personne réelle : seulement des rôles.
 - Tout en français, phrases courtes."""
 
