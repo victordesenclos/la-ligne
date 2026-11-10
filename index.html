@@ -1262,6 +1262,11 @@ async function runResearchQueue(){
   researchRunning = true;
   try{
     for(;;){
+      let failed={}; try{ failed=JSON.parse(safeGet("laligne.researchFail")||"{}"); }catch(e){}
+      for(const x of resolvePortfolio()){
+        const f=failed[x.key], cur=S.research[x.key];
+        if(!x.co && f && Date.now()-f.t < 3600e3 && !(cur && cur.manual) && (!cur || cur.state==="queued")) S.research[x.key]={state:"error", msg:f.msg+" (nouvel essai automatique dans moins d'une heure, ou clique sur Relancer)"};
+      }
       const extra = S.extraResearch.map(n=>({line:n, key:nkey(n), co:null, research:S.research[nkey(n)]||{state:"queued"}}));
       const next = resolvePortfolio().concat(extra).find(x=>!x.co && x.research.state==="queued" && !COMPANIES.some(c=>c.custom && nkey(c.name)===x.key));
       if(!next) break;
@@ -1286,6 +1291,7 @@ async function runResearchQueue(){
         delete S.research[next.key];
       }catch(err){
         S.research[next.key] = {state:"error", msg:String(err.message||err).slice(0,200)};
+        try{ const f=JSON.parse(safeGet("laligne.researchFail")||"{}"); f[next.key]={t:Date.now(), msg:S.research[next.key].msg.slice(0,160)}; safeSet("laligne.researchFail", JSON.stringify(f)); }catch(e){}
       }
       if(!$("#viewHome").hidden) renderHome();
     }
@@ -1310,7 +1316,7 @@ function agencyBlock(agencyOthers, lilleBase, examples){
   return `<details class="more-co" ${mineIdsOpen()?"":"open"}><summary>${title} (${all.length})</summary><div class="companies">${all.join("")}</div></details>`;
 }
 function mineIdsOpen(){ return resolvePortfolio().some(x=>x.co && x.co.id===S.company); }
-function retryResearch(key){ S.research[key]={state:"queued"}; runResearchQueue(); renderHome(); }
+function retryResearch(key){ S.research[key]={state:"queued", manual:true}; runResearchQueue(); renderHome(); }
 function pendingCard(x){
   const r=x.research;
   const body = r.state==="error"
@@ -1859,7 +1865,7 @@ function renderPrep(){
   </div>`;
   $("#backHome").onclick=()=>{ readPrep(); goHome(); };
   ["#pA","#pB","#pC"].forEach(id=>$(id).addEventListener("input",()=>readPrep()));
-  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ prepareCallScreen(); startCall(); };
+  const cb=$("#callBtn"); if(cb) cb.onclick=()=>{ if(S.starting) return; cb.disabled=true; prepareCallScreen(); startCall(); };
   const os=$("#openSet2"); if(os) os.onclick=()=>openDlg("#dlgSettings");
 }
 function prepareCallScreen(){
@@ -2294,8 +2300,13 @@ const A = { micStream:null, micCtx:null, micNode:null, inRate:48000, pending:new
             playCtx:null, playOut:null, analyser:null, nextTime:0, sources:new Set(), micLevel:0, sending:false, raf:0 };
 
 async function startMic(){
-  A.micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  // Créé avant toute attente, pendant le clic : sinon le navigateur peut le laisser en pause
   A.micCtx = new AudioContext();
+  A.micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  if(A.micCtx.state!=="running"){ try{ await A.micCtx.resume(); }catch(e){} }
+  if(A.playCtx && A.playCtx.state!=="running"){ try{ await A.playCtx.resume(); }catch(e){} }
+  const track = A.micStream.getAudioTracks()[0];
+  if(track) track.onended = () => { if(S.callActive) callError("Le micro s'est coupé pendant l'appel. Vérifie qu'aucune autre application ne l'utilise (Teams, Zoom…), puis réessaie."); };
   A.inRate = A.micCtx.sampleRate;
   const url = URL.createObjectURL(new Blob([WORKLET_SRC],{type:"application/javascript"}));
   await A.micCtx.audioWorklet.addModule(url);
@@ -2308,7 +2319,7 @@ async function startMic(){
 function onMicChunk(f32){
   let sum=0; for(let i=0;i<f32.length;i++) sum+=f32[i]*f32[i];
   A.micLevel = Math.max(Math.sqrt(sum/f32.length), A.micLevel*0.85);
-  if(Math.sqrt(sum/f32.length)>0.02) A.lastSpeechAt = performance.now();
+  if(Math.sqrt(sum/f32.length)>0.02){ A.lastSpeechAt = performance.now(); A.everHeard = true; }
   if(!A.sending) return;
   const out = resample(f32);
   A.queue.push(out); A.queued += out.length;
@@ -2389,6 +2400,14 @@ function stopPlayback(){
   for(const s of A.sources){ try{s.stop();}catch(e){} }
   A.sources.clear(); A.nextTime=0;
 }
+// Sonnerie française en boucle (1,5 s de tonalité, 3,5 s de silence) pendant toute la connexion
+function startRinging(){
+  stopRinging();
+  const ring1=()=>{ try{ const ctx=A.playCtx; if(!ctx) return; const o=ctx.createOscillator(), g=ctx.createGain();
+    o.frequency.value=440; g.gain.value=0.08; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+1.5); S.ringOsc=o; }catch(e){} };
+  ring1(); S.ringTimer=setInterval(ring1, 5000);
+}
+function stopRinging(){ clearInterval(S.ringTimer); S.ringTimer=null; try{ S.ringOsc && S.ringOsc.stop(); }catch(e){} S.ringOsc=null; }
 function ringTone(){
   // Une sonnerie française : 440 Hz pendant 1,5 s
   return new Promise(res=>{
@@ -2417,10 +2436,12 @@ function animate(){
   A.raf = requestAnimationFrame(animate);
 }
 function teardownAudio(){
+  stopRinging();
   A.sending=false;
   cancelAnimationFrame(A.raf);
   stopPlayback();
-  if(A.micStream) A.micStream.getTracks().forEach(t=>t.stop());
+  if(A.micNode){ try{ A.micNode.port.onmessage=null; A.micNode.disconnect(); }catch(e){} }
+  if(A.micStream) A.micStream.getTracks().forEach(t=>{ t.onended=null; t.stop(); });
   try{ A.noise && A.noise.stop(); }catch(e){} A.noise=null;
   try{ A.micCtx && A.micCtx.close(); }catch(e){}
   try{ A.playCtx && A.playCtx.close(); }catch(e){}
@@ -2431,7 +2452,24 @@ function teardownAudio(){
 /* =========================================================
    APPEL
    ========================================================= */
+/* Ferme une ligne pour de bon : plus aucun de ses messages ne peut agir sur l'appel suivant */
+function dropSocket(ws){
+  if(!ws) return;
+  ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+  try{ if(ws.readyState<=1) ws.close(1000); }catch(e){}
+}
+function resetCallState(){
+  if(S.ws){ const old=S.ws; S.ws=null; dropSocket(old); }
+  clearTimeout(S.answerTimer); clearInterval(S.timerId); clearTimeout(S.maxTimer); clearTimeout(S.helpTimer); clearTimeout(S.setupTimer); clearTimeout(S.micCheck);
+  S.callActive=false; S.startedAt=0; S.setupDone=false;
+  teardownAudio();
+  A.sources=new Set(); A.micLevel=0; A.nextTime=0; A.lastSpeechAt=0; A.turnStarted=false; A.everHeard=false;
+}
 async function startCall(){
+  if(S.starting) return;
+  S.starting = true;
+  S.callId = (S.callId||0) + 1;
+  resetCallState();
   const s=S.scenario;
   S.lastPrep = readPrep();
   S.transcript=[]; S.startedAt=0; S.errorShown=false;
@@ -2449,9 +2487,12 @@ async function startCall(){
     await startMic();
   }catch(e){
     callError("Le micro n'est pas accessible. Autorise le micro pour cette page (icône à gauche de l'adresse), puis réessaie.");
-    teardownAudio(); return;
+    teardownAudio(); S.starting=false; return;
   }
+  S.starting = false;
   animate();
+  startRinging();
+  S.attempts = 0; S.timeouts = 0;
   let startLevel = 0;
   try{
     const ok = JSON.parse(sessionStorage.getItem("laligne.directOk")||"null");
@@ -2533,14 +2574,34 @@ function openLine(level){
   S.ws = ws;
   wireLine(ws, level, null);
 }
+const QUOTA_RE = /quota|exceeded|resource.?exhausted|rate.?limit|429/i;
 function wireLine(ws, level, onEarlyFail){
+  S.attempts = (S.attempts||0) + 1;
+  if(S.attempts > 1) $("#callState").textContent = `Connexion… (essai ${S.attempts})`;
+  if(S.attempts > 14){ try{ ws.onclose=null; ws.close(1000); }catch(e){} callError("Impossible de joindre la voix de Gemini après plusieurs essais. Réessaie dans une minute ; si ça persiste, change le modèle vocal dans les réglages."); finishCall(); return; }
+  // Si Google ne confirme pas la ligne en 12 secondes, on passe à l'essai suivant
+  clearTimeout(S.setupTimer);
+  S.setupTimer = setTimeout(()=>{
+    if(S.ws!==ws || S.setupDone) return;
+    S.timeouts = (S.timeouts||0) + 1;
+    if(S.timeouts >= 3){ S.ws=null; dropSocket(ws); callError("Google ne répond pas pour le moment (connexion trop lente). Réessaie dans une minute. Si ça persiste, le serveur Render était peut-être en veille : recharge la page, puis rappelle."); finishCall(); return; }
+    try{ ws.close(4000, "délai dépassé"); }catch(e){}
+  }, 12000);
   ws.onopen = () => ws.send(JSON.stringify({setup:buildSetup(level)}));
+  const callId = S.callId;
   ws.onmessage = async ev => {
+    if(S.ws!==ws || S.callId!==callId) return;
     let msg; try{ msg = JSON.parse(typeof ev.data==="string" ? ev.data : await ev.data.text()); }catch(e){ return; }
+    if(S.ws!==ws || S.callId!==callId) return;
     handleServer(msg);
   };
   ws.onclose = ev => {
     if(S.ws!==ws) return;
+    clearTimeout(S.setupTimer);
+    if(!S.setupDone && QUOTA_RE.test(ev.reason||"")){
+      callError("Quota Gemini atteint pour la voix : le prospect ne peut pas décrocher pour l'instant. Réessaie dans une minute, ou plus tard dans la journée si le quota quotidien est épuisé.");
+      finishCall(); return;
+    }
     if(!S.setupDone && ev.code!==1000 && onEarlyFail){ onEarlyFail(); return; }
     if(!S.setupDone && ev.code!==1000 && level<3){ openLine(level+1); return; }
     if(!S.setupDone && ev.code!==1000 && level===3){
@@ -2593,11 +2654,10 @@ function noAnswerFallback(){
 }
 async function handleServer(msg){
   if(msg.setupComplete){
-    S.setupDone = true;
+    S.setupDone = true; clearTimeout(S.setupTimer);
     if(S.liveModelOverride){ $("#liveModel").value=S.liveModelOverride; safeSet("laligne.liveModel.v4", S.liveModelOverride); }
     if(S.lineMode==="direct"){ try{ sessionStorage.setItem("laligne.directOk", JSON.stringify({model:$("#liveModel").value, ver:S.directVer||0, level:S.lineLevel})); }catch(e){} }
     $("#callState").textContent="Ça sonne…";
-    await ringTone();
     if(!S.ws || S.ws.readyState!==1) return;
     S.callActive=true; S.startedAt=Date.now();
     S.timerId=setInterval(()=>{ const e=Date.now()-S.startedAt; $("#timer").textContent=fmt(e); $("#timer").classList.toggle("warn", e>(S.scenario.kind==="messagerie"?30000:300000)); },500);
@@ -2621,6 +2681,11 @@ async function handleServer(msg){
       const b=badVoices(); (b[S.failedVoice.model]=b[S.failedVoice.model]||[]); if(!b[S.failedVoice.model].includes(S.failedVoice.voice)) b[S.failedVoice.model].push(S.failedVoice.voice);
       try{ localStorage.setItem("laligne.badVoices", JSON.stringify(b)); }catch(e){}
       S.failedVoice = null;
+    }
+    if(!S.gotAnswer){
+      stopRinging();
+      clearTimeout(S.micCheck);
+      S.micCheck = setTimeout(()=>{ if(S.callActive && !A.everHeard) toast("On ne t'entend pas : vérifie le micro choisi par le navigateur (icône à gauche de l'adresse) et qu'il n'est pas coupé."); }, 10000);
     }
     S.gotAnswer = true;
   }
@@ -2658,7 +2723,8 @@ function finishCall(manual){
   clearInterval(S.timerId); clearTimeout(S.maxTimer);
   S.lastDuration = S.startedAt ? Date.now()-S.startedAt : 0;
   const ws=S.ws; S.ws=null;
-  if(ws && ws.readyState<=1){ ws.onclose=null; try{ ws.close(1000); }catch(e){} }
+  dropSocket(ws); clearTimeout(S.micCheck); clearTimeout(S.setupTimer);
+  S.starting = false;
   teardownAudio();
   const said = S.transcript.some(t=>t.who==="junior" && t.text.trim().length>3);
   if(!said){
