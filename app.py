@@ -818,7 +818,7 @@ def block_stats(rows: list) -> dict:
 
 
 @app.get("/api/france")
-def france(request: Request, days: int = 90):
+def france(request: Request, days: int = 90, bu: str = ""):
     if not (FRANCE_PASSWORD or MANAGER_PASSWORD):
         return JSONResponse({"ok": False, "error": "Aucun mot de passe Direction n'est configuré sur le serveur (FRANCE_PASSWORD ou MANAGER_PASSWORD)."}, status_code=503)
     if not france_ok(request):
@@ -829,8 +829,15 @@ def france(request: Request, days: int = 90):
     for r in rows:
         r["bu"] = bu_of(r)
     since, prev_since = _iso(now - days * 86400), _iso(now - 2 * days * 86400)
-    cur = [r for r in rows if (r.get("date") or "") >= since]
-    prev = [r for r in rows if prev_since <= (r.get("date") or "") < since]
+    all_cur = [r for r in rows if (r.get("date") or "") >= since]
+    all_prev = [r for r in rows if prev_since <= (r.get("date") or "") < since]
+    # Filtre agence : indicateurs, graphique, trame, comptes, exercices et alertes ne portent que sur elle
+    sel = find_bu(bu) if bu else None
+    in_sel = (lambda r: r["bu"].lower() == sel.lower()) if sel else (lambda r: True)
+    all_rows = rows
+    rows = [r for r in rows if in_sel(r)]
+    cur = [r for r in all_cur if in_sel(r)]
+    prev = [r for r in all_prev if in_sel(r)]
 
     # Évolution sur 12 semaines (semaines commençant le lundi)
     import datetime as _dt
@@ -847,11 +854,11 @@ def france(request: Request, days: int = 90):
     # Par agence
     agencies = []
     for b in BUS:
-        br = [r for r in cur if r["bu"].lower() == b.lower()]
-        pr = [r for r in prev if r["bu"].lower() == b.lower()]
+        br = [r for r in all_cur if r["bu"].lower() == b.lower()]
+        pr = [r for r in all_prev if r["bu"].lower() == b.lower()]
         st = block_stats(br)
         pst = block_stats(pr)
-        last = max((r.get("date") or "" for r in rows if r["bu"].lower() == b.lower()), default="")
+        last = max((r.get("date") or "" for r in all_rows if r["bu"].lower() == b.lower()), default="")
         crit = {}
         appels = [r for r in br if r.get("kind") == "appel" and isinstance(r.get("criteria"), dict)]
         for cid in CRITERIA_IDS:
@@ -888,23 +895,31 @@ def france(request: Request, days: int = 90):
     # Points d'attention
     alerts = []
     cutoff = _iso(now - 14 * 86400)[:10]
-    for a in agencies:
+    scoped = [a for a in agencies if not sel or a["bu"] == sel]
+    for a in scoped:
         if a["lastActivity"] and a["lastActivity"] < cutoff:
             alerts.append(f"{a['bu']} : aucun entraînement depuis le {a['lastActivity'][8:10]}/{a['lastActivity'][5:7]}.")
     active_ag = [a for a in agencies if a["calls"] >= 3 and a["rdvRate"] is not None]
-    if len(active_ag) >= 2:
+    if sel:
+        me = next((a for a in active_ag if a["bu"] == sel), None)
+        ranked = sorted(active_ag, key=lambda a: a["rdvRate"], reverse=True)
+        if me and len(ranked) >= 2:
+            rk = ranked.index(me) + 1
+            alerts.append(f"{sel} est {rk}{'re' if rk == 1 else 'e'} sur {len(ranked)} agences actives pour le taux de rendez-vous ({me['rdvRate']} %).")
+    elif len(active_ag) >= 2:
         low = min(active_ag, key=lambda a: a["rdvRate"])
         alerts.append(f"{low['bu']} a le taux de rendez-vous le plus bas ({low['rdvRate']} %).")
     weak = [(cid, v) for cid, v in national_crit.items() if v is not None and v < 35]
     for cid, v in weak[:2]:
         alerts.append(f"Critère « {cid} » acquis dans seulement {v} % des appels, au niveau national.")
-    never = [a["bu"] for a in agencies if not a["lastActivity"]]
+    never = [a["bu"] for a in scoped if not a["lastActivity"]]
     if never:
         alerts.append("Jamais utilisé : " + ", ".join(never) + ".")
 
-    return {"ok": True, "days": days, "kpi": block_stats(cur), "kpiPrev": block_stats(prev), "weeks": weeks,
+    return {"ok": True, "days": days, "bu": sel, "bus": BUS, "kpi": block_stats(cur), "kpiPrev": block_stats(prev), "weeks": weeks,
             "agencies": agencies, "criteria": national_crit, "exercises": ex, "topAccounts": top, "alerts": alerts,
-            "managerCalls": sum(1 for r in read_sessions() if r.get("role") == "manager" and (r.get("date") or "") >= since)}
+            "managerCalls": sum(1 for r in read_sessions() if r.get("role") == "manager" and (r.get("date") or "") >= since
+                                and (not sel or bu_of(r).lower() == sel.lower()))}
 
 
 # ---------- Classement des agences (moyennes uniquement) ----------
