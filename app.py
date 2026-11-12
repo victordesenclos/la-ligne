@@ -21,6 +21,7 @@ import hashlib
 import threading
 import time
 from pathlib import Path
+from urllib.parse import unquote
 
 import httpx
 import websockets
@@ -30,10 +31,11 @@ from fastapi.responses import FileResponse, JSONResponse
 GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD", "").strip()   # accès à toutes les agences (CODIR, admin)
 # Agences (BU) proposées aux juniors, et mot de passe Manager de chaque agence
+FRANCE_PASSWORD = os.getenv("FRANCE_PASSWORD", "").strip()   # espace Direction France (sinon MANAGER_PASSWORD)
 BUS = [b.strip() for b in os.getenv("BUS", "Lille,Paris,Lyon,Marseille,Nantes,Bordeaux,Toulouse,Montpellier").split(",") if b.strip()]
 DEFAULT_BU = BUS[0] if BUS else "Lille"   # les appels enregistrés avant l'arrivée des agences sont rattachés à la première
 try:
-    BU_PASSWORDS = {k.strip().lower(): str(v) for k, v in json.loads(os.getenv("MANAGER_PASSWORDS", "{}") or "{}").items() if str(v)}
+    BU_PASSWORDS = {k.strip().lower(): str(v).strip() for k, v in json.loads(os.getenv("MANAGER_PASSWORDS", "{}") or "{}").items() if str(v)}
 except Exception:
     BU_PASSWORDS = {}
     print("MANAGER_PASSWORDS illisible : format attendu {\"Lille\":\"motdepasse\",\"Paris\":\"autre\"}")
@@ -116,7 +118,8 @@ def after_reset(rec: dict) -> bool:
 
 def manager_scope(request) -> str | None:
     """'*' pour l'accès toutes agences, le nom de l'agence pour un manager d'agence, None sinon."""
-    pw = request.headers.get("x-manager-password", "")
+    # Le navigateur encode le mot de passe (accents et symboles autorisés)
+    pw = unquote(request.headers.get("x-manager-password", "")).strip()
     if not pw:
         return None
     if MANAGER_PASSWORD and pw == MANAGER_PASSWORD:
@@ -773,6 +776,135 @@ def list_accounts(bu: str = ""):
             "fiche": a.get("fiche"), "sources": a.get("sources", []), "verified": bool(a.get("verified"))}
            for k, a in agency.items()]
     return {"ok": True, "bu": b, "accounts": sorted(out, key=lambda x: x["name"].lower())}
+
+
+# ---------- Espace Direction France : analytics nationales, agrégées par agence ----------
+CRITERIA_IDS = ["accroche", "raison", "valeur", "decouverte", "ecoute", "objections", "rdv", "conclusion"]
+
+
+def france_ok(request) -> bool:
+    pw = unquote(request.headers.get("x-manager-password", "")).strip()
+    if not pw:
+        return False
+    if FRANCE_PASSWORD:
+        return pw == FRANCE_PASSWORD
+    return bool(MANAGER_PASSWORD) and pw == MANAGER_PASSWORD
+
+
+def _avg(v):
+    v = [x for x in v if x is not None]
+    return round(sum(v) / len(v)) if v else None
+
+
+def _pct(n, d):
+    return round(n / d * 100) if d else None
+
+
+def block_stats(rows: list) -> dict:
+    scored = [r for r in rows if r.get("score") is not None]
+    calls = [r for r in scored if r.get("kind") == "appel"]
+    actives = {r.get("junior") for r in rows if r.get("junior")}
+    return {
+        "calls": len(rows),
+        "actives": len(actives),
+        "perActive": round(len(rows) / len(actives), 1) if actives else 0,
+        "avg": _avg([r["score"] for r in scored]),
+        "rdvRate": _pct(sum(1 for r in calls if r.get("rdv")), len(calls)),
+        "durationMin": round(sum(r.get("durationSec") or 0 for r in rows) / len(rows) / 60, 1) if rows else None,
+        "talk": _avg([r.get("talkShare") for r in rows]),
+        "prepRate": _pct(sum(1 for r in rows if (r.get("prepFilled") or 0) >= 2), len(rows)),
+        "errors": round(sum(r.get("erreursSmile") or 0 for r in scored) / len(scored), 1) if scored else None,
+    }
+
+
+@app.get("/api/france")
+def france(request: Request, days: int = 90):
+    if not (FRANCE_PASSWORD or MANAGER_PASSWORD):
+        return JSONResponse({"ok": False, "error": "Aucun mot de passe Direction n'est configuré sur le serveur (FRANCE_PASSWORD ou MANAGER_PASSWORD)."}, status_code=503)
+    if not france_ok(request):
+        return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
+    days = max(7, min(int(days or 90), 400))
+    now = time.time()
+    rows = [r for r in read_sessions() if after_reset(r) and r.get("role") != "manager"]
+    for r in rows:
+        r["bu"] = bu_of(r)
+    since, prev_since = _iso(now - days * 86400), _iso(now - 2 * days * 86400)
+    cur = [r for r in rows if (r.get("date") or "") >= since]
+    prev = [r for r in rows if prev_since <= (r.get("date") or "") < since]
+
+    # Évolution sur 12 semaines (semaines commençant le lundi)
+    import datetime as _dt
+    today = _dt.datetime.utcfromtimestamp(now).date()
+    monday = today - _dt.timedelta(days=today.weekday())
+    weeks = []
+    for i in range(11, -1, -1):
+        start = monday - _dt.timedelta(weeks=i)
+        end = start + _dt.timedelta(weeks=1)
+        wr = [r for r in rows if start.isoformat() <= (r.get("date") or "")[:10] < end.isoformat()]
+        weeks.append({"week": start.isoformat(), "calls": len(wr), "avg": _avg([r.get("score") for r in wr]),
+                      "actives": len({r.get("junior") for r in wr})})
+
+    # Par agence
+    agencies = []
+    for b in BUS:
+        br = [r for r in cur if r["bu"].lower() == b.lower()]
+        pr = [r for r in prev if r["bu"].lower() == b.lower()]
+        st = block_stats(br)
+        pst = block_stats(pr)
+        last = max((r.get("date") or "" for r in rows if r["bu"].lower() == b.lower()), default="")
+        crit = {}
+        appels = [r for r in br if r.get("kind") == "appel" and isinstance(r.get("criteria"), dict)]
+        for cid in CRITERIA_IDS:
+            vals = [r["criteria"].get(cid) for r in appels if r["criteria"].get(cid) in ("acquis", "en_cours", "a_travailler")]
+            crit[cid] = _pct(sum(1 for v in vals if v == "acquis"), len(vals))
+        agencies.append({"bu": b, **st, "delta": (st["avg"] - pst["avg"]) if st["avg"] is not None and pst["avg"] is not None else None,
+                         "lastActivity": last[:10], "criteria": crit})
+
+    # Maîtrise de la trame au niveau national
+    appels = [r for r in cur if r.get("kind") == "appel" and isinstance(r.get("criteria"), dict)]
+    national_crit = {}
+    for cid in CRITERIA_IDS:
+        vals = [r["criteria"].get(cid) for r in appels if r["criteria"].get(cid) in ("acquis", "en_cours", "a_travailler")]
+        national_crit[cid] = _pct(sum(1 for v in vals if v == "acquis"), len(vals))
+
+    # Exercices et comptes les plus travaillés
+    ex = {}
+    for r in cur:
+        k = r.get("kind") or "appel"
+        key = f"appel-{r.get('level') or '?'}" if k == "appel" else k
+        ex[key] = ex.get(key, 0) + 1
+    acc = {}
+    for r in cur:
+        n = (r.get("companyName") or "").strip()
+        if n:
+            a = acc.setdefault(n, {"name": n, "calls": 0, "scores": [], "bus": set()})
+            a["calls"] += 1
+            a["bus"].add(r["bu"])
+            if r.get("score") is not None:
+                a["scores"].append(r["score"])
+    top = sorted(acc.values(), key=lambda a: a["calls"], reverse=True)[:10]
+    top = [{"name": a["name"], "calls": a["calls"], "avg": _avg(a["scores"]), "agencies": len(a["bus"])} for a in top]
+
+    # Points d'attention
+    alerts = []
+    cutoff = _iso(now - 14 * 86400)[:10]
+    for a in agencies:
+        if a["lastActivity"] and a["lastActivity"] < cutoff:
+            alerts.append(f"{a['bu']} : aucun entraînement depuis le {a['lastActivity'][8:10]}/{a['lastActivity'][5:7]}.")
+    active_ag = [a for a in agencies if a["calls"] >= 3 and a["rdvRate"] is not None]
+    if len(active_ag) >= 2:
+        low = min(active_ag, key=lambda a: a["rdvRate"])
+        alerts.append(f"{low['bu']} a le taux de rendez-vous le plus bas ({low['rdvRate']} %).")
+    weak = [(cid, v) for cid, v in national_crit.items() if v is not None and v < 35]
+    for cid, v in weak[:2]:
+        alerts.append(f"Critère « {cid} » acquis dans seulement {v} % des appels, au niveau national.")
+    never = [a["bu"] for a in agencies if not a["lastActivity"]]
+    if never:
+        alerts.append("Jamais utilisé : " + ", ".join(never) + ".")
+
+    return {"ok": True, "days": days, "kpi": block_stats(cur), "kpiPrev": block_stats(prev), "weeks": weeks,
+            "agencies": agencies, "criteria": national_crit, "exercises": ex, "topAccounts": top, "alerts": alerts,
+            "managerCalls": sum(1 for r in read_sessions() if r.get("role") == "manager" and (r.get("date") or "") >= since)}
 
 
 # ---------- Classement des agences (moyennes uniquement) ----------
