@@ -34,11 +34,35 @@ MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD", "").strip()   # accès à toute
 FRANCE_PASSWORD = os.getenv("FRANCE_PASSWORD", "").strip()   # espace Direction France (sinon MANAGER_PASSWORD)
 BUS = [b.strip() for b in os.getenv("BUS", "Lille,Paris,Lyon,Marseille,Nantes,Bordeaux,Toulouse,Montpellier").split(",") if b.strip()]
 DEFAULT_BU = BUS[0] if BUS else "Lille"   # les appels enregistrés avant l'arrivée des agences sont rattachés à la première
-try:
-    BU_PASSWORDS = {k.strip().lower(): str(v).strip() for k, v in json.loads(os.getenv("MANAGER_PASSWORDS", "{}") or "{}").items() if str(v)}
-except Exception:
-    BU_PASSWORDS = {}
-    print("MANAGER_PASSWORDS illisible : format attendu {\"Lille\":\"motdepasse\",\"Paris\":\"autre\"}")
+def parse_bu_passwords(raw: str):
+    """Lit MANAGER_PASSWORDS en tolérant les erreurs courantes : guillemets typographiques, guillemet oublié,
+    ou format simple « Lille:motdepasse, Paris:autre » (une agence par virgule ou par ligne)."""
+    raw = (raw or "").strip()
+    if not raw:
+        return {}, False
+    txt = raw.translate(str.maketrans({"“": '"', "”": '"', "„": '"', "«": '"', "»": '"', "‘": "'", "’": "'"}))
+    try:
+        d = json.loads(txt)
+        if isinstance(d, dict):
+            return {str(k).strip().lower(): str(v).strip() for k, v in d.items() if str(v).strip()}, False
+    except Exception:
+        pass
+    out = {}
+    body = txt.strip().strip("{}")
+    for part in re.split(r",(?=\s*\"?[^\",:]+\"?\s*:)|\n", body):
+        if ":" not in part:
+            continue
+        k, v = part.split(":", 1)
+        k, v = k.strip().strip('"').strip("'").strip(), v.strip().strip('"').strip("'").strip()
+        if k and v:
+            out[k.lower()] = v
+    return out, True
+
+
+BU_PASSWORDS, BU_PASSWORDS_REPAIRED = parse_bu_passwords(os.getenv("MANAGER_PASSWORDS", ""))
+if BU_PASSWORDS_REPAIRED:
+    print("MANAGER_PASSWORDS mal formé : lu en mode tolérant pour", ", ".join(sorted(BU_PASSWORDS)) or "aucune agence")
+print("Mots de passe manager configurés pour :", ", ".join(sorted(BU_PASSWORDS)) or "aucune agence")
 HF_TOKEN = os.getenv("HF_TOKEN", "").strip()
 DATASET_REPO = os.getenv("DATASET_REPO", "").strip()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
@@ -380,6 +404,11 @@ def config():
     return {
         "serverKey": bool(GEMINI_KEY),
         "managerReady": bool(MANAGER_PASSWORD or BU_PASSWORDS),
+        # Diagnostic de connexion manager (noms d'agences seulement, jamais les mots de passe)
+        "managerAgencies": [next((b for b in BUS if b.lower() == k), k) for k in sorted(BU_PASSWORDS)],
+        "managerAgenciesUnknown": [k for k in sorted(BU_PASSWORDS) if k not in {b.lower() for b in BUS}],
+        "managerPasswordsRepaired": BU_PASSWORDS_REPAIRED,
+        "directionPassword": bool(MANAGER_PASSWORD),
         "backup": BACKUP_ON,
         "bus": BUS,
         "resetAt": read_meta().get("resetAt"),
@@ -434,7 +463,11 @@ def list_sessions(request: Request):
         return JSONResponse({"ok": False, "error": "Aucun mot de passe Manager n'est configuré sur le serveur."}, status_code=503)
     scope = manager_scope(request)
     if not scope:
-        return JSONResponse({"ok": False, "error": "Mot de passe incorrect."}, status_code=401)
+        want = unquote(request.headers.get("x-manager-bu", "")).strip()
+        if want and want.lower() not in BU_PASSWORDS:
+            return JSONResponse({"ok": False, "error": f"Aucun mot de passe manager n'est configuré pour l'agence de {want} sur le serveur "
+                                 "(variable MANAGER_PASSWORDS dans Render). Seul le mot de passe de direction fonctionne pour elle."}, status_code=401)
+        return JSONResponse({"ok": False, "error": f"Mot de passe incorrect{' pour ' + want if want else ''}."}, status_code=401)
     rows = read_sessions()
     for r in rows:
         r["bu"] = bu_of(r)
