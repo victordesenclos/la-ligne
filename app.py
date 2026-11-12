@@ -169,6 +169,24 @@ def parse_lines(data: bytes) -> list:
     return out
 
 
+def describe_token(t: str) -> str:
+    """Décrit le jeton reçu sans jamais l'afficher : type, longueur, caractères suspects."""
+    raw = os.getenv("GITHUB_TOKEN", "")
+    if not t:
+        return "aucun jeton reçu"
+    kind = ("fine-grained (github_pat_)" if t.startswith("github_pat_") else
+            "classique (ghp_)" if t.startswith("ghp_") else "format inconnu : il ne commence ni par github_pat_ ni par ghp_")
+    expected = " (attendu : 93)" if t.startswith("github_pat_") else " (attendu : 40)" if t.startswith("ghp_") else ""
+    issues = []
+    if any(c in t for c in "\"'“”«»"):
+        issues.append("contient des guillemets")
+    if any(c.isspace() for c in t):
+        issues.append("contient une espace ou un retour à la ligne")
+    if raw != raw.strip():
+        issues.append("espaces autour (retirées automatiquement)")
+    return f"jeton {kind}, {len(t)} caractères{expected}" + (" ; " + ", ".join(issues) if issues else "")
+
+
 class GitHubBackup:
     """Sauvegarde sessions.jsonl dans un dépôt GitHub privé.
     - Au démarrage : FUSIONNE la sauvegarde avec les données locales (rien n'est écrasé).
@@ -329,24 +347,6 @@ def trigger_backup():
             scheduler.trigger()
         except Exception:
             pass
-
-
-def describe_token(t: str) -> str:
-    """Décrit le jeton reçu sans jamais l'afficher : type, longueur, caractères suspects."""
-    raw = os.getenv("GITHUB_TOKEN", "")
-    if not t:
-        return "aucun jeton reçu"
-    kind = ("fine-grained (github_pat_)" if t.startswith("github_pat_") else
-            "classique (ghp_)" if t.startswith("ghp_") else "format inconnu : il ne commence ni par github_pat_ ni par ghp_")
-    expected = " (attendu : 93)" if t.startswith("github_pat_") else " (attendu : 40)" if t.startswith("ghp_") else ""
-    issues = []
-    if any(c in t for c in "\"'“”«»"):
-        issues.append("contient des guillemets")
-    if any(c.isspace() for c in t):
-        issues.append("contient une espace ou un retour à la ligne")
-    if raw != raw.strip():
-        issues.append("espaces autour (retirées automatiquement)")
-    return f"jeton {kind}, {len(t)} caractères{expected}" + (" ; " + ", ".join(issues) if issues else "")
 
 
 def backup_status() -> dict:
