@@ -19,6 +19,7 @@ import re
 import shutil
 import hashlib
 import threading
+import unicodedata
 import time
 from pathlib import Path
 from urllib.parse import unquote
@@ -181,7 +182,8 @@ class GitHubBackup:
         self.pushed_size = -1
         self.push_lock = threading.Lock()
         self.status = {"mode": "GitHub", "repo": GITHUB_REPO, "lastOk": None, "lastError": None,
-                       "lastErrorAt": None, "restored": None}
+                       "lastErrorAt": None, "restored": None, "token": describe_token(GITHUB_TOKEN),
+                       "startedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
     def _error(self, msg):
         print(f"Sauvegarde GitHub : {msg}")
@@ -329,6 +331,24 @@ def trigger_backup():
             pass
 
 
+def describe_token(t: str) -> str:
+    """Décrit le jeton reçu sans jamais l'afficher : type, longueur, caractères suspects."""
+    raw = os.getenv("GITHUB_TOKEN", "")
+    if not t:
+        return "aucun jeton reçu"
+    kind = ("fine-grained (github_pat_)" if t.startswith("github_pat_") else
+            "classique (ghp_)" if t.startswith("ghp_") else "format inconnu : il ne commence ni par github_pat_ ni par ghp_")
+    expected = " (attendu : 93)" if t.startswith("github_pat_") else " (attendu : 40)" if t.startswith("ghp_") else ""
+    issues = []
+    if any(c in t for c in "\"'“”«»"):
+        issues.append("contient des guillemets")
+    if any(c.isspace() for c in t):
+        issues.append("contient une espace ou un retour à la ligne")
+    if raw != raw.strip():
+        issues.append("espaces autour (retirées automatiquement)")
+    return f"jeton {kind}, {len(t)} caractères{expected}" + (" ; " + ", ".join(issues) if issues else "")
+
+
 def backup_status() -> dict:
     if github_backup is not None:
         return github_backup.status
@@ -363,8 +383,50 @@ def clean(rec: dict) -> dict:
                 out[k] = {str(a)[:40]: str(b)[:20] for a, b in dict(v).items()}
         except Exception:
             out[k] = None
+    if out.get("junior"):
+        out["junior"] = canon_name(out["junior"])
     out["receivedAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     return out
+
+
+# ---------- Une personne = un nom, quelles que soient les majuscules ou les accents ----------
+PARTICLES = {"de", "du", "des", "la", "le", "van", "von", "da", "di", "del"}
+
+
+def canon_name(name) -> str:
+    """Mise en forme d'un nom : « victor DESENCLOS » devient « Victor Desenclos »."""
+    s = re.sub(r"\s+", " ", str(name or "")).strip()
+    out = []
+    for i, w in enumerate(s.split(" ") if s else []):
+        lw = w.lower()
+        if i > 0 and lw in PARTICLES:
+            out.append(lw)
+            continue
+        out.append(re.sub(r"(^|[-'’])(\w)", lambda m: m.group(1) + m.group(2).upper(), lw))
+    return " ".join(out)
+
+
+def name_key(name) -> str:
+    """Clé de comparaison : sans majuscules, accents, espaces ni ponctuation."""
+    t = unicodedata.normalize("NFD", str(name or "").lower())
+    return re.sub(r"[^a-z0-9]", "", re.sub(r"[\u0300-\u036f]", "", t))
+
+
+def unify_names(rows: list) -> list:
+    """Regroupe à la lecture les variantes d'un même nom sous une seule forme (la plus fréquente).
+    L'historique enregistré n'est jamais modifié."""
+    counts = {}
+    for r in rows:
+        j = r.get("junior")
+        if j:
+            c = counts.setdefault(name_key(j), {})
+            f = canon_name(j)
+            c[f] = c.get(f, 0) + 1
+    best = {k: max(v.items(), key=lambda kv: (kv[1], kv[0]))[0] for k, v in counts.items()}
+    for r in rows:
+        if r.get("junior"):
+            r["junior"] = best.get(name_key(r["junior"]), r["junior"])
+    return rows
 
 
 def read_sessions() -> list:
@@ -382,7 +444,7 @@ def read_sessions() -> list:
             continue
         seen.add(r.get("id"))
         rows.append(r)
-    return rows
+    return unify_names(rows)
 
 
 app = FastAPI()
@@ -756,8 +818,8 @@ async def save_portfolio(request: Request):
     except Exception:
         return JSONResponse({"ok": False, "error": "format"}, status_code=400)
     bu = find_bu(body.get("bu"))
-    who = str(body.get("junior") or "").strip()[:80]
-    first = str(body.get("first") or "").strip()[:40]
+    who = canon_name(str(body.get("junior") or ""))[:80]
+    first = canon_name(str(body.get("first") or ""))[:40]
     lines = [re.sub(r"\s+", " ", str(x)).strip()[:80] for x in (body.get("lines") or [])[:30]]
     if not bu or not who:
         return JSONResponse({"ok": False, "error": "incomplet"}, status_code=400)
@@ -766,7 +828,7 @@ async def save_portfolio(request: Request):
     wanted = {akey(x): x for x in lines if akey(x)}
     for k in list(agency.keys()):
         acc = agency[k]
-        acc["owners"] = [o for o in acc.get("owners", []) if o.get("id") != who]
+        acc["owners"] = [o for o in acc.get("owners", []) if name_key(o.get("id")) != name_key(who)]
         if not acc["owners"]:
             del agency[k]
     for k, name in wanted.items():
@@ -806,7 +868,7 @@ def list_accounts(bu: str = ""):
     if not b:
         return {"ok": True, "accounts": []}
     agency = read_accounts().get(b.lower(), {})
-    out = [{"key": k, "name": a.get("name", k), "owners": sorted({o.get("first") or "?" for o in a.get("owners", [])}),
+    out = [{"key": k, "name": a.get("name", k), "owners": sorted({canon_name(o.get("first")) or "?" for o in a.get("owners", [])}),
             "fiche": a.get("fiche"), "sources": a.get("sources", []), "verified": bool(a.get("verified"))}
            for k, a in agency.items()]
     return {"ok": True, "bu": b, "accounts": sorted(out, key=lambda x: x["name"].lower())}
@@ -1019,8 +1081,9 @@ def leaderboard(period: str = "week", bu: str = "", junior: str = ""):
             per.setdefault(r.get("junior"), []).append(r["score"])
         avgs = sorted(((sum(v) / len(v), k) for k, v in per.items()), reverse=True)
         names = [k for _, k in avgs]
-        if junior in names:
-            me = {"rank": names.index(junior) + 1, "of": len(names), "avg": round(per[junior] and sum(per[junior]) / len(per[junior]))}
+        mine_name = next((n for n in names if name_key(n) == name_key(junior)), None)
+        if mine_name:
+            me = {"rank": names.index(mine_name) + 1, "of": len(names), "avg": round(sum(per[mine_name]) / len(per[mine_name]))}
     return {"ok": True, "period": period, "days": days, "rows": table, "rankedCount": len(ranked), "me": me}
 
 
