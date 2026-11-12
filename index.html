@@ -167,7 +167,33 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .src-list{margin:6px 0 0;padding-left:18px;font-size:.86rem;color:var(--mute)}
 @media (max-width:860px){.podium{grid-template-columns:1fr}.rk-grid{grid-template-columns:1fr}}
 .rank-link[hidden]{display:none}
-.login{max-width:560px;margin:40px auto 60px}
+.login{max-width:600px;margin:40px auto 60px}
+.role-pick.three{grid-template-columns:repeat(3,1fr)}
+@media (max-width:620px){.role-pick.three{grid-template-columns:1fr}}
+.fr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin:28px 0 18px}
+.fr-head h1{margin:0 0 4px;font-size:1.8rem}
+.fr-head p{margin:0;color:var(--mute)}
+.fr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.fr-kpi{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:2px}
+.fr-kpi b{font-size:1.7rem}
+.fr-kpi span{color:var(--mute);font-size:.86rem}
+.fr-kpi small{font-size:.8rem;font-weight:600}
+.fr-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;margin-bottom:18px}
+.fr-box{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px}
+.fr-box h2{margin:0 0 12px;font-size:1.1rem}
+.fr-box .scroll{overflow-x:auto}
+.fr-box table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:640px}
+.fr-box th{text-align:left;font-weight:500;color:var(--mute);font-size:.82rem;padding:8px 10px}
+.fr-box td{padding:9px 10px;border-top:1px solid var(--line)}
+.fr-heat td.c{text-align:center;border-radius:8px;font-weight:600;font-size:.85rem}
+.fr-heat{border-collapse:separate !important;border-spacing:4px}
+.fr-heat td{border-top:0 !important}
+.fr-bars{display:flex;flex-direction:column;gap:8px}
+.fr-bars .r{display:grid;grid-template-columns:130px 1fr 44px;gap:10px;align-items:center;font-size:.9rem}
+.fr-bars .t{height:10px;border-radius:5px;background:var(--paper)}
+.fr-bars .t span{display:block;height:10px;border-radius:5px;background:var(--blue)}
+.fr-alerts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:.93rem}
+@media (max-width:900px){.fr-grid{grid-template-columns:1fr}}
 .login .card{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:30px}
 .login h1{margin:0 0 6px;font-size:1.8rem}
 .login .lead{margin:0 0 22px;color:var(--mute)}
@@ -360,6 +386,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
   <button class="logo" id="homeBtn" type="button"><i aria-hidden="true"></i>La Ligne</button>
   <nav class="tabs" aria-label="Sections">
     <button type="button" id="tabHome" aria-current="page">Mon parcours</button>
+    <button type="button" id="tabFrance" aria-current="false" hidden>France</button>
     <button type="button" id="tabRanking" aria-current="false">Classement</button>
     <button type="button" id="tabManager" aria-current="false">Manager</button>
   </nav>
@@ -374,26 +401,29 @@ details.transcript p{margin:8px 0;font-size:.93rem}
     <div class="login"><div class="card">
       <h1>Connexion</h1>
       <p class="lead">Choisis ton profil pour ouvrir La Ligne.</p>
-      <div class="role-pick" role="group" aria-label="Profil">
+      <div class="role-pick three" role="group" aria-label="Profil">
         <button type="button" id="lgRoleJunior" aria-pressed="true"><b>Commercial</b><span>Je m'entraîne aux appels</span></button>
-        <button type="button" id="lgRoleManager" aria-pressed="false"><b>Manager</b><span>Je suis mon agence et je m'entraîne aussi</span></button>
+        <button type="button" id="lgRoleManager" aria-pressed="false"><b>Manager</b><span>Je suis mon agence</span></button>
+        <button type="button" id="lgRoleFrance" aria-pressed="false"><b>Direction France</b><span>Toutes les agences</span></button>
       </div>
       <form id="lgJunior" novalidate>
-        <div class="field"><label for="lgBu">Agence</label><select id="lgBu" required></select></div>
-        <div class="row" style="margin-top:12px">
+        <div class="field" id="lgBuBox"><label for="lgBu">Agence</label><select id="lgBu" required></select></div>
+        <div class="row" id="lgNames" style="margin-top:12px">
           <div class="field"><label for="lgFirst">Prénom</label><input id="lgFirst" autocomplete="given-name" required></div>
           <div class="field"><label for="lgLast">Nom</label><input id="lgLast" autocomplete="family-name" required></div>
         </div>
-        <div class="field" style="margin-top:12px"><label for="lgPortfolio">Ton portefeuille clients, un client par ligne</label>
+        <div id="lgPfBox"><div class="field" style="margin-top:12px"><label for="lgPortfolio">Ton portefeuille clients, un client par ligne</label>
           <textarea id="lgPortfolio" style="min-height:110px" placeholder="Decathlon&#10;Auchan&#10;Lesaffre"></textarea></div>
-        <p class="hint" id="lgPfNote" style="margin-top:6px">Les comptes connus arrivent avec leur interlocuteur. Pour les autres, l'IA prépare une fiche à partir d'une recherche web.</p>
-        <div class="field" id="lgPwBox" style="margin-top:12px" hidden><label for="lgPw">Mot de passe manager de ton agence</label><input id="lgPw" type="password" autocomplete="current-password"></div>
-        <p class="hint" id="lgPwHint" style="margin-top:6px" hidden>Le mot de passe détermine ton périmètre de suivi : ton agence, ou toutes les agences pour la direction. Tes appels d'entraînement ne comptent pas dans le classement.</p>
+        <p class="hint" id="lgPfNote" style="margin-top:6px">Les comptes connus arrivent avec leur interlocuteur. Pour les autres, l'IA prépare une fiche à partir d'une recherche web.</p></div>
+        <div class="field" id="lgPwBox" style="margin-top:12px" hidden><label for="lgPw" id="lgPwLabel">Mot de passe manager</label><input id="lgPw" type="password" autocomplete="current-password">
+          <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px;cursor:pointer"><input type="checkbox" id="lgPwShow" style="width:auto"> Afficher le mot de passe</label></div>
+        <p class="hint" id="lgPwHint" style="margin-top:6px" hidden></p>
         <p class="err" id="lgErr" role="alert"></p>
         <div class="foot"><button class="btn orange" type="submit" id="lgSubmit">Se connecter</button></div>
       </form>
     </div></div>
   </main>
+  <main id="viewFrance" hidden></main>
   <main id="viewHome"></main>
   <main id="viewPrep" hidden></main>
   <main id="viewCall" hidden>
@@ -1107,11 +1137,13 @@ function firstName(){ return speaker().split(" ")[0]; }
 function scById(id){ return SCENARIOS.find(s=>s.id===id) || SCENARIOS[0]; }
 
 function showView(v){
-  for(const id of ["Login","Home","Prep","Call","Debrief","Ranking","Manager"]) $("#view"+id).hidden = v!==id.toLowerCase();
+  for(const id of ["Login","Home","Prep","Call","Debrief","Ranking","Manager","France"]) $("#view"+id).hidden = v!==id.toLowerCase();
   const off = v==="login";
   $(".tabs").hidden = off; $("#whoChip").hidden = off; $("#settingsBtn").hidden = off; $("#logoutBtn").hidden = off;
   $("#tabHome").setAttribute("aria-current", v==="manager"||v==="ranking" ? "false" : "page");
   $("#tabRanking").setAttribute("aria-current", v==="ranking" ? "page" : "false");
+  $("#tabFrance").setAttribute("aria-current", v==="france" ? "page" : "false");
+  if(v==="france") $("#tabHome").setAttribute("aria-current","false");
   $("#tabManager").setAttribute("aria-current", v==="manager" ? "page" : "false");
   $("#privacyNote").hidden = v==="manager";
   window.scrollTo({top:0});
@@ -1398,11 +1430,16 @@ function findProfile(first,last,bu){
 }
 function setLoginRole(r){
   S.loginRole = r;
-  $("#lgRoleJunior").setAttribute("aria-pressed", r==="junior"); $("#lgRoleManager").setAttribute("aria-pressed", r==="manager");
-  $("#lgPwBox").hidden = r!=="manager"; $("#lgPwHint").hidden = r!=="manager";
-  $("#lgSubmit").textContent = r==="manager" ? "Se connecter en manager" : "Se connecter";
+  $("#lgRoleJunior").setAttribute("aria-pressed", r==="junior"); $("#lgRoleManager").setAttribute("aria-pressed", r==="manager"); $("#lgRoleFrance").setAttribute("aria-pressed", r==="france");
+  $("#lgBuBox").hidden = r==="france";
+  $("#lgNames").hidden = r!=="junior"; $("#lgPfBox").hidden = r!=="junior";
+  $("#lgPwBox").hidden = r==="junior"; $("#lgPwHint").hidden = r==="junior";
+  $("#lgPwLabel").textContent = r==="france" ? "Mot de passe Direction France" : "Mot de passe manager";
+  $("#lgPwHint").textContent = r==="france" ? "Accès aux analytics de toutes les agences : volumes, qualité, trame, exercices et comptes, sans noms de commerciaux."
+    : "Tu accèdes au suivi de ton agence et tu peux aussi t'entraîner. Tes appels d'entraînement ne comptent pas dans le classement.";
+  $("#lgSubmit").textContent = r==="france" ? "Ouvrir l'espace France" : r==="manager" ? "Se connecter en manager" : "Se connecter";
   $("#lgErr").textContent = "";
-  setTimeout(()=>($("#lgFirst").value ? (r==="manager" ? $("#lgPw") : $("#lgPortfolio")) : $("#lgFirst")).focus(), 30);
+  setTimeout(()=>(r==="junior" ? ($("#lgFirst").value ? $("#lgPortfolio") : $("#lgFirst")) : r==="manager" && !$("#lgBu").value ? $("#lgBu") : $("#lgPw")).focus(), 30);
 }
 function fillLoginBu(){
   const sel=$("#lgBu"), cur=sel.value || (JSON.parse(safeGet("laligne.lastLogin")||"{}").bu) || "";
@@ -1419,32 +1456,38 @@ function loginLookup(){
     : "Premier passage avec ce nom : indique ton portefeuille. Les comptes connus arrivent avec leur interlocuteur ; pour les autres, l'IA prépare une fiche à partir d'une recherche web.";
 }
 function showLogin(){
-  S.junior=null; S.mode=null; S.agency=[]; S.extraResearch=[]; S.research={};
+  S.junior=null; S.mode=null; S.francePw=null; S.agency=[]; S.extraResearch=[]; S.research={};
   ssSet("laligne.managerPw", null);
   const last=JSON.parse(safeGet("laligne.lastLogin")||"{}");
   fillLoginBu();
   $("#lgFirst").value = last.first||""; $("#lgLast").value = last.last||"";
   $("#lgPortfolio").value=""; delete $("#lgPortfolio").dataset.touched;
   $("#lgPw").value=""; $("#lgErr").textContent="";
-  showView("login"); setLoginRole(last.role==="manager" ? "manager" : "junior");
+  showView("login"); setLoginRole(["manager","france"].includes(last.role) ? last.role : "junior");
   loginLookup();
 }
 $("#lgRoleJunior").onclick=()=>setLoginRole("junior");
+$("#lgPwShow").onchange=()=>{ $("#lgPw").type = $("#lgPwShow").checked ? "text" : "password"; };
 $("#lgRoleManager").onclick=()=>setLoginRole("manager");
+$("#lgRoleFrance").onclick=()=>setLoginRole("france");
 for(const id of ["#lgFirst","#lgLast","#lgBu"]) $(id).addEventListener("change", loginLookup);
 $("#lgPortfolio").addEventListener("input", ()=>{ $("#lgPortfolio").dataset.touched="1"; });
 $("#lgJunior").addEventListener("submit", async e=>{
   e.preventDefault();
   const isMgr = S.loginRole==="manager";
-  const first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim(), bu=$("#lgBu").value;
-  if(!first || !last || !bu){ $("#lgErr").textContent="Indique ton agence, ton prénom et ton nom."; return; }
-  const portfolio=$("#lgPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
+  if(S.loginRole==="france") return loginFrance();
+  const bu=$("#lgBu").value;
+  let first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim();
+  if(isMgr){ if(!bu){ $("#lgErr").textContent="Choisis ton agence."; return; } first="Manager"; last=bu; }
+  else if(!first || !last || !bu){ $("#lgErr").textContent="Indique ton agence, ton prénom et ton nom."; return; }
+  let portfolio=$("#lgPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
+  if(isMgr){ const p=findProfile(first,last,bu); portfolio = p && Array.isArray(p.portfolio) ? p.portfolio : []; }
   if(isMgr){
     const pw=$("#lgPw").value.trim();
     if(!pw){ $("#lgErr").textContent="Saisis le mot de passe manager de ton agence."; $("#lgPw").focus(); return; }
     $("#lgErr").textContent="Vérification…";
     let d=null, r=null;
-    try{ r=await fetch("api/sessions",{headers:{"x-manager-password":pw},cache:"no-store"}); d=await r.json(); }catch(err){}
+    try{ r=await fetch("api/sessions",{headers:{"x-manager-password":encodeURIComponent(pw)},cache:"no-store"}); d=await r.json(); }catch(err){}
     if(!r || !r.ok || !d || !d.ok){ $("#lgErr").textContent = d && d.error ? d.error : "Connexion impossible. Réessaie dans un instant."; return; }
     if(d.scope && d.scope!=="*" && d.scope.toLowerCase()!==bu.toLowerCase()){ $("#lgErr").textContent=`Ce mot de passe correspond à l'agence de ${d.scope}. Choisis cette agence.`; return; }
     $("#lgErr").textContent="";
@@ -1452,7 +1495,7 @@ $("#lgJunior").addEventListener("submit", async e=>{
   }
   S.junior={first,last,bu,role:isMgr?"manager":"junior",portfolio}; S.mode=isMgr?"manager":"junior";
   saveProfile(S.junior); safeSet("laligne.junior", JSON.stringify(S.junior));
-  safeSet("laligne.lastLogin", JSON.stringify({first,last,bu,role:S.mode}));
+  safeSet("laligne.lastLogin", JSON.stringify(isMgr ? {bu,role:"manager",first:JSON.parse(safeGet("laligne.lastLogin")||"{}").first||"",last:JSON.parse(safeGet("laligne.lastLogin")||"{}").last||""} : {first,last,bu,role:S.mode}));
   S.agency=[]; S.extraResearch=[]; S.research={};
   const first1 = resolvePortfolio().find(x=>x.co);
   setCompany(first1 ? first1.co.id : (safeGet("laligne.company") || COMPANIES[0].id));
@@ -1461,6 +1504,75 @@ $("#lgJunior").addEventListener("submit", async e=>{
   pushPortfolio().then(loadAgency); runResearchQueue();
   setTimeout(()=>syncAll(), 800);
 });
+// Espace Direction France
+async function loginFrance(){
+  const pw=$("#lgPw").value.trim();
+  if(!pw){ $("#lgErr").textContent="Saisis le mot de passe Direction France."; $("#lgPw").focus(); return; }
+  $("#lgErr").textContent="Vérification…";
+  let d=null, r=null;
+  try{ r=await fetch("api/france?days=90",{headers:{"x-manager-password":encodeURIComponent(pw)},cache:"no-store"}); d=await r.json(); }catch(err){}
+  if(!r || !r.ok || !d || !d.ok){ $("#lgErr").textContent = d && d.error ? d.error : (r && r.status===404 ? "Le serveur n'est pas à jour : déploie la dernière version de app.py." : "Connexion impossible. Réessaie dans un instant."); return; }
+  $("#lgErr").textContent="";
+  S.francePw=pw; S.franceDays=90; S.mode="france"; S.junior=null;
+  const prev=JSON.parse(safeGet("laligne.lastLogin")||"{}");
+  safeSet("laligne.lastLogin", JSON.stringify({...prev, role:"france"}));
+  renderChrome(); showView("france"); renderFrance(d);
+}
+const EX_LABEL = { "appel-n1":"Niveau 1", "appel-n2":"Niveau 2", "appel-n3":"Niveau 3", barrage:"Barrage", messagerie:"Laisser un message", profil:"Pousser un profil" };
+async function renderFrance(data){
+  const v=$("#viewFrance"), days=S.franceDays||90;
+  if(!data){
+    v.innerHTML=`<p class="hint" style="margin-top:28px">Chargement…</p>`;
+    try{ const r=await fetch("api/france?days="+days,{headers:{"x-manager-password":encodeURIComponent(S.francePw||"")},cache:"no-store"}); data=await r.json(); if(!r.ok||!data.ok) throw new Error(data.error||"Erreur"); }
+    catch(e){ v.innerHTML=`<p class="err" style="margin-top:28px">${esc(e.message||"Données indisponibles.")}</p>`; return; }
+  }
+  const k=data.kpi, kp=data.kpiPrev, crit=GRIDS.appel;
+  const dl=(a,b,suf="")=>a==null||b==null?"":(a-b>0?`<small style="color:var(--ok)">+${Math.round((a-b)*10)/10}${suf} vs période précédente</small>`:a-b<0?`<small style="color:var(--ko)">${Math.round((a-b)*10)/10}${suf} vs période précédente</small>`:`<small style="color:var(--mute)">stable</small>`);
+  const kpi=(val,lab,delta)=>`<div class="fr-kpi"><b>${val??"–"}</b><span>${lab}</span>${delta||""}</div>`;
+  const per={30:"30 jours",90:"90 jours",365:"12 mois"};
+  // Graphique : appels par semaine (barres) et score moyen (ligne)
+  const W=data.weeks, maxC=Math.max(1,...W.map(w=>w.calls)), cw=640, ch=200, bw=cw/W.length;
+  const bars=W.map((w,i)=>{ const h=w.calls/maxC*(ch-30); return `<rect x="${i*bw+bw*0.2}" y="${ch-h-20}" width="${bw*0.6}" height="${h}" rx="4" fill="var(--blue-soft)"><title>Semaine du ${w.week.slice(8,10)}/${w.week.slice(5,7)} : ${w.calls} appels, score ${w.avg??"–"}</title></rect>`; }).join("");
+  const pts=W.map((w,i)=>w.avg==null?null:[i*bw+bw/2, ch-20-(w.avg/100)*(ch-30)]).filter(Boolean);
+  const line=pts.length>1?`<polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linejoin="round"/>`:"";
+  const dots=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--orange)"/>`).join("");
+  const labels=W.map((w,i)=>i%2?"":`<text x="${i*bw+bw/2}" y="${ch-4}" text-anchor="middle" font-size="11" fill="var(--mute)">${w.week.slice(8,10)}/${w.week.slice(5,7)}</text>`).join("");
+  const hc=p=> p==null ? ["var(--paper)","var(--mute)"] : p>=70 ? ["#E3F4EC","#14563C"] : p>=40 ? ["#FFF2D6","#6B4500"] : ["#FBE3E3","#8E2525"];
+  const heat=p=>{ const [bg,fg]=hc(p); return `<td class="c" style="background:${bg};color:${fg}">${p==null?"–":p+" %"}</td>`; };
+  const exTot=Object.values(data.exercises).reduce((a,b)=>a+b,0)||1;
+  const exRows=Object.entries(data.exercises).sort((a,b)=>b[1]-a[1]).map(([kk,n])=>`<div class="r"><span>${esc(EX_LABEL[kk]||kk)}</span><span class="t"><span style="width:${Math.round(n/exTot*100)}%"></span></span><b>${n}</b></div>`).join("") || `<p class="hint">Aucun appel sur la période.</p>`;
+  v.innerHTML = `
+  <div class="fr-head"><div><h1>Espace Direction France</h1><p>Toutes les agences, ${per[days]||days+" jours"}. Données agrégées par agence, sans noms de commerciaux.</p></div>
+    <div class="seg" role="group" aria-label="Période">${[30,90,365].map(d=>`<button type="button" data-days="${d}" aria-pressed="${d===days}">${per[d]}</button>`).join("")}</div></div>
+  <div class="fr-kpis">
+    ${kpi(k.calls,"appels d'entraînement",dl(k.calls,kp.calls))}
+    ${kpi(k.actives,"commerciaux actifs",dl(k.actives,kp.actives))}
+    ${kpi(k.avg==null?null:k.avg+" / 100","score moyen",dl(k.avg,kp.avg," pt"))}
+    ${kpi(k.rdvRate==null?null:k.rdvRate+" %","de rendez-vous obtenus",dl(k.rdvRate,kp.rdvRate," pt"))}
+    ${kpi(k.durationMin==null?null:String(k.durationMin).replace(".",",")+" min","durée moyenne d'un appel")}
+    ${kpi(k.prepRate==null?null:k.prepRate+" %","d'appels bien préparés")}
+  </div>
+  <div class="fr-grid">
+    <div class="fr-box" style="margin:0"><h2>Évolution sur 12 semaines</h2>
+      <div class="scroll"><svg viewBox="0 0 ${cw} ${ch}" width="100%" style="min-width:520px" role="img" aria-label="Appels par semaine et score moyen sur 12 semaines">${bars}${line}${dots}${labels}</svg></div>
+      <p class="hint" style="margin:6px 0 0">Barres : appels par semaine. Ligne orange : score moyen.</p></div>
+    <div class="fr-box" style="margin:0"><h2>Points d'attention</h2>${data.alerts.length?`<ul class="fr-alerts">${data.alerts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:`<p class="hint">Rien à signaler sur la période.</p>`}</div>
+  </div>
+  <div class="fr-box"><h2>Les agences</h2><div class="scroll"><table>
+    <thead><tr><th scope="col">Agence</th><th scope="col">Actifs</th><th scope="col">Appels</th><th scope="col">Par actif</th><th scope="col">Score</th><th scope="col">Évolution</th><th scope="col">RDV</th><th scope="col">Temps de parole</th><th scope="col">Préparation</th><th scope="col">Erreurs Smile</th><th scope="col">Dernière activité</th></tr></thead>
+    <tbody>${data.agencies.map(a=>`<tr><td><b>${esc(a.bu)}</b></td><td>${a.actives}</td><td>${a.calls}</td><td>${String(a.perActive).replace(".",",")}</td><td>${a.avg??"–"}</td><td>${a.delta==null?"–":a.delta>0?`<span style="color:var(--ok)">+${a.delta}</span>`:a.delta<0?`<span style="color:var(--ko)">${a.delta}</span>`:"="}</td><td>${a.rdvRate==null?"–":a.rdvRate+" %"}</td><td>${a.talk==null?"–":a.talk+" %"}</td><td>${a.prepRate==null?"–":a.prepRate+" %"}</td><td>${a.errors==null?"–":String(a.errors).replace(".",",")}</td><td>${a.lastActivity?a.lastActivity.slice(8,10)+"/"+a.lastActivity.slice(5,7):"jamais"}</td></tr>`).join("")}</tbody></table></div></div>
+  <div class="fr-box"><h2>Maîtrise de la trame par agence</h2><p class="hint" style="margin:-6px 0 10px">Part des appels où le critère est acquis.</p><div class="scroll"><table class="fr-heat">
+    <thead><tr><th scope="col">Agence</th>${crit.map(c=>`<th scope="col" style="text-align:center">${esc(c[1])}</th>`).join("")}</tr></thead>
+    <tbody><tr><td><b>France</b></td>${crit.map(c=>heat(data.criteria[c[0]])).join("")}</tr>
+    ${data.agencies.filter(a=>a.calls).map(a=>`<tr><td><b>${esc(a.bu)}</b></td>${crit.map(c=>heat(a.criteria[c[0]])).join("")}</tr>`).join("")}</tbody></table></div></div>
+  <div class="fr-grid">
+    <div class="fr-box" style="margin:0"><h2>Comptes les plus travaillés</h2><div class="scroll"><table style="min-width:420px"><thead><tr><th scope="col">Compte</th><th scope="col">Appels</th><th scope="col">Score moyen</th><th scope="col">Agences</th></tr></thead>
+      <tbody>${data.topAccounts.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${a.calls}</td><td>${a.avg??"–"}</td><td>${a.agencies}</td></tr>`).join("") || `<tr><td colspan="4" class="hint">Aucun appel sur la période.</td></tr>`}</tbody></table></div></div>
+    <div class="fr-box" style="margin:0"><h2>Exercices pratiqués</h2><div class="fr-bars">${exRows}</div>
+      ${data.managerCalls?`<p class="hint" style="margin:12px 0 0">${data.managerCalls} appel${data.managerCalls>1?"s":""} d'entraînement de managers, non comptés ici.</p>`:""}</div>
+  </div>`;
+  v.querySelectorAll("[data-days]").forEach(b=>b.onclick=()=>{ S.franceDays=+b.dataset.days; renderFrance(); });
+}
 $("#logoutBtn").onclick=()=>{ if(!$("#viewCall").hidden) return; showLogin(); };
 
 function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
@@ -1471,7 +1583,9 @@ function renderChrome(){
   $("#profileLine").textContent = S.junior ? `Connecté en tant que ${juniorName()}${myBu()?`, agence de ${myBu()}`:""} (${({junior:"commercial",manager:"manager d'agence",direction:"direction commerciale"})[myRole()]}).` : "";
   $("#tabManager").hidden = S.mode!=="manager";
   $("#tabHome").hidden = !S.junior;
-  if(S.mode==="manager" && S.junior) $("#whoChip").innerHTML = `<b>${esc(S.junior.first)}</b> · ${esc(S.junior.bu)} · Manager`;
+  $("#tabFrance").hidden = S.mode!=="france";
+  if(S.mode==="manager" && S.junior) $("#whoChip").innerHTML = `<b>Manager</b> · ${esc(S.junior.bu)}`;
+  if(S.mode==="france") $("#whoChip").innerHTML = `<b>Direction France</b>`;
   $("#privacyNote").textContent = sharing()
     ? "Les transcriptions restent sur cet ordinateur. Seuls tes scores, niveaux et axes de travail sont partagés avec ton manager. Utilise un casque pour éviter l'écho."
     : "Rien ne quitte cet ordinateur, à part l'échange avec Gemini pendant l'appel. Utilise un casque pour éviter l'écho.";
@@ -1484,8 +1598,9 @@ function renderChrome(){
   $("#settingsBtn").onclick = ()=>openDlg("#dlgSettings");
   $("#closeSettings").onclick = ()=>$("#dlgSettings").close();
   $("#changeWho").onclick = ()=>{ $("#dlgSettings").close(); showLogin(); };
-  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden || !$("#viewLogin").hidden) return; S.junior ? goHome() : (showView("manager"), openManager()); };
+  $("#homeBtn").onclick = ()=>{ if(!$("#viewCall").hidden || !$("#viewLogin").hidden) return; S.mode==="france" ? (showView("france"), renderFrance()) : S.junior ? goHome() : (showView("manager"), openManager()); };
   $("#tabHome").onclick = ()=>{ if(!$("#viewCall").hidden) return; goHome(); };
+  $("#tabFrance").onclick = ()=>{ showView("france"); renderFrance(); };
   $("#tabRanking").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("ranking"); renderRanking(); };
   $("#tabManager").onclick = ()=>{ if(!$("#viewCall").hidden) return; showView("manager"); openManager(); };
   if(CONFIG.GEMINI_API_KEY){ $("#keyBlock").hidden = true; }
@@ -2787,7 +2902,7 @@ function sessionSet(k,v){ try{ v===null?sessionStorage.removeItem(k):sessionStor
 async function load(){
   if(DEMO){ ALL=demoData(); ALL_RAW=ALL.slice(); SCOPE=null; return; }
   const pw=sessionGet("laligne.managerPw");
-  const r=await fetch("api/sessions",{headers:{"x-manager-password":pw||""},cache:"no-store"});
+  const r=await fetch("api/sessions",{headers:{"x-manager-password":encodeURIComponent(pw||"")},cache:"no-store"});
   let d=null; try{ d=await r.json(); }catch(e){}
   if(!r.ok || !d || !d.ok) throw new Error(d&&d.error ? d.error : "L'espace manager n'est disponible que sur le Space Hugging Face.");
   BACKUP = !!d.backup; BSTATUS = d.backupStatus || null; SCOPE = d.scope || null; BUS_ALL = d.bus || [];
@@ -3079,7 +3194,7 @@ $("#resetForm").addEventListener("submit", async e=>{
   if(v!=="REMETTRE A ZERO"){ $("#resetErr").textContent="Tape exactement REMETTRE A ZERO pour confirmer."; return; }
   $("#resetGo").disabled=true; $("#resetErr").textContent="";
   try{
-    const r=await fetch("api/reset",{method:"POST",headers:{"x-manager-password":sessionGet("laligne.managerPw")||""}});
+    const r=await fetch("api/reset",{method:"POST",headers:{"x-manager-password":encodeURIComponent(sessionGet("laligne.managerPw")||"")}});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.ok) throw new Error(d.error||`Erreur ${r.status}`);
     $("#dlgReset").close();
