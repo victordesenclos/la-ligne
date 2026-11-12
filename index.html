@@ -1494,7 +1494,7 @@ $("#lgJunior").addEventListener("submit", async e=>{
   const isMgr = S.loginRole==="manager";
   if(S.loginRole==="france") return loginFrance();
   const bu=$("#lgBu").value;
-  let first=$("#lgFirst").value.trim(), last=$("#lgLast").value.trim();
+  let first=canonName($("#lgFirst").value), last=canonName($("#lgLast").value);
   if(isMgr){ if(!bu){ $("#lgErr").textContent="Choisis ton agence."; return; } first="Manager"; last=bu; }
   else if(!first || !last || !bu){ $("#lgErr").textContent="Indique ton agence, ton prénom et ton nom."; return; }
   let portfolio=$("#lgPortfolio").value.split("\n").map(x=>x.trim()).filter(Boolean).slice(0,30);
@@ -1598,6 +1598,15 @@ async function renderFrance(data){
 $("#logoutBtn").onclick=()=>{ if(!$("#viewCall").hidden) return; showLogin(); };
 
 function openDlg(sel){ const d=$(sel); try{ d.showModal(); }catch(err){ d.setAttribute("open",""); } }
+// « victor DESENCLOS » devient « Victor Desenclos » : une personne, un seul nom
+const PARTICLES = new Set(["de","du","des","la","le","van","von","da","di","del"]);
+function canonName(n){
+  return String(n||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean).map((w,i)=>{
+    const lw=w.toLowerCase();
+    if(i>0 && PARTICLES.has(lw)) return lw;
+    return lw.replace(/(^|[-'’])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
+  }).join(" ");
+}
 function juniorName(){ return S.junior ? `${S.junior.first} ${S.junior.last}` : "Anonyme"; }
 function renderChrome(){
   $("#whoChip").innerHTML = S.junior ? `<b>${esc(S.junior.first)}</b>` : "";
@@ -2912,7 +2921,7 @@ function backupBar(){
   const b=BSTATUS||{};
   const hm=t=>t?new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
   if(!b.mode) return `<div class="demo" style="background:var(--ko-soft);color:var(--ko)"><b>Sauvegarde inactive.</b> Les résultats sont perdus à chaque redémarrage du serveur (au moins une fois par jour sur Render gratuit). Ajoute GITHUB_TOKEN et GITHUB_REPO dans Environment sur Render.</div>`;
-  if(b.lastError && (!b.lastOk || b.lastErrorAt > b.lastOk)) return `<div class="demo" style="background:var(--ko-soft);color:var(--ko)"><b>La sauvegarde ${esc(b.mode)} échoue</b> (${esc(hm(b.lastErrorAt))}) : ${esc(b.lastError)}</div>`;
+  if(b.lastError && (!b.lastOk || b.lastErrorAt > b.lastOk)) return `<div class="demo" style="background:var(--ko-soft);color:var(--ko)"><b>La sauvegarde ${esc(b.mode)} échoue</b> (${esc(hm(b.lastErrorAt))}) : ${esc(b.lastError)}${b.token?`<br><small>Jeton reçu par le serveur : ${esc(b.token)}. Serveur démarré le ${esc(hm(b.startedAt))}.</small>`:""}</div>`;
   return `<p style="margin:14px 0 0;font-size:.86rem;color:var(--ok)">Sauvegarde ${esc(b.mode)} active${b.lastOk?`, dernière sauvegarde le ${esc(hm(b.lastOk))}`:""}${b.restored!=null?` · ${b.restored} appel${b.restored>1?"s":""} restauré${b.restored>1?"s":""} au dernier démarrage du serveur`:""}.</p>`;
 }
 function sessionGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
