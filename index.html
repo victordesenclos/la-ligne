@@ -173,6 +173,9 @@ dialog::backdrop{background:rgba(22,35,90,.45)}
 .fr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin:28px 0 18px}
 .fr-head h1{margin:0 0 4px;font-size:1.8rem}
 .fr-head p{margin:0;color:var(--mute)}
+.fr-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fr-filters select{border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;background:var(--white);font:inherit;font-weight:500;min-height:42px}
+.fr-box tr.sel td{background:var(--orange-soft)}
 .fr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
 .fr-kpi{background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:2px}
 .fr-kpi b{font-size:1.7rem}
@@ -1513,17 +1516,17 @@ async function loginFrance(){
   try{ r=await fetch("api/france?days=90",{headers:{"x-manager-password":encodeURIComponent(pw)},cache:"no-store"}); d=await r.json(); }catch(err){}
   if(!r || !r.ok || !d || !d.ok){ $("#lgErr").textContent = d && d.error ? d.error : (r && r.status===404 ? "Le serveur n'est pas à jour : déploie la dernière version de app.py." : "Connexion impossible. Réessaie dans un instant."); return; }
   $("#lgErr").textContent="";
-  S.francePw=pw; S.franceDays=90; S.mode="france"; S.junior=null;
+  S.francePw=pw; S.franceDays=90; S.franceBu=""; S.mode="france"; S.junior=null;
   const prev=JSON.parse(safeGet("laligne.lastLogin")||"{}");
   safeSet("laligne.lastLogin", JSON.stringify({...prev, role:"france"}));
   renderChrome(); showView("france"); renderFrance(d);
 }
 const EX_LABEL = { "appel-n1":"Niveau 1", "appel-n2":"Niveau 2", "appel-n3":"Niveau 3", barrage:"Barrage", messagerie:"Laisser un message", profil:"Pousser un profil" };
 async function renderFrance(data){
-  const v=$("#viewFrance"), days=S.franceDays||90;
+  const v=$("#viewFrance"), days=S.franceDays||90, selBu=S.franceBu||"";
   if(!data){
     v.innerHTML=`<p class="hint" style="margin-top:28px">Chargement…</p>`;
-    try{ const r=await fetch("api/france?days="+days,{headers:{"x-manager-password":encodeURIComponent(S.francePw||"")},cache:"no-store"}); data=await r.json(); if(!r.ok||!data.ok) throw new Error(data.error||"Erreur"); }
+    try{ const r=await fetch("api/france?days="+days+(selBu?"&bu="+encodeURIComponent(selBu):""),{headers:{"x-manager-password":encodeURIComponent(S.francePw||"")},cache:"no-store"}); data=await r.json(); if(!r.ok||!data.ok) throw new Error(data.error||"Erreur"); }
     catch(e){ v.innerHTML=`<p class="err" style="margin-top:28px">${esc(e.message||"Données indisponibles.")}</p>`; return; }
   }
   const k=data.kpi, kp=data.kpiPrev, crit=GRIDS.appel;
@@ -1542,8 +1545,12 @@ async function renderFrance(data){
   const exTot=Object.values(data.exercises).reduce((a,b)=>a+b,0)||1;
   const exRows=Object.entries(data.exercises).sort((a,b)=>b[1]-a[1]).map(([kk,n])=>`<div class="r"><span>${esc(EX_LABEL[kk]||kk)}</span><span class="t"><span style="width:${Math.round(n/exTot*100)}%"></span></span><b>${n}</b></div>`).join("") || `<p class="hint">Aucun appel sur la période.</p>`;
   v.innerHTML = `
-  <div class="fr-head"><div><h1>Espace Direction France</h1><p>Toutes les agences, ${per[days]||days+" jours"}. Données agrégées par agence, sans noms de commerciaux.</p></div>
-    <div class="seg" role="group" aria-label="Période">${[30,90,365].map(d=>`<button type="button" data-days="${d}" aria-pressed="${d===days}">${per[d]}</button>`).join("")}</div></div>
+  <div class="fr-head"><div><h1>Espace Direction France${data.bu?` · ${esc(data.bu)}`:""}</h1><p>${data.bu?`Agence de ${esc(data.bu)}`:"Toutes les agences"}, ${per[days]||days+" jours"}. Données agrégées, sans noms de commerciaux.</p></div>
+    <div class="fr-filters">
+      <label class="sr-only" for="frBu">Agence</label>
+      <select id="frBu"><option value="">Toutes les agences</option>${(data.bus||S.bus).map(b=>`<option ${b===data.bu?"selected":""}>${esc(b)}</option>`).join("")}</select>
+      <div class="seg" role="group" aria-label="Période">${[30,90,365].map(d=>`<button type="button" data-days="${d}" aria-pressed="${d===days}">${per[d]}</button>`).join("")}</div>
+    </div></div>
   <div class="fr-kpis">
     ${kpi(k.calls,"appels d'entraînement",dl(k.calls,kp.calls))}
     ${kpi(k.actives,"commerciaux actifs",dl(k.actives,kp.actives))}
@@ -1558,13 +1565,13 @@ async function renderFrance(data){
       <p class="hint" style="margin:6px 0 0">Barres : appels par semaine. Ligne orange : score moyen.</p></div>
     <div class="fr-box" style="margin:0"><h2>Points d'attention</h2>${data.alerts.length?`<ul class="fr-alerts">${data.alerts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:`<p class="hint">Rien à signaler sur la période.</p>`}</div>
   </div>
-  <div class="fr-box"><h2>Les agences</h2><div class="scroll"><table>
+  <div class="fr-box"><h2>Les agences${data.bu?` <span class="hint" style="font-weight:400;font-size:.9rem">(comparaison avec toutes les agences)</span>`:""}</h2><div class="scroll"><table>
     <thead><tr><th scope="col">Agence</th><th scope="col">Actifs</th><th scope="col">Appels</th><th scope="col">Par actif</th><th scope="col">Score</th><th scope="col">Évolution</th><th scope="col">RDV</th><th scope="col">Temps de parole</th><th scope="col">Préparation</th><th scope="col">Erreurs Smile</th><th scope="col">Dernière activité</th></tr></thead>
-    <tbody>${data.agencies.map(a=>`<tr><td><b>${esc(a.bu)}</b></td><td>${a.actives}</td><td>${a.calls}</td><td>${String(a.perActive).replace(".",",")}</td><td>${a.avg??"–"}</td><td>${a.delta==null?"–":a.delta>0?`<span style="color:var(--ok)">+${a.delta}</span>`:a.delta<0?`<span style="color:var(--ko)">${a.delta}</span>`:"="}</td><td>${a.rdvRate==null?"–":a.rdvRate+" %"}</td><td>${a.talk==null?"–":a.talk+" %"}</td><td>${a.prepRate==null?"–":a.prepRate+" %"}</td><td>${a.errors==null?"–":String(a.errors).replace(".",",")}</td><td>${a.lastActivity?a.lastActivity.slice(8,10)+"/"+a.lastActivity.slice(5,7):"jamais"}</td></tr>`).join("")}</tbody></table></div></div>
+    <tbody>${data.agencies.map(a=>`<tr class="${a.bu===data.bu?"sel":""}"><td><b>${esc(a.bu)}</b></td><td>${a.actives}</td><td>${a.calls}</td><td>${String(a.perActive).replace(".",",")}</td><td>${a.avg??"–"}</td><td>${a.delta==null?"–":a.delta>0?`<span style="color:var(--ok)">+${a.delta}</span>`:a.delta<0?`<span style="color:var(--ko)">${a.delta}</span>`:"="}</td><td>${a.rdvRate==null?"–":a.rdvRate+" %"}</td><td>${a.talk==null?"–":a.talk+" %"}</td><td>${a.prepRate==null?"–":a.prepRate+" %"}</td><td>${a.errors==null?"–":String(a.errors).replace(".",",")}</td><td>${a.lastActivity?a.lastActivity.slice(8,10)+"/"+a.lastActivity.slice(5,7):"jamais"}</td></tr>`).join("")}</tbody></table></div></div>
   <div class="fr-box"><h2>Maîtrise de la trame par agence</h2><p class="hint" style="margin:-6px 0 10px">Part des appels où le critère est acquis.</p><div class="scroll"><table class="fr-heat">
     <thead><tr><th scope="col">Agence</th>${crit.map(c=>`<th scope="col" style="text-align:center">${esc(c[1])}</th>`).join("")}</tr></thead>
-    <tbody><tr><td><b>France</b></td>${crit.map(c=>heat(data.criteria[c[0]])).join("")}</tr>
-    ${data.agencies.filter(a=>a.calls).map(a=>`<tr><td><b>${esc(a.bu)}</b></td>${crit.map(c=>heat(a.criteria[c[0]])).join("")}</tr>`).join("")}</tbody></table></div></div>
+    <tbody><tr><td><b>${data.bu?esc(data.bu):"France"}</b></td>${crit.map(c=>heat(data.criteria[c[0]])).join("")}</tr>
+    ${data.agencies.filter(a=>a.calls).map(a=>`<tr class="${a.bu===data.bu?"sel":""}"><td><b>${esc(a.bu)}</b></td>${crit.map(c=>heat(a.criteria[c[0]])).join("")}</tr>`).join("")}</tbody></table></div></div>
   <div class="fr-grid">
     <div class="fr-box" style="margin:0"><h2>Comptes les plus travaillés</h2><div class="scroll"><table style="min-width:420px"><thead><tr><th scope="col">Compte</th><th scope="col">Appels</th><th scope="col">Score moyen</th><th scope="col">Agences</th></tr></thead>
       <tbody>${data.topAccounts.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${a.calls}</td><td>${a.avg??"–"}</td><td>${a.agencies}</td></tr>`).join("") || `<tr><td colspan="4" class="hint">Aucun appel sur la période.</td></tr>`}</tbody></table></div></div>
@@ -1572,6 +1579,7 @@ async function renderFrance(data){
       ${data.managerCalls?`<p class="hint" style="margin:12px 0 0">${data.managerCalls} appel${data.managerCalls>1?"s":""} d'entraînement de managers, non comptés ici.</p>`:""}</div>
   </div>`;
   v.querySelectorAll("[data-days]").forEach(b=>b.onclick=()=>{ S.franceDays=+b.dataset.days; renderFrance(); });
+  $("#frBu").onchange=()=>{ S.franceBu=$("#frBu").value; renderFrance(); };
 }
 $("#logoutBtn").onclick=()=>{ if(!$("#viewCall").hidden) return; showLogin(); };
 
