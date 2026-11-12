@@ -421,6 +421,7 @@ details.transcript p{margin:8px 0;font-size:.93rem}
         <div class="field" id="lgPwBox" style="margin-top:12px" hidden><label for="lgPw" id="lgPwLabel">Mot de passe manager</label><input id="lgPw" type="password" autocomplete="current-password">
           <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px;cursor:pointer"><input type="checkbox" id="lgPwShow" style="width:auto"> Afficher le mot de passe</label></div>
         <p class="hint" id="lgPwHint" style="margin-top:6px" hidden></p>
+        <p class="err" id="lgCfgWarn" style="margin-top:6px" hidden></p>
         <p class="err" id="lgErr" role="alert"></p>
         <div class="foot"><button class="btn orange" type="submit" id="lgSubmit">Se connecter</button></div>
       </form>
@@ -1442,7 +1443,19 @@ function setLoginRole(r){
     : "Tu accèdes au suivi de ton agence et tu peux aussi t'entraîner. Tes appels d'entraînement ne comptent pas dans le classement.";
   $("#lgSubmit").textContent = r==="france" ? "Ouvrir l'espace France" : r==="manager" ? "Se connecter en manager" : "Se connecter";
   $("#lgErr").textContent = "";
+  managerConfigWarn();
   setTimeout(()=>(r==="junior" ? ($("#lgFirst").value ? $("#lgPortfolio") : $("#lgFirst")) : r==="manager" && !$("#lgBu").value ? $("#lgBu") : $("#lgPw")).focus(), 30);
+}
+// Prévient si l'agence choisie n'a pas de mot de passe manager configuré sur le serveur
+function managerConfigWarn(){
+  const el=$("#lgCfgWarn"), c=S.cfg||{};
+  if(S.loginRole!=="manager" || !c.managerAgencies){ el.hidden=true; return; }
+  const bu=$("#lgBu").value, has=c.managerAgencies.map(x=>x.toLowerCase());
+  let msg="";
+  if(c.managerPasswordsRepaired) msg="La variable MANAGER_PASSWORDS de Render est mal écrite : elle a été lue en mode tolérant. Vérifie-la quand tu peux. ";
+  if(c.managerAgenciesUnknown && c.managerAgenciesUnknown.length) msg += `Agences avec un mot de passe mais absentes de la variable BUS (donc absentes de la liste) : ${c.managerAgenciesUnknown.join(", ")}. `;
+  if(bu && !has.includes(bu.toLowerCase())) msg += `Aucun mot de passe manager n'est configuré pour ${bu} sur le serveur${c.directionPassword?" : seul le mot de passe de direction fonctionne pour cette agence":""}.`;
+  el.textContent=msg.trim(); el.hidden=!msg;
 }
 function fillLoginBu(){
   const sel=$("#lgBu"), cur=sel.value || (JSON.parse(safeGet("laligne.lastLogin")||"{}").bu) || "";
@@ -1473,6 +1486,7 @@ $("#lgRoleJunior").onclick=()=>setLoginRole("junior");
 $("#lgPwShow").onchange=()=>{ $("#lgPw").type = $("#lgPwShow").checked ? "text" : "password"; };
 $("#lgRoleManager").onclick=()=>setLoginRole("manager");
 $("#lgRoleFrance").onclick=()=>setLoginRole("france");
+$("#lgBu").addEventListener("change", managerConfigWarn);
 for(const id of ["#lgFirst","#lgLast","#lgBu"]) $(id).addEventListener("change", loginLookup);
 $("#lgPortfolio").addEventListener("input", ()=>{ $("#lgPortfolio").dataset.touched="1"; });
 $("#lgJunior").addEventListener("submit", async e=>{
@@ -1490,7 +1504,7 @@ $("#lgJunior").addEventListener("submit", async e=>{
     if(!pw){ $("#lgErr").textContent="Saisis le mot de passe manager de ton agence."; $("#lgPw").focus(); return; }
     $("#lgErr").textContent="Vérification…";
     let d=null, r=null;
-    try{ r=await fetch("api/sessions",{headers:{"x-manager-password":encodeURIComponent(pw)},cache:"no-store"}); d=await r.json(); }catch(err){}
+    try{ r=await fetch("api/sessions",{headers:{"x-manager-password":encodeURIComponent(pw),"x-manager-bu":encodeURIComponent(bu)},cache:"no-store"}); d=await r.json(); }catch(err){}
     if(!r || !r.ok || !d || !d.ok){ $("#lgErr").textContent = d && d.error ? d.error : "Connexion impossible. Réessaie dans un instant."; return; }
     if(d.scope && d.scope!=="*" && d.scope.toLowerCase()!==bu.toLowerCase()){ $("#lgErr").textContent=`Ce mot de passe correspond à l'agence de ${d.scope}. Choisis cette agence.`; return; }
     $("#lgErr").textContent="";
@@ -1624,7 +1638,8 @@ function renderChrome(){
   $("#phoneFx").onchange=()=>safeSet("laligne.phoneFx",$("#phoneFx").checked?"1":"0");
   fetch("api/config",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(cfg=>{
     // Le manager a remis les analyses à zéro : on efface l'historique local antérieur
-    if(cfg && Array.isArray(cfg.bus) && cfg.bus.length){ S.bus = cfg.bus; fillBuSelect(); fillLoginBu(); }
+    if(cfg) { S.cfg = cfg; }
+    if(cfg && Array.isArray(cfg.bus) && cfg.bus.length){ S.bus = cfg.bus; fillBuSelect(); fillLoginBu(); managerConfigWarn(); }
     // Remise à zéro propre à l'agence du junior
     const buReset = cfg && cfg.resetAtBu && myBu() ? cfg.resetAtBu[myBu().toLowerCase()] : null;
     if(cfg){ const eff=[cfg.resetAt||"", buReset||""].sort().pop(); if(eff) cfg.resetAt = eff; }
