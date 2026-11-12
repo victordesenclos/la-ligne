@@ -35,8 +35,8 @@ FRANCE_PASSWORD = os.getenv("FRANCE_PASSWORD", "").strip()   # espace Direction 
 BUS = [b.strip() for b in os.getenv("BUS", "Lille,Paris,Lyon,Marseille,Nantes,Bordeaux,Toulouse,Montpellier").split(",") if b.strip()]
 DEFAULT_BU = BUS[0] if BUS else "Lille"   # les appels enregistrés avant l'arrivée des agences sont rattachés à la première
 def parse_bu_passwords(raw: str):
-    """Lit MANAGER_PASSWORDS en tolérant les erreurs courantes : guillemets typographiques, guillemet oublié,
-    ou format simple « Lille:motdepasse, Paris:autre » (une agence par virgule ou par ligne)."""
+    """Lit MANAGER_PASSWORDS. Deux formats : simple « Lille:motdepasse, Paris:autre » (recommandé),
+    ou JSON {"Lille":"motdepasse"}. Les erreurs courantes du JSON sont tolérées (guillemet oublié, guillemets typographiques)."""
     raw = (raw or "").strip()
     if not raw:
         return {}, False
@@ -56,7 +56,8 @@ def parse_bu_passwords(raw: str):
         k, v = k.strip().strip('"').strip("'").strip(), v.strip().strip('"').strip("'").strip()
         if k and v:
             out[k.lower()] = v
-    return out, True
+    # Le format simple « Lille:motdepasse, Paris:autre » est un format normal, pas une erreur
+    return out, txt.lstrip().startswith("{")
 
 
 BU_PASSWORDS, BU_PASSWORDS_REPAIRED = parse_bu_passwords(os.getenv("MANAGER_PASSWORDS", ""))
